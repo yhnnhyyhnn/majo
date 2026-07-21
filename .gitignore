@@ -1,0 +1,52 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+/logs/
+*.log
+
+# Maven
+.mvn/
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# AgentScope
+.agentscope/
+agents/
+backend/agents/
+backend/web-user/
+developer/
+
+# Environment / Secrets
+.env
+.env.local
+application-local.properties
+application-local.yml
+application.properties
+
+# Logs & cache
+*.log
+*.tmp
+.cache/
+
+# Test output
+hs_err_pid*

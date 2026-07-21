@@ -1,0 +1,4 @@
+server.port=18789
+agent.coding.api-key=your-api-key-here
+agent.coding.base-url=https://api.openai.com/v1
+agent.coding.model-name=gpt-4o-mini
