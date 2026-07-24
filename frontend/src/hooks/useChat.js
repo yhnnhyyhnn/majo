@@ -2,9 +2,10 @@ import { useState, useRef, useCallback } from "react";
 
 const API = "/api";
 
-export default function useChat(config) {
+export default function useChat(workspace) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [convId, setConvId] = useState(null);
   const abortRef = useRef(null);
   const sessionRef = useRef("session-" + Date.now());
 
@@ -26,9 +27,67 @@ export default function useChat(config) {
   }, []);
 
   const stop = useCallback(() => {
-    if (abortRef.current) {
-      abortRef.current.abort();
+    if (abortRef.current) abortRef.current.abort();
+  }, []);
+
+  const loadConversation = useCallback(async (id) => {
+    setConvId(id);
+    setMessages([]);
+    try {
+      const res = await fetch(API + "/conversations/" + id + "/messages");
+      const data = await res.json();
+      const msgs = data.map((m) => {
+        let meta = {};
+        try { meta = m.metadata ? JSON.parse(m.metadata) : {}; } catch {}
+        return {
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          time: m.time ? new Date(m.time).toLocaleTimeString() : "",
+          streaming: false,
+          thinkingBlocks: meta.thinkingBlocks || [],
+          toolCalls: meta.toolCalls || [],
+        };
+      });
+      setMessages(msgs);
+    } catch {}
+  }, []);
+
+  const createConversation = useCallback(async () => {
+    try {
+      const res = await fetch(API + "/conversations", { method: "POST" });
+      const data = await res.json();
+      setConvId(data.id);
+      return data.id;
+    } catch {
+      return null;
     }
+  }, []);
+
+  const saveExchange = useCallback(async (cid, userMsg, agentMsg) => {
+    const payload = [
+      { role: userMsg.role, content: userMsg.content, metadata: "{}" },
+      {
+        role: agentMsg.role,
+        content: agentMsg.content,
+        metadata: JSON.stringify({
+          thinkingBlocks: agentMsg.thinkingBlocks || [],
+          toolCalls: agentMsg.toolCalls || [],
+        }),
+      },
+    ];
+    try {
+      await fetch(API + "/conversations/" + cid + "/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {}
+  }, []);
+
+  const newConversation = useCallback(() => {
+    setConvId(null);
+    setMessages([]);
   }, []);
 
   const send = useCallback(
@@ -39,7 +98,13 @@ export default function useChat(config) {
       abortRef.current = controller;
       setLoading(true);
 
-      addMsg({ role: "user", content: prompt, time: new Date().toLocaleTimeString() });
+      const userMsg = {
+        role: "user",
+        content: prompt,
+        time: new Date().toLocaleTimeString(),
+        id: Date.now(),
+      };
+      addMsg(userMsg);
 
       const agentMsgId = Date.now();
       addMsg({
@@ -52,6 +117,15 @@ export default function useChat(config) {
         streaming: true,
       });
 
+      let cid = convId;
+      if (!cid) {
+        cid = await createConversation();
+        if (!cid) {
+          finishStream(agentMsgId);
+          return;
+        }
+      }
+
       try {
         const res = await fetch(API + "/chat", {
           method: "POST",
@@ -59,7 +133,7 @@ export default function useChat(config) {
           body: JSON.stringify({
             prompt,
             sessionId: sessionRef.current,
-            workspace: config.workspace,
+            workspace,
           }),
           signal: controller.signal,
         });
@@ -93,31 +167,20 @@ export default function useChat(config) {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === agentMsgId
-                      ? {
-                          ...m,
-                          content: agentContent,
-                          thinkingBlocks: thinkingBlocks.map((b) => ({ ...b })),
-                          toolCalls: toolCalls.map((t) => ({ ...t })),
-                          streaming: false,
-                        }
+                      ? { ...m, content: agentContent, streaming: false, thinkingBlocks: thinkingBlocks.map((b) => ({ ...b })), toolCalls: toolCalls.map((t) => ({ ...t })) }
                       : m
                   )
                 );
                 finishStream(agentMsgId);
+                saveExchange(cid, userMsg, { role: "agent", content: agentContent, thinkingBlocks, toolCalls });
                 return;
               }
 
               if (data.type === "done") {
-                // handled by stream end
               } else if (data.type === "thinking") {
-                // no-op
               } else if (data.type === "ToolCallStartEvent") {
                 const d = data.data || {};
-                currentTool = {
-                  name: d.toolCallName || "tool",
-                  id: d.toolCallId || Date.now(),
-                  args: "",
-                };
+                currentTool = { name: d.toolCallName || "tool", id: d.toolCallId || Date.now(), args: "" };
                 toolCalls.push(currentTool);
               } else if (data.type === "ToolCallDeltaEvent") {
                 const d = data.data || {};
@@ -130,61 +193,43 @@ export default function useChat(config) {
               } else if (data.type === "ToolResultTextDeltaEvent") {
                 const d = data.data || {};
                 const last = toolCalls[toolCalls.length - 1];
-                if (last && d.delta)
-                  last.result = (last.result || "") + d.delta;
+                if (last && d.delta) last.result = (last.result || "") + d.delta;
               } else if (data.type === "ToolResultEndEvent") {
-                // end
               } else if (data.type === "ThinkingBlockStartEvent") {
                 currentThinking = { id: Date.now(), text: "" };
                 thinkingBlocks.push(currentThinking);
               } else if (data.type === "ThinkingBlockDeltaEvent") {
                 const d = data.data || {};
-                if (currentThinking && d.delta)
-                  currentThinking.text += d.delta;
+                if (currentThinking && d.delta) currentThinking.text += d.delta;
               } else if (data.type === "ThinkingBlockEndEvent") {
                 currentThinking = null;
               } else {
                 const d = data.data || {};
-                if (d.delta) {
-                  agentContent += d.delta;
-                } else if (d.content) {
-                  agentContent += d.content;
-                } else if (d.textContent) {
-                  agentContent += d.textContent;
-                } else if (d.text) {
-                  agentContent += d.text;
-                } else if (d.toolCallName) {
-                  agentContent += "\n[Tool: " + d.toolCallName + "] ";
-                }
+                if (d.delta) agentContent += d.delta;
+                else if (d.content) agentContent += d.content;
+                else if (d.textContent) agentContent += d.textContent;
+                else if (d.text) agentContent += d.text;
+                else if (d.toolCallName) agentContent += "\n[Tool: " + d.toolCallName + "] ";
               }
 
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === agentMsgId
-                    ? {
-                        ...m,
-                        content: agentContent,
-                        thinkingBlocks: thinkingBlocks.map((b) => ({ ...b })),
-                        toolCalls: toolCalls.map((t) => ({ ...t })),
-                      }
+                    ? { ...m, content: agentContent, thinkingBlocks: thinkingBlocks.map((b) => ({ ...b })), toolCalls: toolCalls.map((t) => ({ ...t })) }
                     : m
                 )
               );
-            } catch {
-              // skip malformed lines
-            }
+            } catch {}
           }
         }
+
+        saveExchange(cid, userMsg, { role: "agent", content: agentContent, thinkingBlocks, toolCalls });
       } catch (e) {
         if (e.name !== "AbortError") {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === agentMsgId
-                ? {
-                    ...m,
-                    content: "Error: " + e.message,
-                    streaming: false,
-                  }
+                ? { ...m, content: "Error: " + e.message, streaming: false }
                 : m
             )
           );
@@ -193,8 +238,18 @@ export default function useChat(config) {
         finishStream(agentMsgId);
       }
     },
-    [loading, config.workspace, addMsg, finishStream]
+    [loading, workspace, convId, addMsg, finishStream, createConversation, saveExchange]
   );
 
-  return { messages, loading, send, stop, addMsg };
+  return {
+    messages,
+    loading,
+    send,
+    stop,
+    addMsg,
+    loadConversation,
+    createConversation,
+    newConversation,
+    convId,
+  };
 }
