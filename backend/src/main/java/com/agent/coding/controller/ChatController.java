@@ -1,5 +1,6 @@
 package com.agent.coding.controller;
 
+import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
@@ -25,14 +26,15 @@ import java.util.UUID;
 public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
-    private final HarnessAgent defaultAgent;
-    private final OpenAIChatModel model;
+    private static final String SYS_PROMPT = "你是一个专业的编码助手。工具包括: read_file/write_file/edit_file(读写编辑), search_code/find_symbol/list_directory(搜索), execute_command(执行命令), git_status/git_diff/git_branch/git_commit/git_add/git_log(Git操作)。回答简洁专业。";
+    private static final Path DEFAULT_WORKSPACE = Paths.get(System.getProperty("user.dir"));
+
+    private final SettingsService settingsService;
     private final Toolkit toolkit;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public ChatController(HarnessAgent defaultAgent, OpenAIChatModel model, Toolkit toolkit) {
-        this.defaultAgent = defaultAgent;
-        this.model = model;
+    public ChatController(SettingsService settingsService, Toolkit toolkit) {
+        this.settingsService = settingsService;
         this.toolkit = toolkit;
     }
 
@@ -72,25 +74,39 @@ public class ChatController {
             })
             .startWith(event("thinking", "Thinking..."))
             .concatWithValues(event("done", ""))
+            .onErrorResume(e -> {
+                log.error("Chat stream error", e);
+                return Flux.just(event("error", e.getMessage()), event("done", ""));
+            })
             .doFinally(sig -> WorkspaceContext.clear());
     }
 
     private HarnessAgent resolveAgent(String workspace) {
+        Path wsPath;
         if (workspace.isBlank()) {
-            return defaultAgent;
-        }
-        Path wsPath = Paths.get(workspace).toAbsolutePath().normalize();
-        if (!Files.isDirectory(wsPath)) {
-            log.warn("Workspace not found or not a directory: {}, using default", workspace);
-            return defaultAgent;
+            wsPath = DEFAULT_WORKSPACE;
+        } else {
+            wsPath = Paths.get(workspace).toAbsolutePath().normalize();
+            if (!Files.isDirectory(wsPath)) {
+                log.warn("Workspace not found or not a directory: {}, using default", workspace);
+                wsPath = DEFAULT_WORKSPACE;
+            }
         }
         log.info("Using workspace: {}", wsPath);
         return HarnessAgent.builder()
             .name("majo")
-            .sysPrompt("你是一个专业的编码助手。工具包括: read_file/write_file/edit_file(读写编辑), search_code/list_directory(搜索), execute_command(执行命令), git_status/git_diff/git_branch/git_commit/git_add/git_log(Git操作)。回答简洁专业。")
-            .model(model)
+            .sysPrompt(SYS_PROMPT)
+            .model(createModel())
             .toolkit(toolkit)
             .workspace(wsPath)
+            .build();
+    }
+
+    private OpenAIChatModel createModel() {
+        return OpenAIChatModel.builder()
+            .apiKey(settingsService.getApiKey())
+            .baseUrl(settingsService.getBaseUrl())
+            .modelName(settingsService.getModelName())
             .build();
     }
 

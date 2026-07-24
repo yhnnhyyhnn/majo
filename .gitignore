@@ -43,6 +43,9 @@ application-local.properties
 application-local.yml
 application.properties
 
+# H2 Database
+data/
+
 # Logs & cache
 *.log
 *.tmp
@@ -50,3 +53,4 @@ application.properties
 
 # Test output
 hs_err_pid*
+/.omo/
