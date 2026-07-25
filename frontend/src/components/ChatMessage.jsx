@@ -1,6 +1,7 @@
 import { marked } from "marked";
 import { Card } from "./ui/card";
 import { cn } from "../lib/utils";
+import { useTranslation } from "react-i18next";
 
 marked.setOptions({ breaks: true, gfm: true });
 
@@ -11,6 +12,7 @@ export default function ChatMessage({ message }) {
     message;
   const isUser = role === "user";
   const isStreaming = streaming && !content;
+  const { t } = useTranslation();
 
   return (
     <div
@@ -42,9 +44,9 @@ export default function ChatMessage({ message }) {
       >
         {/* Header */}
         <div className="text-xs text-muted-foreground mb-1.5">
-          {isUser ? "You" : "Agent"} · {time}
+          {isUser ? t("chat.you") : t("chat.agent")} · {time}
           {streaming && !isUser && (
-            <span className="text-emerald-400 ml-2">● streaming</span>
+            <span className="text-emerald-400 ml-2">● {t("chat.streaming")}</span>
           )}
         </div>
 
@@ -74,7 +76,7 @@ export default function ChatMessage({ message }) {
               />
             )
           ) : isStreaming ? (
-            <span className="text-muted-foreground italic">Thinking...</span>
+            <span className="text-muted-foreground italic">{t("chat.thinking")}</span>
           ) : null}
         </div>
 

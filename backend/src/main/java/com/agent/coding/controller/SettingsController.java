@@ -1,6 +1,8 @@
 package com.agent.coding.controller;
 
 import com.agent.coding.SettingsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -9,6 +11,8 @@ import java.util.Map;
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class SettingsController {
+
+    private static final Logger log = LoggerFactory.getLogger(SettingsController.class);
 
     private final SettingsService settingsService;
 
@@ -28,6 +32,10 @@ public class SettingsController {
 
     @PostMapping("/settings")
     public Map<String, String> saveSettings(@RequestBody Map<String, String> body) {
+        log.info("Saving settings — received: modelName={}, baseUrl={}, apiKey={}...",
+            body.getOrDefault("modelName", "(not set)"),
+            body.getOrDefault("baseUrl", "(not set)"),
+            body.containsKey("apiKey") ? body.get("apiKey").substring(0, Math.min(8, body.get("apiKey").length())) : "(not set)");
         if (body.containsKey("apiKey")) {
             settingsService.setApiKey(body.get("apiKey"));
         }
@@ -40,6 +48,9 @@ public class SettingsController {
         if (body.containsKey("workspace")) {
             settingsService.setWorkspace(body.get("workspace"));
         }
-        return getSettings();
+        Map<String, String> result = getSettings();
+        log.info("Settings saved — current: modelName={}, baseUrl={}", 
+            result.get("modelName"), result.get("baseUrl"));
+        return result;
     }
 }

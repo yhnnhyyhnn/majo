@@ -3,11 +3,15 @@ package com.agent.coding;
 import com.agent.coding.entity.SettingsEntity;
 import com.agent.coding.repository.SettingsRepository;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SettingsService {
+
+    private static final Logger log = LoggerFactory.getLogger(SettingsService.class);
 
     private final SettingsRepository repository;
 
@@ -22,11 +26,16 @@ public class SettingsService {
 
     @PostConstruct
     void loadFromDb() {
-        repository.findById(1).ifPresent(entity -> {
+        repository.findById(1).ifPresentOrElse(entity -> {
             this.apiKey = entity.getApiKey();
             this.baseUrl = entity.getBaseUrl();
             this.modelName = entity.getModelName();
             this.workspace = entity.getWorkspace();
+            log.info("Settings loaded from DB — baseUrl: {}, modelName: {}, apiKey: {}...",
+                baseUrl, modelName,
+                apiKey.length() > 8 ? apiKey.substring(0, 8) : apiKey);
+        }, () -> {
+            log.warn("No settings found in DB (id=1), using defaults — modelName: {}", modelName);
         });
     }
 
@@ -58,5 +67,6 @@ public class SettingsService {
         entity.setModelName(modelName);
         entity.setWorkspace(workspace);
         repository.save(entity);
+        log.info("Settings persisted — baseUrl: {}, modelName: {}", baseUrl, modelName);
     }
 }

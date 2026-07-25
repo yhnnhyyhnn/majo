@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const API = "/api";
 
@@ -10,6 +10,8 @@ export default function useSettings() {
     workspace: "",
   });
   const [loading, setLoading] = useState(true);
+  const [modelConfigs, setModelConfigs] = useState([]);
+  const [activeModelId, setActiveModelId] = useState(null);
 
   const loadSettings = async () => {
     setLoading(true);
@@ -30,6 +32,16 @@ export default function useSettings() {
     }
   };
 
+  const loadModelConfigs = useCallback(async () => {
+    try {
+      const res = await fetch(API + "/models");
+      const data = await res.json();
+      setModelConfigs(data);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const saveSettings = async (partial) => {
     try {
       await fetch(API + "/settings", {
@@ -42,9 +54,61 @@ export default function useSettings() {
     }
   };
 
+  const addModelConfig = useCallback(async (model) => {
+    try {
+      const res = await fetch(API + "/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(model),
+      });
+      const created = await res.json();
+      await loadModelConfigs();
+      return created;
+    } catch {
+      return null;
+    }
+  }, [loadModelConfigs]);
+
+  const updateModelConfig = useCallback(async (id, partial) => {
+    try {
+      await fetch(API + "/models/" + id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(partial),
+      });
+      await loadModelConfigs();
+    } catch {
+      // ignore
+    }
+  }, [loadModelConfigs]);
+
+  const deleteModelConfig = useCallback(async (id) => {
+    try {
+      await fetch(API + "/models/" + id, { method: "DELETE" });
+      if (activeModelId === id) setActiveModelId(null);
+      await loadModelConfigs();
+    } catch {
+      // ignore
+    }
+  }, [activeModelId, loadModelConfigs]);
+
   useEffect(() => {
     loadSettings();
+    loadModelConfigs();
   }, []);
 
-  return { config, setConfig, loading, loadSettings, saveSettings };
+  return {
+    config,
+    setConfig,
+    loading,
+    loadSettings,
+    saveSettings,
+    modelConfigs,
+    loadModelConfigs,
+    addModelConfig,
+    updateModelConfig,
+    deleteModelConfig,
+    activeModelId,
+    setActiveModelId,
+  };
 }

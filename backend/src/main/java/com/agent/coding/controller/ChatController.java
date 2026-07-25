@@ -2,6 +2,8 @@ package com.agent.coding.controller;
 
 import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
+import com.agent.coding.entity.ModelConfigEntity;
+import com.agent.coding.repository.ModelConfigRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
@@ -18,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -30,11 +33,13 @@ public class ChatController {
     private static final Path DEFAULT_WORKSPACE = Paths.get(System.getProperty("user.dir"));
 
     private final SettingsService settingsService;
+    private final ModelConfigRepository modelConfigRepo;
     private final Toolkit toolkit;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public ChatController(SettingsService settingsService, Toolkit toolkit) {
+    public ChatController(SettingsService settingsService, ModelConfigRepository modelConfigRepo, Toolkit toolkit) {
         this.settingsService = settingsService;
+        this.modelConfigRepo = modelConfigRepo;
         this.toolkit = toolkit;
     }
 
@@ -47,9 +52,10 @@ public class ChatController {
 
         String sessionId = body.getOrDefault("sessionId", UUID.randomUUID().toString());
         String workspace = body.getOrDefault("workspace", "");
+        String modelId = body.getOrDefault("modelId", "");
 
         WorkspaceContext.set(workspace);
-        HarnessAgent agent = resolveAgent(workspace);
+        HarnessAgent agent = resolveAgent(workspace, modelId);
 
         var ctx = RuntimeContext.builder()
             .sessionId(sessionId)
@@ -81,7 +87,7 @@ public class ChatController {
             .doFinally(sig -> WorkspaceContext.clear());
     }
 
-    private HarnessAgent resolveAgent(String workspace) {
+    private HarnessAgent resolveAgent(String workspace, String modelId) {
         Path wsPath;
         if (workspace.isBlank()) {
             wsPath = DEFAULT_WORKSPACE;
@@ -96,17 +102,45 @@ public class ChatController {
         return HarnessAgent.builder()
             .name("majo")
             .sysPrompt(SYS_PROMPT)
-            .model(createModel())
+            .model(resolveModel(modelId))
             .toolkit(toolkit)
             .workspace(wsPath)
             .build();
     }
 
-    private OpenAIChatModel createModel() {
+    private OpenAIChatModel resolveModel(String modelId) {
+        // Try to resolve from model config by ID
+        if (!modelId.isBlank()) {
+            try {
+                Long id = Long.parseLong(modelId);
+                Optional<ModelConfigEntity> opt = modelConfigRepo.findById(id);
+                if (opt.isPresent()) {
+                    ModelConfigEntity cfg = opt.get();
+                    log.info("Using model config #{}: name={}, modelName={}, baseUrl={}",
+                        cfg.getId(), cfg.getName(), cfg.getModelName(), cfg.getBaseUrl());
+                    return OpenAIChatModel.builder()
+                        .apiKey(cfg.getApiKey())
+                        .baseUrl(cfg.getBaseUrl())
+                        .modelName(cfg.getModelName())
+                        .build();
+                }
+                log.warn("Model config #{} not found, falling back to default settings", id);
+            } catch (NumberFormatException e) {
+                log.warn("Invalid modelId: {}, falling back to default settings", modelId);
+            }
+        }
+
+        // Fallback: use legacy single settings
+        String apiKey = settingsService.getApiKey();
+        String baseUrl = settingsService.getBaseUrl();
+        String modelName = settingsService.getModelName();
+        log.info("Using legacy settings — baseUrl: {}, modelName: {}, apiKey: {}...",
+            baseUrl, modelName,
+            apiKey.length() > 8 ? apiKey.substring(0, 8) : apiKey);
         return OpenAIChatModel.builder()
-            .apiKey(settingsService.getApiKey())
-            .baseUrl(settingsService.getBaseUrl())
-            .modelName(settingsService.getModelName())
+            .apiKey(apiKey)
+            .baseUrl(baseUrl)
+            .modelName(modelName)
             .build();
     }
 

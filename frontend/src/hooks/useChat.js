@@ -2,12 +2,14 @@ import { useState, useRef, useCallback } from "react";
 
 const API = "/api";
 
-export default function useChat(workspace) {
+export default function useChat(workspace, modelId) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [convId, setConvId] = useState(null);
   const abortRef = useRef(null);
   const sessionRef = useRef("session-" + Date.now());
+  const modelIdRef = useRef(modelId);
+  modelIdRef.current = modelId; // keep in sync
 
   const addMsg = useCallback((msg) => {
     setMessages((prev) => [
@@ -98,15 +100,17 @@ export default function useChat(workspace) {
       abortRef.current = controller;
       setLoading(true);
 
+      const now = Date.now();
+      const userMsgId = now;
+      const agentMsgId = now + 1;
+
       const userMsg = {
         role: "user",
         content: prompt,
         time: new Date().toLocaleTimeString(),
-        id: Date.now(),
+        id: userMsgId,
       };
       addMsg(userMsg);
-
-      const agentMsgId = Date.now();
       addMsg({
         role: "agent",
         content: "",
@@ -134,6 +138,7 @@ export default function useChat(workspace) {
             prompt,
             sessionId: sessionRef.current,
             workspace,
+            modelId: modelIdRef.current ? String(modelIdRef.current) : "",
           }),
           signal: controller.signal,
         });
