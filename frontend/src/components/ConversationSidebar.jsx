@@ -4,13 +4,13 @@ import {
   Users, Clock, Activity, FolderOpen, WandSparkles, Wrench,
   Plug, Scan, SlidersHorizontal, BarChart3, Bot, Cpu,
   Globe, Shield, Coins, Save, Mic, Bug, Puzzle, Library,
-  ChevronRight, Settings, PanelRightClose
+  ChevronRight, Settings, Menu
 } from "lucide-react";
-import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 
-const SECTIONS = [
+// ── Menu item config ────────────────────────────
+const MAIN_SECTIONS = [
   {
     key: "control",
     labelKey: "sidebar.sections.control",
@@ -34,23 +34,50 @@ const SECTIONS = [
       { key: "stats", labelKey: "sidebar.items.stats", icon: BarChart3 },
     ],
   },
-  {
-    key: "settings",
-    labelKey: "sidebar.sections.settings",
-    items: [
-      { key: "agentMgmt", labelKey: "sidebar.items.agentMgmt", icon: Bot },
-      { key: "models", labelKey: "sidebar.items.models", icon: Cpu },
-      { key: "skillPool", labelKey: "sidebar.items.skillPool", icon: Library },
-      { key: "envVars", labelKey: "sidebar.items.envVars", icon: Globe },
-      { key: "security", labelKey: "sidebar.items.security", icon: Shield },
-      { key: "tokens", labelKey: "sidebar.items.tokens", icon: Coins },
-      { key: "backup", labelKey: "sidebar.items.backup", icon: Save },
-      { key: "voice", labelKey: "sidebar.items.voice", icon: Mic },
-      { key: "debug", labelKey: "sidebar.items.debug", icon: Bug },
-      { key: "plugins", labelKey: "sidebar.items.plugins", icon: Puzzle },
-    ],
-  },
 ];
+
+const SETTINGS_ITEMS = [
+  { key: "agentMgmt", labelKey: "sidebar.items.agentMgmt", icon: Bot },
+  { key: "models", labelKey: "sidebar.items.models", icon: Cpu },
+  { key: "skillPool", labelKey: "sidebar.items.skillPool", icon: Library },
+  { key: "envVars", labelKey: "sidebar.items.envVars", icon: Globe },
+  { key: "security", labelKey: "sidebar.items.security", icon: Shield },
+  { key: "tokens", labelKey: "sidebar.items.tokens", icon: Coins },
+  { key: "backup", labelKey: "sidebar.items.backup", icon: Save },
+  { key: "voice", labelKey: "sidebar.items.voice", icon: Mic },
+  { key: "debug", labelKey: "sidebar.items.debug", icon: Bug },
+  { key: "plugins", labelKey: "sidebar.items.plugins", icon: Puzzle },
+];
+
+// ── Reusable components ─────────────────────────
+function MenuItem({ item, active, onClick }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      className={cn(
+        "w-full flex items-center gap-2 h-10 px-2 rounded-lg text-sm font-normal transition-colors",
+        active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-accent/50"
+      )}
+      onClick={onClick}
+    >
+      <item.icon className="w-4 h-4 text-muted-foreground" />
+      {t(item.labelKey)}
+    </button>
+  );
+}
+
+function SectionHeader({ labelKey, expanded, onToggle }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      className="w-full flex items-center h-10 px-2 rounded-lg text-xs font-medium text-muted-foreground/30 hover:text-muted-foreground/50 transition-colors"
+      onClick={onToggle}
+    >
+      <ChevronRight className={cn("w-3 h-3 mr-1 transition-transform", expanded && "rotate-90")} />
+      {t(labelKey)}
+    </button>
+  );
+}
 
 export default function ConversationSidebar({
   conversations,
@@ -59,10 +86,12 @@ export default function ConversationSidebar({
   onCreate,
   onDelete,
   onOpenSettings,
+  onNavigate,
 }) {
   const [expanded, setExpanded] = useState(["control", "workspace", "settings"]);
   const [activeMenu, setActiveMenu] = useState("chat");
   const [showConversations, setShowConversations] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const { t } = useTranslation();
 
   const toggle = (key) =>
@@ -74,101 +103,108 @@ export default function ConversationSidebar({
     setActiveMenu(key);
     if (key === "sessions") {
       setShowConversations(!showConversations);
+    } else if (key === "models" && onNavigate) {
+      onNavigate("models");
+    } else if (key === "chat") {
+      setShowConversations(false);
+      if (onNavigate) onNavigate("chat");
     } else {
       setShowConversations(false);
     }
   };
 
+  const quickItems = [
+    { key: "inbox", labelKey: "sidebar.inbox", icon: Mail },
+    { key: "apps", labelKey: "sidebar.apps", icon: LayoutGrid },
+  ];
+
   return (
-    <aside className="w-60 border-r border-border bg-card flex flex-col flex-shrink-0 select-none">
-      {/* ── Agent selector ── */}
-      <div className="mx-3 mt-3 mb-1 rounded-xl rounded-b-none bg-muted/40">
-        <div className="px-3 pt-3 pb-2">
-          <div className="text-[11px] font-medium text-muted-foreground/40 mb-1">
-            {t("sidebar.currentAgent")} (1)
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-sm">Majo</span>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />
-          </div>
-        </div>
-        {/* 聊天 tab */}
-        <button
-          className={cn(
-            "w-full flex items-center gap-2 h-10 px-3 text-sm font-normal transition-colors",
-            activeMenu === "chat"
-              ? "bg-white dark:bg-accent text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          onClick={() => handleMenuClick("chat")}
-        >
-          <MessageSquare className="w-4 h-4" />
-          {t("sidebar.chat")}
-        </button>
-      </div>
-
-      {/* ── Quick menu items ── */}
-      <div className="px-3 mt-1">
-        {[
-          { key: "inbox", labelKey: "sidebar.inbox", icon: Mail },
-          { key: "apps", labelKey: "sidebar.apps", icon: LayoutGrid },
-        ].map((item) => (
-          <button
-            key={item.key}
-            className={cn(
-              "w-full flex items-center gap-2 h-10 px-2 rounded-lg text-sm font-normal transition-colors",
-              activeMenu === item.key
-                ? "bg-accent text-accent-foreground"
-                : "text-foreground hover:bg-accent/50"
-            )}
-            onClick={() => handleMenuClick(item.key)}
-          >
-            <item.icon className="w-4 h-4 text-muted-foreground" />
-            {t(item.labelKey)}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Sections ── */}
-      <ScrollArea className="flex-1">
-        <div className="px-3 pb-2">
-          {SECTIONS.map((section) => (
-            <div key={section.key} className="mt-1">
-              {/* Section header */}
-              <button
-                className="w-full flex items-center h-10 px-2 text-[11px] font-medium text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors"
-                onClick={() => toggle(section.key)}
-              >
-                <ChevronRight
-                  className={cn(
-                    "w-3 h-3 mr-1 transition-transform",
-                    expanded.includes(section.key) && "rotate-90"
-                  )}
-                />
-                {t(section.labelKey)}
+    <aside className={cn(
+      "border border-border rounded-xl bg-background flex flex-col flex-shrink-0 select-none h-full overflow-hidden transition-all duration-300",
+      collapsed ? "w-14" : "w-52"
+    )}>
+      <div className="flex-1 overflow-y-auto sidebar-scroll">
+        {collapsed ? (
+          /* Collapsed: icons only */
+          <div className="flex flex-col items-center gap-1 py-2">
+            <button onClick={() => { setCollapsed(false); handleMenuClick("chat"); }} className={cn("w-9 h-9 flex items-center justify-center rounded-lg", activeMenu === "chat" ? "bg-accent/60" : "hover:bg-accent/30 text-muted-foreground")}>
+              <MessageSquare className="w-4 h-4" />
+            </button>
+            {quickItems.map((item) => (
+              <button key={item.key} onClick={() => handleMenuClick(item.key)} className={cn("w-9 h-9 flex items-center justify-center rounded-lg", activeMenu === item.key ? "bg-accent" : "hover:bg-accent/30 text-muted-foreground")}>
+                <item.icon className="w-4 h-4" />
               </button>
+            ))}
+            <div className="w-6 border-t border-border/30 my-1" />
+            {MAIN_SECTIONS.map(s => s.items.map(item => (
+              <button key={item.key} onClick={() => handleMenuClick(item.key)} className={cn("w-9 h-9 flex items-center justify-center rounded-lg", activeMenu === item.key ? "bg-accent" : "hover:bg-accent/30 text-muted-foreground")}>
+                <item.icon className="w-4 h-4" />
+              </button>
+            )))}
+            <div className="w-6 border-t border-border/30 my-1" />
+            {SETTINGS_ITEMS.map(item => (
+              <button key={item.key} onClick={() => handleMenuClick(item.key)} className={cn("w-9 h-9 flex items-center justify-center rounded-lg", activeMenu === item.key ? "bg-accent" : "hover:bg-accent/30 text-muted-foreground")}>
+                <item.icon className="w-4 h-4" />
+              </button>
+            ))}
+          </div>
+        ) : (
+          /* Expanded: full menu */
+        <div className="px-1 py-0 space-y-0">
+          {/* Agent selector */}
+          <div className="px-1 pt-2.5 pb-2">
+            <div className="text-xs font-medium text-muted-foreground/40 mb-1">
+              {t("sidebar.currentAgent")} (1)
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-sm">Majo</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />
+            </div>
+          </div>
 
-              {/* Section items */}
+          {/* 聊天 tab */}
+          <button
+            className={cn(
+              "w-full flex items-center gap-2.5 h-10 px-2 text-sm font-normal rounded-lg transition-colors",
+              activeMenu === "chat"
+                ? "bg-accent/60 text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+            )}
+            onClick={() => handleMenuClick("chat")}
+          >
+            <MessageSquare className="w-4 h-4" />
+            {t("sidebar.chat")}
+          </button>
+
+          {/* Quick items */}
+          {quickItems.map((item) => (
+            <MenuItem
+              key={item.key}
+              item={item}
+              active={activeMenu === item.key}
+              onClick={() => handleMenuClick(item.key)}
+            />
+          ))}
+
+          {/* Control + Workspace sections */}
+          {MAIN_SECTIONS.map((section) => (
+            <div key={section.key}>
+              <SectionHeader
+                labelKey={section.labelKey}
+                expanded={expanded.includes(section.key)}
+                onToggle={() => toggle(section.key)}
+              />
               {expanded.includes(section.key) &&
                 section.items.map((item) => (
                   <div key={item.key}>
-                    <button
-                      className={cn(
-                        "w-full flex items-center gap-2 h-10 px-2 rounded-lg text-sm font-normal transition-colors",
-                        activeMenu === item.key
-                          ? "bg-accent text-accent-foreground"
-                          : "text-foreground hover:bg-accent/50"
-                      )}
+                    <MenuItem
+                      item={item}
+                      active={activeMenu === item.key}
                       onClick={() => handleMenuClick(item.key)}
-                    >
-                      <item.icon className="w-4 h-4 text-muted-foreground" />
-                      {t(item.labelKey)}
-                    </button>
-
-                    {/* Conversation list under 会话 */}
+                    />
                     {item.key === "sessions" && showConversations && (
                       <div className="ml-2 pl-4 border-l border-border/50 mt-0.5 mb-1">
                         <button
@@ -186,10 +222,7 @@ export default function ConversationSidebar({
                         {conversations.map((conv) => (
                           <div
                             key={conv.id}
-                            onClick={() => {
-                              onSelect(conv.id);
-                              setActiveMenu("chat");
-                            }}
+                            onClick={() => { onSelect(conv.id); setActiveMenu("chat"); }}
                             className={cn(
                               "group flex items-center gap-1.5 h-9 pl-2 pr-1 rounded-lg cursor-pointer text-xs transition-colors",
                               activeId === conv.id
@@ -200,10 +233,7 @@ export default function ConversationSidebar({
                             <MessageSquare className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
                             <span className="truncate flex-1">{conv.title}</span>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(conv.id);
-                              }}
+                              onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
                               className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity p-0.5"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -216,23 +246,48 @@ export default function ConversationSidebar({
                 ))}
             </div>
           ))}
+
+          {/* Settings section (separated from card) */}
+          <div>
+            <SectionHeader
+              labelKey="sidebar.sections.settings"
+              expanded={expanded.includes("settings")}
+              onToggle={() => toggle("settings")}
+            />
+            {expanded.includes("settings") &&
+              SETTINGS_ITEMS.map((item) => (
+                <MenuItem
+                  key={item.key}
+                  item={item}
+                  active={activeMenu === item.key}
+                  onClick={() => handleMenuClick(item.key)}
+                />
+              ))}
+          </div>
         </div>
-      </ScrollArea>
+        )}
+      </div>
 
       {/* ── Bottom actions ── */}
-      <div className="px-3 pb-3 pt-2 flex justify-end gap-1 border-t border-border/50">
+      <div className={cn(
+        "h-12 flex items-center gap-1 px-2 flex-shrink-0",
+        collapsed ? "justify-center" : "justify-end"
+      )}>
+        {!collapsed && (
+          <button
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            onClick={onOpenSettings}
+            title="Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
         <button
           className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-          onClick={onOpenSettings}
-          title="Settings"
+          onClick={() => setCollapsed(!collapsed)}
+          title={collapsed ? "展开" : "收起"}
         >
-          <Settings className="w-4 h-4" />
-        </button>
-        <button
-          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-          title="Collapse"
-        >
-          <PanelRightClose className="w-4 h-4" />
+          <Menu className="w-4 h-4" />
         </button>
       </div>
     </aside>

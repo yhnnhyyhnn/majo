@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { Input } from "./ui/input";
+import { useRef, useEffect } from "react";
 import { Button } from "./ui/button";
-import { ChevronDown, Check } from "lucide-react";
-import { cn } from "../lib/utils";
+import { ArrowUp, Mic, Paperclip, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { cn } from "../lib/utils";
 
 export default function ChatInput({
   value,
@@ -12,119 +11,82 @@ export default function ChatInput({
   onStop,
   loading,
   disabled,
-  modelConfigs,
-  activeModelId,
-  onModelChange,
 }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
   const { t } = useTranslation();
+  const textareaRef = useRef(null);
 
   useEffect(() => {
-    const handleClick = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 200) + "px";
+    }
+  }, [value]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!loading) onSend();
+      if (!loading && value.trim()) onSend();
     }
   };
 
-  const activeModel = modelConfigs.find((m) => m.id === activeModelId);
-  const displayName = activeModel ? activeModel.name : t("chat.default");
-
   return (
-    <div className="border-t bg-card p-3">
-      <div className="flex gap-2 items-end">
-        {/* Model selector */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            type="button"
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-2 rounded-md border text-xs font-medium transition-colors whitespace-nowrap",
-              "hover:bg-accent hover:text-accent-foreground",
-              activeModelId ? "border-primary/30 bg-primary/5" : "border-border"
-            )}
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-          >
-            <span className="max-w-[100px] truncate">{displayName}</span>
-            <ChevronDown className={cn("w-3 h-3 transition-transform", dropdownOpen && "rotate-180")} />
-          </button>
-
-          {dropdownOpen && (
-            <div className="absolute bottom-full left-0 mb-1 w-56 rounded-md border bg-popover shadow-lg z-50">
-              <div className="p-1">
-                <button
-                  className={cn(
-                    "w-full flex items-center gap-2 px-3 py-2 rounded-sm text-sm text-left",
-                    !activeModelId
-                      ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent/50"
-                  )}
-                  onClick={() => {
-                    onModelChange(null);
-                    setDropdownOpen(false);
-                  }}
-                >
-                  <span className="flex-1">{t("chat.default")}</span>
-                  {!activeModelId && <Check className="w-3.5 h-3.5" />}
-                </button>
-                {modelConfigs.length > 0 && (
-                  <div className="border-t my-1" />
-                )}
-                {modelConfigs.map((m) => (
-                  <button
-                    key={m.id}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2 rounded-sm text-sm text-left",
-                      activeModelId === m.id
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent/50"
-                    )}
-                    onClick={() => {
-                      onModelChange(m.id);
-                      setDropdownOpen(false);
-                    }}
-                  >
-                    <span className="flex-1 truncate">{m.name}</span>
-                    <span className="text-xs text-muted-foreground truncate max-w-[80px]">
-                      {m.modelName}
-                    </span>
-                    {activeModelId === m.id && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Text input */}
-        <div className="flex-1 flex gap-2">
-          <Input
+    <div className="px-4 pt-3 pb-2">
+      <div className="max-w-3xl mx-auto">
+        {/* Sender box */}
+        <div className="rounded-lg border bg-card shadow-sm">
+          <textarea
+            ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t("chat.placeholder")}
             disabled={loading}
-            className="flex-1 font-mono"
+            rows={1}
+            className="w-full resize-none border-0 bg-transparent px-3 pt-3 pb-0 text-sm font-mono placeholder:text-muted-foreground/40 focus:outline-none disabled:opacity-50"
           />
-          {loading ? (
-            <Button variant="destructive" onClick={onStop}>
-              {t("chat.stop")}
-            </Button>
-          ) : (
-            <Button onClick={onSend} disabled={disabled || !value.trim()}>
-              {t("chat.send")}
-            </Button>
-          )}
+
+          {/* Bottom bar */}
+          <div className="flex items-center justify-between px-2 pb-2">
+            <div className="flex items-center gap-1">
+              <button type="button" className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors" title="Voice">
+                <Mic className="w-4 h-4" />
+              </button>
+              <button type="button" className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors" title="Attachment">
+                <Paperclip className="w-4 h-4" />
+              </button>
+              <span className="text-[11px] font-semibold text-muted-foreground/40 px-2">Default</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground/40 tabular-nums">{value.length}/10000</span>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground/50 cursor-pointer hover:text-muted-foreground transition-colors">
+                自动模式 <ChevronDown className="w-3 h-3" />
+              </span>
+              {loading ? (
+                <Button variant="destructive" size="icon" className="w-7 h-7 rounded-lg" onClick={onStop}>
+                  <span className="text-[10px]">■</span>
+                </Button>
+              ) : (
+                <button
+                  onClick={onSend}
+                  disabled={disabled || !value.trim()}
+                  className={cn(
+                    "w-7 h-7 flex items-center justify-center rounded-lg transition-colors",
+                    value.trim()
+                      ? "bg-foreground text-background hover:bg-foreground/80"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
+                  )}
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Disclaimer */}
+        <p className="text-[11px] text-muted-foreground/30 text-center mt-1.5">Majo — AI Coding Agent</p>
       </div>
     </div>
   );
