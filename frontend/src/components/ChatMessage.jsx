@@ -30,7 +30,11 @@ export default function ChatMessage({ message }) {
             : "bg-emerald-500/20 text-emerald-400"
         )}
       >
-        {isUser ? "👤" : "🤖"}
+        {isUser ? (
+          "👤"
+        ) : (
+          <img src="/majo-icon.svg" alt="Majo" className="w-full h-full rounded-full object-cover" />
+        )}
       </div>
 
       {/* Bubble */}

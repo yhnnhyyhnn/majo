@@ -1,19 +1,27 @@
 import { useState } from "react";
-import { Plus, Trash2, Edit3, Check, X, Globe, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Edit3, Check, X, Globe } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { cn } from "../lib/utils";
 import { useNavigate, useOutletContext } from "react-router-dom";
 
 const PRESET_PROVIDERS = [
-  { name: "GitHub Models", desc: "FREE", url: "https://models.github.com" },
-  { name: "Google Gemini", desc: "FREE", url: "https://ai.google.dev" },
-  { name: "OpenRouter", desc: "FREE", url: "https://openrouter.ai" },
-  { name: "Groq", desc: "FREE", url: "https://groq.com" },
-  { name: "Together AI", desc: "FREE", url: "https://together.ai" },
-  { name: "SiliconFlow", desc: "FREE", url: "https://siliconflow.cn" },
-  { name: "DeepSeek", desc: "FREE", url: "https://platform.deepseek.com" },
-  { name: "Moonshot", desc: "FREE", url: "https://platform.moonshot.cn" },
+  { name: "GitHub Models", free: true, icon: "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" },
+  { name: "Google Gemini", free: true, icon: "https://gw.alicdn.com/imgextra/i2/O1CN01pDWy7z25caEvmJ3u1_!!6000000007547-2-tps-400-400.png" },
+  { name: "OpenRouter", free: true, icon: "https://gw.alicdn.com/imgextra/i4/O1CN01oX74jS1ciQR9xBtZ2_!!6000000003634-2-tps-252-252.png" },
+  { name: "SiliconFlow", free: true, icon: "https://img.alicdn.com/imgextra/i1/O1CN01TUkzVC1clAoPa2ix8_!!6000000003640-2-tps-520-520.png" },
+  { name: "Zhipu", free: true, icon: "https://img.alicdn.com/imgextra/i2/O1CN01TFZcQz23xX7qacIEv_!!6000000007322-2-tps-640-640.png" },
+  { name: "Aliyun", free: false, icon: "https://gw.alicdn.com/imgextra/i4/O1CN01aDHDeq1mgj7gbRkhi_!!6000000004984-2-tps-400-400.png" },
+  { name: "Anthropic", free: false, icon: "https://gw.alicdn.com/imgextra/i2/O1CN014LwvBJ1tNDYvc3FfA_!!6000000005889-2-tps-400-400.png" },
+  { name: "Azure OpenAI", free: false, icon: "https://gw.alicdn.com/imgextra/i2/O1CN01R42n1y1hQAjCEiVlB_!!6000000004271-2-tps-400-400.png" },
+  { name: "DeepSeek", free: false, icon: "https://gw.alicdn.com/imgextra/i4/O1CN01YfmXc81ogO3pR0aW8_!!6000000005254-2-tps-400-400.png" },
+  { name: "Kimi", free: false, icon: "https://gw.alicdn.com/imgextra/i1/O1CN01xCKAr81Yz8Q9pXh1u_!!6000000003129-2-tps-400-400.png" },
+  { name: "MiniMax", free: false, icon: "https://gw.alicdn.com/imgextra/i1/O1CN01B0FaVn1VzBcO4nF1C_!!6000000002723-2-tps-400-400.png" },
+  { name: "ModelScope", free: false, icon: "https://gw.alicdn.com/imgextra/i4/O1CN01exenB61EAwhgY4pmA_!!6000000000312-2-tps-400-400.png" },
+  { name: "OpenAI", free: false, icon: "https://gw.alicdn.com/imgextra/i3/O1CN01rQSexq1D7S4AYstKh_!!6000000000169-2-tps-400-400.png" },
+  { name: "OpenAI (Response API)", free: false, icon: "https://gw.alicdn.com/imgextra/i3/O1CN01rQSexq1D7S4AYstKh_!!6000000000169-2-tps-400-400.png" },
+  { name: "Volcano Engine", free: false, icon: "https://img.alicdn.com/imgextra/i1/O1CN01KusRg42AJPkUV5ken_!!6000000008182-2-tps-1892-1660.png" },
+  { name: "Xiaomi MiMo Token Plan", free: false, icon: "https://img.alicdn.com/imgextra/i1/O1CN01TSCOAt1XP7fywLDei_!!6000000002915-2-tps-3483-3483.png" },
 ];
 
 const TABS = [
@@ -143,10 +151,14 @@ export default function ModelsPage() {
             <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">可用提供商</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {PRESET_PROVIDERS.map((p, i) => (
-                <a key={i} href={p.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-lg bg-muted/40 border border-border/40 px-[14px] py-2.5 hover:border-border/60 transition-colors no-underline">
-                  <div><span className="text-sm">{p.name}</span><span className="text-[11px] text-emerald-500/80 font-medium ml-2">{p.desc}</span></div>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">配置 <ExternalLink className="w-3 h-3" /></span>
-                </a>
+                <div key={i} className="flex items-center gap-[10px] rounded-lg bg-muted/40 border border-border/40 px-[14px] py-[10px] hover:border-border/60 transition-colors cursor-pointer">
+                  <img src={p.icon} alt={p.name} width="24" height="24" className="rounded-[6px] object-cover flex-shrink-0" />
+                  <span className="text-sm flex-1 truncate">{p.name}</span>
+                  {p.free && (
+                    <span className="text-[10px] font-bold text-white px-[6px] py-[2px] rounded leading-[15.7px]" style={{ backgroundImage: "linear-gradient(135deg, rgb(16, 185, 129), rgb(5, 150, 105))" }}>FREE</span>
+                  )}
+                  <span className="text-[11px] text-indigo-500 dark:text-indigo-400 flex-shrink-0">配置 →</span>
+                </div>
               ))}
             </div>
           </div>
