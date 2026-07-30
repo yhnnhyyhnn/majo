@@ -54,3 +54,4 @@ data/
 # Test output
 hs_err_pid*
 /.omo/
+/console/

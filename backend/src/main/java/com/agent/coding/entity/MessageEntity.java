@@ -11,8 +11,8 @@ public class MessageEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "conversation_id", length = 36, nullable = false)
-    private String conversationId;
+    @Column(name = "chat_id", length = 36, nullable = false)
+    private String chatId;
 
     @Column(length = 10, nullable = false)
     private String role;
@@ -20,8 +20,11 @@ public class MessageEntity {
     @Column(columnDefinition = "CLOB", nullable = false)
     private String content;
 
+    @Column(name = "tool_calls", columnDefinition = "CLOB")
+    private String toolCalls;
+
     @Column(columnDefinition = "CLOB")
-    private String metadata;
+    private String thinking;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -30,14 +33,16 @@ public class MessageEntity {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public String getConversationId() { return conversationId; }
-    public void setConversationId(String conversationId) { this.conversationId = conversationId; }
+    public String getChatId() { return chatId; }
+    public void setChatId(String chatId) { this.chatId = chatId; }
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
-    public String getMetadata() { return metadata; }
-    public void setMetadata(String metadata) { this.metadata = metadata; }
+    public String getToolCalls() { return toolCalls; }
+    public void setToolCalls(String toolCalls) { this.toolCalls = toolCalls; }
+    public String getThinking() { return thinking; }
+    public void setThinking(String thinking) { this.thinking = thinking; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

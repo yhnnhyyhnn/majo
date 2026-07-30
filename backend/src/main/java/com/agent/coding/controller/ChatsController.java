@@ -1,0 +1,93 @@
+package com.agent.coding.controller;
+
+import com.agent.coding.ChatService;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "*")
+public class ChatsController {
+
+    private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+    private final ChatService service;
+
+    public ChatsController(ChatService service) {
+        this.service = service;
+    }
+
+    private Map<String, Object> toChatSpec(com.agent.coding.entity.ChatEntity c) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", c.getId());
+        map.put("session_id", "console:" + c.getId());
+        map.put("user_id", "default");
+        map.put("channel", "console");
+        map.put("name", c.getTitle());
+        map.put("title", c.getTitle());
+        map.put("status", c.getStatus());
+        map.put("created_at", c.getCreatedAt() != null ? c.getCreatedAt().format(ISO) : null);
+        map.put("updated_at", c.getUpdatedAt() != null ? c.getUpdatedAt().format(ISO) : null);
+        map.put("pinned", false);
+        map.put("archived", false);
+        map.put("archived_at", null);
+        return map;
+    }
+
+    @GetMapping("/chats")
+    public List<Map<String, Object>> list() {
+        return service.list().stream().map(this::toChatSpec).toList();
+    }
+
+    @PostMapping("/chats")
+    public Map<String, Object> create() {
+        var chat = service.create();
+        return toChatSpec(chat);
+    }
+
+    @GetMapping("/chats/{id}")
+    public Map<String, Object> getChat(@PathVariable String id) {
+        var chat = service.getChat(id);
+        if (chat == null) return Map.of("error", "not found");
+        var messages = service.getMessages(id).stream()
+            .map(m -> {
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("id", m.getId().toString());
+                map.put("role", m.getRole());
+                map.put("content", m.getContent());
+                map.put("created_at", m.getCreatedAt() != null ? m.getCreatedAt().format(ISO) : null);
+                map.put("metadata", m.getToolCalls() != null ? Map.of("toolCalls", m.getToolCalls()) : Map.of());
+                return map;
+            })
+            .toList();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", chat.getId());
+        result.put("name", chat.getTitle());
+        result.put("status", chat.getStatus());
+        result.put("messages", messages);
+        return result;
+    }
+
+    @PostMapping("/chats/{id}/messages")
+    public Map<String, String> saveMessages(
+            @PathVariable String id,
+            @RequestBody List<Map<String, String>> messages) {
+        service.saveMessages(id, messages);
+        return Map.of("status", "ok");
+    }
+
+    @DeleteMapping("/chats/{id}")
+    public Map<String, String> delete(@PathVariable String id) {
+        service.delete(id);
+        return Map.of("status", "ok");
+    }
+
+    @PatchMapping("/chats/{id}")
+    public Map<String, Object> rename(@PathVariable String id, @RequestBody Map<String, String> body) {
+        var chat = service.rename(id, body.getOrDefault("title", "New Chat"));
+        if (chat == null) return Map.of("error", "not found");
+        return toChatSpec(chat);
+    }
+}
