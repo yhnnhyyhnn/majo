@@ -105,4 +105,13 @@ public class ChatService {
         }
         return chat;
     }
+
+    @Transactional
+    public void setArchived(String chatId, boolean archived) {
+        chatRepo.findById(chatId).ifPresent(chat -> {
+            chat.setArchivedAt(archived ? LocalDateTime.now() : null);
+            chat.setUpdatedAt(LocalDateTime.now());
+            chatRepo.save(chat);
+        });
+    }
 }

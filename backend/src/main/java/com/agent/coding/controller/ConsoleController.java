@@ -2,6 +2,8 @@ package com.agent.coding.controller;
 
 import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
+import com.agent.coding.dto.TokenUsageSummary;
+import com.agent.coding.dto.TokenUsageRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
@@ -139,13 +141,21 @@ public class ConsoleController {
     }
 
     @GetMapping("/token-usage")
-    public Map<String, Object> tokenUsage() {
-        return Map.of("total_tokens", 0, "remaining_tokens", 128000);
+    public TokenUsageSummary tokenUsage(
+            @RequestParam(required = false) String start_date,
+            @RequestParam(required = false) String end_date,
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) String provider) {
+        return new TokenUsageSummary(0, 0, 0, java.util.Collections.emptyMap(), java.util.Collections.emptyMap());
     }
 
     @GetMapping("/token-usage/details")
-    public Map<String, Object> tokenUsageDetails() {
-        return Map.of("total_tokens", 0, "remaining_tokens", 128000);
+    public List<TokenUsageRecord> tokenUsageDetails(
+            @RequestParam(required = false) String start_date,
+            @RequestParam(required = false) String end_date,
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) String provider) {
+        return List.of();
     }
 
     @PostMapping("/console/chat/task")

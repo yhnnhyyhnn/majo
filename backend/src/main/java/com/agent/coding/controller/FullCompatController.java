@@ -193,6 +193,12 @@ public class FullCompatController {
     public Map<String, String> agentPluginInstall(@PathVariable String agentId) { return Map.of("status", "ok"); }
     @PostMapping("/agents/{agentId}/plugins/upload")
     public Map<String, String> agentPluginUpload(@PathVariable String agentId) { return Map.of("status", "ok"); }
+    @GetMapping("/agents/{agentId}/plugins")
+    public List<Map<String, String>> agentPlugins(@PathVariable String agentId) { return List.of(); }
+    @GetMapping("/agents/{agentId}/plugins/catalog")
+    public List<Map<String, String>> agentPluginCatalog(@PathVariable String agentId) { return List.of(); }
+    @GetMapping("/agents/{agentId}/plugins/market/search")
+    public List<Map<String, String>> agentPluginMarket(@PathVariable String agentId) { return List.of(); }
 
     // ===== AGENT SKILLS =====
     @DeleteMapping("/agents/{agentId}/skills/{skill_name}")
@@ -317,11 +323,6 @@ public class FullCompatController {
     public Map<String, String> backupStream() { return Map.of("status", "ok"); }
 
     // ===== CHATS =====
-    @PostMapping("/chats/actions/batch-archive")
-    public Map<String, String> chatsBatchArchive() { return Map.of("status", "ok"); }
-    @PostMapping("/chats/actions/batch-unarchive")
-    public Map<String, String> chatsBatchUnarchive() { return Map.of("status", "ok"); }
-
     // ===== CONFIG (global) =====
     @GetMapping("/config/acp")
     public Map<String, String> configAcp() { return Map.of("enabled", "false"); }
@@ -514,27 +515,84 @@ public class FullCompatController {
     public List<Map<String, String>> openrouterSeries() { return List.of(); }
 
     // ===== PAWAPPS =====
-    @GetMapping("/pawapps/{app_id}")
-    public Map<String, String> pawappDetail(@PathVariable String app_id) { return Map.of("id", app_id); }
-    @DeleteMapping("/pawapps/{app_id}")
-    public Map<String, String> pawappDelete(@PathVariable String app_id) { return Map.of("status", "ok"); }
-    @GetMapping("/pawapps/{app_id}/settings")
-    public Map<String, String> pawappSettings(@PathVariable String app_id) { return Map.of(); }
-    @GetMapping("/pawapps/{app_id}/static/{file_path}")
-    public Map<String, String> pawappStatic(@PathVariable String app_id, @PathVariable String file_path) { return Map.of("content", ""); }
-
     // ===== PLUGINS =====
+    @GetMapping("/plugins/catalog")
+    public Object pluginsCatalog() {
+        try {
+            var rest = new org.springframework.web.client.RestTemplate();
+            String base = "https://download.qwenpaw.agentscope.io";
+            Map<String, Object> main = rest.getForObject(base + "/metadata/index.json", Map.class);
+            if (main == null || main.get("products") == null) return emptyCatalog();
+            Map<String, Object> products = (Map<String, Object>) main.get("products");
+            Map<String, Object> pluginsProduct = (Map<String, Object>) products.get("plugins");
+            if (pluginsProduct == null || pluginsProduct.get("index_url") == null) return emptyCatalog();
+            String indexPath = pluginsProduct.get("index_url").toString();
+            Map<String, Object> index = rest.getForObject(base + indexPath, Map.class);
+            if (index == null) return emptyCatalog();
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("updated_at", index.get("updated_at"));
+            result.put("error", null);
+
+            Object files = index.getOrDefault("files", Map.of());
+            List<Map<String, Object>> plugins = new ArrayList<>();
+            if (files instanceof Map<?,?> fm) {
+                for (Object key : fm.keySet()) {
+                    Map<String, Object> raw = (Map<String, Object>) fm.get(key);
+                    if (raw == null) continue;
+                    String fileId = key.toString();
+                    String relUrl = Objects.toString(raw.get("url"), "");
+                    String version = Objects.toString(raw.get("version"), "");
+                    String pluginId = fileId;
+                    int dashIdx = fileId.lastIndexOf("-" + version);
+                    if (dashIdx > 0) pluginId = fileId.substring(0, dashIdx);
+
+                    Map<String, Object> p = new LinkedHashMap<>();
+                    p.put("id", raw.getOrDefault("id", fileId));
+                    p.put("plugin_id", pluginId);
+                    p.put("name", pickEn(raw.get("name")));
+                    p.put("description", pickEn(raw.get("description")));
+                    p.put("description_i18n", raw.get("description") instanceof Map ? raw.get("description") : Map.of());
+                    p.put("version", version);
+                    p.put("author", Objects.toString(raw.get("author"), ""));
+                    p.put("kind", Objects.toString(raw.get("platform"), ""));
+                    p.put("size", Objects.toString(raw.get("size"), ""));
+                    p.put("sha256", Objects.toString(raw.get("sha256"), ""));
+                    p.put("install_url", relUrl.startsWith("/") ? base + relUrl : relUrl);
+                    p.put("installed", false);
+                    p.put("installed_version", null);
+                    p.put("upgrade_available", false);
+                    plugins.add(p);
+                }
+            }
+            result.put("plugins", plugins);
+            return result;
+        } catch (Exception e) {
+            return emptyCatalog();
+        }
+    }
+
+    private static String pickEn(Object value) {
+        if (value instanceof Map<?,?> m) {
+            Object v = m.get("en-US");
+            if (v == null) v = m.get("en");
+            if (v == null) v = m.get("zh-CN");
+            if (v == null) v = m.get("zh");
+            return Objects.toString(v, "");
+        }
+        return Objects.toString(value, "");
+    }
+    private Map<String, Object> emptyCatalog() {
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("updated_at", null); r.put("plugins", Map.of()); r.put("error", "Failed to fetch catalog");
+        return r;
+    }
     @DeleteMapping("/plugins/{plugin_id}")
     public Map<String, String> pluginDelete(@PathVariable String plugin_id) { return Map.of("status", "ok"); }
     @GetMapping("/plugins/{plugin_id}/files/{file_path}")
     public Map<String, String> pluginFile(@PathVariable String plugin_id, @PathVariable String file_path) { return Map.of("content", ""); }
     @GetMapping("/plugins/{plugin_id}/status")
     public Map<String, String> pluginStatus(@PathVariable String plugin_id) { return Map.of("status", "active"); }
-    @PostMapping("/plugins/install")
-    public Map<String, String> pluginInstall() { return Map.of("status", "ok"); }
-    @PostMapping("/plugins/upload")
-    public Map<String, String> pluginUpload() { return Map.of("status", "ok"); }
-
     // ===== PROVIDERS =====
     @GetMapping("/providers/{provider_id}/oauth/callback")
     public Map<String, String> providerOauthCallback(@PathVariable String provider_id) { return Map.of("status", "ok"); }
@@ -661,9 +719,6 @@ public class FullCompatController {
     @PostMapping("/agents/{agentId}/mcp")
     public Map<String, String> agentMcpCreate(@PathVariable String agentId) { return Map.of("status", "ok"); }
 
-    @PutMapping("/chats/{chat_id}")
-    public Map<String, String> chatsUpdate(@PathVariable String chat_id) { return Map.of("status", "ok"); }
-
     @PostMapping("/coding-mode")
     public Map<String, String> codingModeSet() { return Map.of("status", "ok"); }
     @GetMapping("/coding-mode")
@@ -691,4 +746,27 @@ public class FullCompatController {
 
     @GetMapping("/loops")
     public List<Map<String, String>> loopsGet() { return List.of(); }
+
+    @GetMapping("/plugins/market/search")
+    public Object pluginMarketSearch(
+            @RequestParam(defaultValue = "1") int page_number,
+            @RequestParam(defaultValue = "20") int page_size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String sort_by) {
+        try {
+            var rest = new org.springframework.web.client.RestTemplate();
+            StringBuilder url = new StringBuilder("https://platform.agentscope.io/openapi/v1/plugins?page_number=" + page_number + "&page_size=" + page_size);
+            if (search != null && !search.isBlank()) url.append("&search=").append(search);
+            if (category != null && !category.isBlank()) url.append("&category=").append(category);
+            if (sort_by != null && !sort_by.isBlank()) url.append("&sort_by=").append(sort_by);
+            return rest.getForObject(url.toString(), Object.class);
+        } catch (Exception e) {
+            Map<String, Object> fallback = new LinkedHashMap<>();
+            fallback.put("items", List.of()); fallback.put("total", 0);
+            fallback.put("page_number", page_number); fallback.put("page_size", page_size);
+            fallback.put("total_pages", 0);
+            return fallback;
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.agent.coding.controller;
 
 import com.agent.coding.ChatService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.format.DateTimeFormatter;
@@ -89,5 +90,56 @@ public class ChatsController {
         var chat = service.rename(id, body.getOrDefault("title", "New Chat"));
         if (chat == null) return Map.of("error", "not found");
         return toChatSpec(chat);
+    }
+
+    @Transactional
+    @PutMapping("/chats/{id}")
+    public Map<String, Object> update(@PathVariable String id, @RequestBody Map<String, String> body) {
+        if (body.containsKey("title")) service.rename(id, body.get("title"));
+        if (body.containsKey("pinned")) {
+            var chat = service.getChat(id);
+            if (chat != null) { chat.setPinned(Boolean.valueOf(body.get("pinned"))); }
+        }
+        var chat = service.getChat(id);
+        return chat != null ? toChatSpec(chat) : Map.of("error", "not found");
+    }
+
+    @Transactional
+    @PostMapping("/chats/{id}/archive")
+    public Map<String, Object> archive(@PathVariable String id) {
+        service.setArchived(id, true);
+        return toChatSpec(service.getChat(id));
+    }
+
+    @Transactional
+    @PostMapping("/chats/{id}/unarchive")
+    public Map<String, Object> unarchive(@PathVariable String id) {
+        service.setArchived(id, false);
+        return toChatSpec(service.getChat(id));
+    }
+
+    @Transactional
+    @PostMapping("/chats/batch-delete")
+    public Map<String, Object> batchDelete(@RequestBody List<String> ids) {
+        if (ids != null) ids.forEach(service::delete);
+        return Map.of("status", "ok", "deleted_count", ids != null ? ids.size() : 0);
+    }
+
+    @Transactional
+    @PostMapping("/chats/actions/batch-archive")
+    public Map<String, Object> batchArchive(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        var ids = (List<String>) body.getOrDefault("chat_ids", List.of());
+        ids.forEach(id -> service.setArchived(id, true));
+        return Map.of("status", "ok");
+    }
+
+    @Transactional
+    @PostMapping("/chats/actions/batch-unarchive")
+    public Map<String, Object> batchUnarchive(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        var ids = (List<String>) body.getOrDefault("chat_ids", List.of());
+        ids.forEach(id -> service.setArchived(id, false));
+        return Map.of("status", "ok");
     }
 }
