@@ -282,42 +282,6 @@ public class FullCompatController {
     @PatchMapping("/agents/{agentId}/tools/{tool_name}/toggle")
     public Map<String, String> agentToolToggle(@PathVariable String agentId, @PathVariable String tool_name) { return Map.of("status", "ok"); }
 
-    // ===== AGENT WORKSPACE =====
-    @GetMapping("/agents/{agentId}/workspace/audio-mode")
-    public Map<String, String> agentAudioMode(@PathVariable String agentId) { return Map.of("enabled", "false"); }
-    @PutMapping("/agents/{agentId}/workspace/audio-mode")
-    public Map<String, String> agentAudioModeUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
-    @GetMapping("/agents/{agentId}/workspace/binary-files/{file_path}")
-    public Map<String, String> agentBinaryFile(@PathVariable String agentId, @PathVariable String file_path) { return Map.of("url", ""); }
-    @GetMapping("/agents/{agentId}/workspace/code-files/{file_path}")
-    public Map<String, String> agentCodeFile(@PathVariable String agentId, @PathVariable String file_path) { return Map.of("content", ""); }
-    @PutMapping("/agents/{agentId}/workspace/code-files/{file_path}")
-    public Map<String, String> agentCodeFileSave(@PathVariable String agentId, @PathVariable String file_path) { return Map.of("status", "ok"); }
-    @GetMapping("/agents/{agentId}/workspace/files/{md_name}")
-    public Map<String, String> agentMdFile(@PathVariable String agentId, @PathVariable String md_name) { return Map.of("content", ""); }
-    @PutMapping("/agents/{agentId}/workspace/files/{md_name}")
-    public Map<String, String> agentMdFileSave(@PathVariable String agentId, @PathVariable String md_name) { return Map.of("status", "ok"); }
-    @GetMapping("/agents/{agentId}/workspace/local-whisper-status")
-    public Map<String, String> agentWhisperStatus(@PathVariable String agentId) { return Map.of("available", "false"); }
-    @GetMapping("/agents/{agentId}/workspace/memory/{md_path}")
-    public Map<String, String> agentMemoryFile(@PathVariable String agentId, @PathVariable String md_path) { return Map.of("content", ""); }
-    @PutMapping("/agents/{agentId}/workspace/memory/{md_path}")
-    public Map<String, String> agentMemoryFileSave(@PathVariable String agentId, @PathVariable String md_path) { return Map.of("status", "ok"); }
-    @PostMapping("/agents/{agentId}/workspace/transcribe")
-    public Map<String, String> agentTranscribe(@PathVariable String agentId) { return Map.of("text", ""); }
-    @GetMapping("/agents/{agentId}/workspace/transcription-provider")
-    public Map<String, String> agentTranscriptionProvider(@PathVariable String agentId) { return Map.of("provider", "none"); }
-    @PutMapping("/agents/{agentId}/workspace/transcription-provider")
-    public Map<String, String> agentTranscriptionProviderSet(@PathVariable String agentId) { return Map.of("status", "ok"); }
-    @GetMapping("/agents/{agentId}/workspace/transcription-providers")
-    public List<Map<String, String>> agentTranscriptionProviders(@PathVariable String agentId) { return List.of(); }
-    @GetMapping("/agents/{agentId}/workspace/transcription-provider-type")
-    public Map<String, String> agentTranscriptionProviderType(@PathVariable String agentId) { return Map.of("type", "none"); }
-    @PutMapping("/agents/{agentId}/workspace/transcription-provider-type")
-    public Map<String, String> agentTranscriptionProviderTypeSet(@PathVariable String agentId) { return Map.of("status", "ok"); }
-    @PostMapping("/agents/{agentId}/workspace/upload")
-    public Map<String, String> agentWorkspaceUpload(@PathVariable String agentId) { return Map.of("url", ""); }
-
     // ===== APPROVAL =====
     @PostMapping("/approval/approve")
     public Map<String, String> approvalApprove() { return Map.of("status", "ok"); }
@@ -463,10 +427,9 @@ public class FullCompatController {
     public Map<String, String> cronJobState(@PathVariable String job_id) { return Map.of("state", "idle"); }
 
     // ===== ENVS =====
-    @DeleteMapping("/envs/{key}")
-    public Map<String, String> envDelete(@PathVariable String key) { return Map.of("status", "ok"); }
-
     // ===== FRONTEND PLUGIN =====
+    @GetMapping("/frontend_plugin")
+    public List<Map<String, String>> frontendPlugins() { return List.of(); }
     @GetMapping("/frontend_plugin/{plugin_id}/files/{file_path}")
     public Map<String, String> frontendPluginFile(@PathVariable String plugin_id, @PathVariable String file_path) { return Map.of("content", ""); }
 
@@ -675,29 +638,6 @@ public class FullCompatController {
     public Map<String, String> toolToggle(@PathVariable String tool_name) { return Map.of("status", "ok"); }
 
     // ===== WORKSPACE =====
-    @PutMapping("/workspace/audio-mode")
-    public Map<String, String> workspaceAudioModeUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/workspace/binary-files/{file_path}")
-    public Map<String, String> workspaceBinaryFile(@PathVariable String file_path) { return Map.of("url", ""); }
-    @PostMapping("/workspace/coding-project/upload-zip")
-    public Map<String, String> workspaceCodingUploadZip() { return Map.of("id", UUID.randomUUID().toString()); }
-    @PutMapping("/workspace/language")
-    public Map<String, String> workspaceLanguageUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/workspace/memory/{md_path}")
-    public Map<String, String> workspaceMemoryFile(@PathVariable String md_path) { return Map.of("content", ""); }
-    @PutMapping("/workspace/memory/{md_path}")
-    public Map<String, String> workspaceMemoryFileSave(@PathVariable String md_path) { return Map.of("status", "ok"); }
-    @PutMapping("/workspace/running-config")
-    public Map<String, String> workspaceRunningConfigUpdate() { return Map.of("status", "ok"); }
-    @PutMapping("/workspace/system-prompt-files")
-    public Map<String, String> workspaceSystemPromptUpdate() { return Map.of("status", "ok"); }
-    @PutMapping("/workspace/transcription-provider")
-    public Map<String, String> workspaceTranscriptionProviderSet() { return Map.of("status", "ok"); }
-    @PutMapping("/workspace/transcription-provider-type")
-    public Map<String, String> workspaceTranscriptionProviderTypeSet() { return Map.of("status", "ok"); }
-    @GetMapping("/workspace/transcription-providers")
-    public List<Map<String, String>> workspaceTranscriptionProviders() { return List.of(); }
-
     // === PRECISE METHOD GAPS ===
 
     @PostMapping("/agents")
@@ -721,13 +661,6 @@ public class FullCompatController {
     @PostMapping("/agents/{agentId}/mcp")
     public Map<String, String> agentMcpCreate(@PathVariable String agentId) { return Map.of("status", "ok"); }
 
-    @PutMapping("/agents/{agentId}/workspace/language")
-    public Map<String, String> agentLanguageUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
-    @PutMapping("/agents/{agentId}/workspace/running-config")
-    public Map<String, String> agentRunningConfigUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
-    @PutMapping("/agents/{agentId}/workspace/system-prompt-files")
-    public Map<String, String> agentSystemPromptUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
-
     @PutMapping("/chats/{chat_id}")
     public Map<String, String> chatsUpdate(@PathVariable String chat_id) { return Map.of("status", "ok"); }
 
@@ -740,9 +673,6 @@ public class FullCompatController {
     public Map<String, String> configChannelsUpdate() { return Map.of("status", "ok"); }
     @PutMapping("/config/heartbeat")
     public Map<String, String> configHeartbeatUpdate() { return Map.of("status", "ok"); }
-
-    @PutMapping("/envs")
-    public Map<String, String> envsUpdate() { return Map.of("status", "ok"); }
 
     @PostMapping("/loops/custom")
     public Map<String, String> loopsCustomCreate() { return Map.of("id", UUID.randomUUID().toString()); }
@@ -759,15 +689,6 @@ public class FullCompatController {
     @PostMapping("/skills")
     public Map<String, String> skillsCreate() { return Map.of("status", "ok"); }
 
-    @PutMapping("/workspace/coding-project")
-    public Map<String, String> codingProjectUpdate() { return Map.of("status", "ok"); }
-
-    @GetMapping("/workspace/transcription-provider-type")
-    public Map<String, String> workspaceTranscriptionProviderType() { return Map.of("type", "none"); }
-    @GetMapping("/workspace/running-config")
-    public Map<String, Object> workspaceRunningConfigGet() { return Map.of(); }
-    @GetMapping("/frontend_plugin")
-    public List<Map<String, String>> frontendPlugins() { return List.of(); }
     @GetMapping("/loops")
     public List<Map<String, String>> loopsGet() { return List.of(); }
 }

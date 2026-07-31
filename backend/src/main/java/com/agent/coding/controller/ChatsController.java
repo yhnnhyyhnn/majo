@@ -22,17 +22,17 @@ public class ChatsController {
     private Map<String, Object> toChatSpec(com.agent.coding.entity.ChatEntity c) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", c.getId());
-        map.put("session_id", "console:" + c.getId());
-        map.put("user_id", "default");
-        map.put("channel", "console");
+        map.put("session_id", c.getSessionId().isEmpty() ? ("console:" + c.getId()) : c.getSessionId());
+        map.put("user_id", c.getUserId());
+        map.put("channel", c.getChannel());
         map.put("name", c.getTitle());
         map.put("title", c.getTitle());
         map.put("status", c.getStatus());
         map.put("created_at", c.getCreatedAt() != null ? c.getCreatedAt().format(ISO) : null);
         map.put("updated_at", c.getUpdatedAt() != null ? c.getUpdatedAt().format(ISO) : null);
-        map.put("pinned", false);
-        map.put("archived", false);
-        map.put("archived_at", null);
+        map.put("pinned", c.getPinned());
+        map.put("archived", c.getArchivedAt() != null);
+        map.put("archived_at", c.getArchivedAt() != null ? c.getArchivedAt().format(ISO) : null);
         return map;
     }
 

@@ -2,7 +2,7 @@ import type { AgentBackend } from "../api/types/agents";
 import type { HarnessCapabilities } from "../api/modules/harness";
 
 export function requiresQwenPawModel(backend: AgentBackend): boolean {
-  return backend === "qwenpaw";
+  return backend === "majo";
 }
 
 export function supportsAgentAttachments(
@@ -11,3 +11,4 @@ export function supportsAgentAttachments(
 ): boolean {
   return requiresQwenPawModel(backend) || Boolean(capabilities?.attachments);
 }
+

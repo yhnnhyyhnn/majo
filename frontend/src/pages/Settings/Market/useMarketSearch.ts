@@ -111,8 +111,8 @@ export function useMarketSearch(): MarketSearchState {
         setSelectedProviderKeys((prev) => {
           const valid = [...prev].filter((k) => enabled.includes(k));
           if (valid.length > 0) return new Set(valid);
-          const fallback = enabled.includes("qwenpaw")
-            ? ["qwenpaw"]
+const fallback = enabled.includes("majo")
+? ["majo"]
             : enabled.slice(0, 1);
           return new Set(fallback);
         });

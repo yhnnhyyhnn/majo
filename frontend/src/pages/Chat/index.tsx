@@ -1201,7 +1201,7 @@ export default function ChatPage() {
   >([]);
   const { selectedAgent, agents } = useAgentStore();
   const selectedAgentInfo = agents.find((agent) => agent.id === selectedAgent);
-  const selectedAgentBackend = selectedAgentInfo?.backend ?? "qwenpaw";
+  const selectedAgentBackend = selectedAgentInfo?.backend ?? "majo";
   const backendCapabilities = selectedAgentInfo?.backend_capabilities;
   const usesQwenPawBackend = requiresQwenPawModel(selectedAgentBackend);
   const backendCommands = backendCapabilities?.commands ?? [];

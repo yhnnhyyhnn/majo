@@ -86,8 +86,8 @@ public class ConsoleController {
             "workspace_dir", System.getProperty("user.dir"),
             "enabled", true,
             "startup_status", "running",
-            "backend", "openai-compatible",
-            "backend_capabilities", Map.of("workspace_ui", false, "code_files", true)
+            "backend", "majo",
+            "backend_capabilities", Map.of("workspace_ui", true, "code_files", true)
         )));
     }
 

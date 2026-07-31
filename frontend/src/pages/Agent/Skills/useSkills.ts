@@ -26,7 +26,7 @@ export function useSkills() {
   const { t } = useTranslation();
   const { selectedAgent, agents } = useAgentStore();
   const selectedAgentInfo = agents.find((item) => item.id === selectedAgent);
-  const selectedBackend = selectedAgentInfo?.backend ?? "qwenpaw";
+  const selectedBackend = selectedAgentInfo?.backend ?? "majo";
   const canDiscoverProviderSkills = Boolean(
     selectedAgentInfo?.backend_capabilities?.provider_skills_discovery,
   );
@@ -65,7 +65,7 @@ export function useSkills() {
   );
 
   const loadProviderSkills = useCallback(async () => {
-    if (selectedBackend === "qwenpaw" || !canDiscoverProviderSkills) {
+    if (selectedBackend === "majo" || !canDiscoverProviderSkills) {
       setProviderSkills([]);
       return;
     }
@@ -347,3 +347,4 @@ export function useSkills() {
     hardRefresh,
   };
 }
+

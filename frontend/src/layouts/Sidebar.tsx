@@ -81,7 +81,7 @@ const SIMPLE_MODE_WHITELIST = new Set([
 
 /**
  * Flatten a MenuItem tree into a leaf-only list for simple sidebar mode.
- * Groups are eliminated entirely â€” only whitelisted children survive
+ * Groups are eliminated entirely â€?only whitelisted children survive
  * as top-level items.
  */
 function flattenMenuForSimpleMode(items: MenuItem[]): MenuItem[] {
@@ -148,7 +148,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
     ? {
         ...currentAgent.backend_capabilities,
         workspace_ui:
-          currentAgent.backend === "qwenpaw"
+          currentAgent.backend === "majo"
             ? currentAgent.backend_capabilities?.workspace_ui ?? true
             : false,
       }
@@ -350,7 +350,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
   );
 
   const collapsedNavItems = useMemo(() => {
-    // Sticky chat is its own carve-out (lives outside menu data â€” see builtinMenu.ts).
+    // Sticky chat is its own carve-out (lives outside menu data â€?see builtinMenu.ts).
     const stickyChat: FlatMenuEntry = {
       key: "core.chat",
       icon: <SparkChatTabFill size={18} />,
@@ -412,7 +412,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
   /**
    * New chat: if we're already on the chat page, dispatch the event so
    * ChatSessionInitializer (which is mounted) creates the session.
-   * If we're on another page, navigate to /chat without a session id â€”
+   * If we're on another page, navigate to /chat without a session id â€?
    * the chat page will auto-create a new session on mount.
    */
   const handleNewChat = useCallback(() => {
@@ -506,7 +506,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
   void renderIcon;
 
   // On mobile, the expanded sidebar shows sessions (like simple mode) instead
-  // of the full menu â€” matching the desktop history panel UX.
+  // of the full menu â€?matching the desktop history panel UX.
   const isSimpleExpanded = (sidebarMode === "simple" || isMobile) && !collapsed;
 
   return (
@@ -621,7 +621,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
             </div>
           </div>
 
-          {/* Session list â€” fills remaining space */}
+          {/* Session list â€?fills remaining space */}
           <SidebarSessionList
             onNewChat={handleNewChat}
             onSessionClick={handleSidebarSessionClick}
@@ -633,7 +633,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
           <div className={styles.agentScopedSection}>
             <div className={styles.agentSelectorContainer}>
               <AgentSelector collapsed={collapsed} />
-              {/* Chat entry â€” sticky together with agent selector */}
+              {/* Chat entry â€?sticky together with agent selector */}
               <button
                 className={`${styles.stickyChatButton}${
                   isChatActive ? ` ${styles.stickyChatButtonActive}` : ""
@@ -704,7 +704,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
       )}
 
       <div className={styles.collapseToggleContainer}>
-        {/* Gear stays visible in collapsed state too â€” otherwise users
+        {/* Gear stays visible in collapsed state too â€?otherwise users
             (especially on mobile, where the sidebar starts collapsed)
             cannot discover how to restore full mode. */}
         <Popover
@@ -803,3 +803,4 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
     </Sider>
   );
 }
+
