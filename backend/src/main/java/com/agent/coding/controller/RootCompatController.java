@@ -36,9 +36,6 @@ public class RootCompatController {
         this.toolkit = toolkit;
     }
 
-    @GetMapping("/")
-    public Map<String, String> root() { return Map.of("status", "ok"); }
-
     @GetMapping("/crons/jobs")
     public List<Map<String, String>> cronsJobs() { return List.of(); }
     @PostMapping("/crons/jobs")

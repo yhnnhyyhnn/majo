@@ -542,23 +542,7 @@ public class FullCompatController {
     @PutMapping("/mcp/tools/{client_key}")
     public Map<String, String> mcpToolsUpdate(@PathVariable String client_key) { return Map.of("status", "ok"); }
 
-    // ===== MODELS =====
-    @PutMapping("/models/{provider_id}/config")
-    public Map<String, String> modelProviderConfig(@PathVariable String provider_id) { return Map.of("status", "ok"); }
-    @PostMapping("/models/{provider_id}/discover")
-    public List<Map<String, String>> modelDiscover(@PathVariable String provider_id) { return List.of(); }
-    @DeleteMapping("/models/{provider_id}/models/{model_id}")
-    public Map<String, String> modelDelete(@PathVariable String provider_id, @PathVariable String model_id) { return Map.of("status", "ok"); }
-    @PutMapping("/models/{provider_id}/models/{model_id}/config")
-    public Map<String, String> modelConfig(@PathVariable String provider_id, @PathVariable String model_id) { return Map.of("status", "ok"); }
-    @PostMapping("/models/{provider_id}/models/{model_id}/probe-multimodal")
-    public Map<String, Object> modelProbeMultimodal(@PathVariable String provider_id, @PathVariable String model_id) { return Map.of("multimodal", false); }
-    @PostMapping("/models/{provider_id}/models/test")
-    public Map<String, String> modelTest(@PathVariable String provider_id) { return Map.of("status", "ok"); }
-    @PostMapping("/models/{provider_id}/test")
-    public Map<String, String> modelProviderTest(@PathVariable String provider_id) { return Map.of("status", "ok"); }
-    @DeleteMapping("/models/custom-providers/{provider_id}")
-    public Map<String, String> modelProviderDelete(@PathVariable String provider_id) { return Map.of("status", "ok"); }
+    // OpenRouter endpoints (non-conflicting)
     @PostMapping("/models/openrouter/discover-extended")
     public List<Map<String, String>> openrouterDiscover() { return List.of(); }
     @PostMapping("/models/openrouter/models/filter")
@@ -749,6 +733,8 @@ public class FullCompatController {
 
     @PostMapping("/coding-mode")
     public Map<String, String> codingModeSet() { return Map.of("status", "ok"); }
+    @GetMapping("/coding-mode")
+    public Map<String, Object> codingModeGet() { return Map.of("enabled", false, "mode", "chat"); }
 
     @PutMapping("/config/channels")
     public Map<String, String> configChannelsUpdate() { return Map.of("status", "ok"); }
@@ -764,9 +750,6 @@ public class FullCompatController {
     @PostMapping("/mcp")
     public Map<String, String> mcpCreate() { return Map.of("status", "ok"); }
 
-    @PostMapping("/models/custom-providers")
-    public Map<String, String> modelCustomProviderCreate() { return Map.of("id", UUID.randomUUID().toString()); }
-
     @PostMapping("/providers/{provider_id}/oauth/start")
     public Map<String, Object> providerOauthStart(@PathVariable String provider_id) { return Map.of("auth_url", ""); }
 
@@ -778,4 +761,13 @@ public class FullCompatController {
 
     @PutMapping("/workspace/coding-project")
     public Map<String, String> codingProjectUpdate() { return Map.of("status", "ok"); }
+
+    @GetMapping("/workspace/transcription-provider-type")
+    public Map<String, String> workspaceTranscriptionProviderType() { return Map.of("type", "none"); }
+    @GetMapping("/workspace/running-config")
+    public Map<String, Object> workspaceRunningConfigGet() { return Map.of(); }
+    @GetMapping("/frontend_plugin")
+    public List<Map<String, String>> frontendPlugins() { return List.of(); }
+    @GetMapping("/loops")
+    public List<Map<String, String>> loopsGet() { return List.of(); }
 }

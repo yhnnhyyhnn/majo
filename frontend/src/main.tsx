@@ -52,6 +52,7 @@ if (typeof window !== "undefined") {
 
   const originalError = console.error;
   const originalWarn = console.warn;
+  const originalLog = console.log;
 
   console.error = function (...args: unknown[]) {
     const msg = args[0]?.toString() || "";
@@ -66,11 +67,25 @@ if (typeof window !== "undefined") {
     if (
       msg.includes(":first-child") ||
       msg.includes("pseudo class") ||
-      msg.includes("potentially unsafe")
+      msg.includes("potentially unsafe") ||
+      msg.includes("forwardRef render functions") ||
+      msg.includes("findDOMNode is deprecated") ||
+      msg.includes("flushSync was called") ||
+      msg.includes("overlayClassName") ||
+      msg.includes("popupClassName") ||
+      msg.includes("Each child in a list should have a unique")
     ) {
       return;
     }
     originalWarn.apply(console, args as []);
+  };
+
+  console.log = function (...args: unknown[]) {
+    const msg = args[0]?.toString() || "";
+    if (msg.includes("i18next") || msg.includes("Locize")) {
+      return;
+    }
+    originalLog.apply(console, args as []);
   };
 }
 

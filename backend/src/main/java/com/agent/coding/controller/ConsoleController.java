@@ -78,12 +78,17 @@ public class ConsoleController {
     }
 
     @GetMapping("/agents")
-    public List<Map<String, Object>> listAgents() {
-        return List.of(Map.of(
+    public Map<String, Object> listAgents() {
+        return Map.of("agents", List.of(Map.of(
             "id", "default",
             "name", "majo",
-            "type", "coding"
-        ));
+            "description", "Majo AI Coding Agent",
+            "workspace_dir", System.getProperty("user.dir"),
+            "enabled", true,
+            "startup_status", "running",
+            "backend", "openai-compatible",
+            "backend_capabilities", Map.of("workspace_ui", false, "code_files", true)
+        )));
     }
 
     @GetMapping("/agent-stats")
@@ -168,16 +173,6 @@ public class ConsoleController {
         return Map.of("messages", List.of(), "pending_approvals", List.of());
     }
 
-    @GetMapping("/models/active")
-    public Map<String, Object> activeModel() {
-        return Map.of("model_id", settingsService.getModelName(), "provider", "openai-compatible");
-    }
-
-    @PutMapping("/models/active")
-    public Map<String, String> setActiveModel(@RequestBody Map<String, String> body) {
-        return Map.of("status", "ok");
-    }
-
     @GetMapping("/settings/upload-limit")
     public Map<String, Object> uploadLimit() {
         return Map.of("max_file_size_mb", 50, "allowed_types", List.of());
@@ -227,12 +222,6 @@ public class ConsoleController {
 
     @GetMapping("/config/channels")
     public List<Map<String, String>> globalChannels() { return List.of(); }
-
-    @GetMapping("/models/custom-providers")
-    public List<Map<String, String>> customProviders() { return List.of(); }
-
-    @PostMapping("/models/{provider_id}/models")
-    public List<Map<String, String>> discoverModels(@PathVariable String provider_id) { return List.of(); }
 
     @PostMapping("/fork/agent")
     public Map<String, String> forkAgent() { return Map.of("id", UUID.randomUUID().toString()); }

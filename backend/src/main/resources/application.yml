@@ -7,12 +7,33 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+    hikari:
+      pool-name: MajoH2Pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+      auto-commit: true
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: validate
     show-sql: false
     open-in-view: false
+    properties:
+      hibernate.connection.isolation: 2
+      hibernate.connection.autocommit: true
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: WARN
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
