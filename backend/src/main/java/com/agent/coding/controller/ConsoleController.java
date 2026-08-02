@@ -218,15 +218,6 @@ public class ConsoleController {
         return Map.of("status", "ok");
     }
 
-    @GetMapping("/skills/hub/search")
-    public List<Map<String, String>> skillsHubSearch() { return List.of(); }
-
-    @GetMapping("/skills/pool/builtin-notice")
-    public Map<String, String> skillBuiltinNotice() { return Map.of("notice", ""); }
-
-    @GetMapping("/skills/pool/builtin-sources")
-    public List<Map<String, String>> skillBuiltinSources() { return List.of(); }
-
     @GetMapping("/config/heartbeat")
     public Map<String, String> globalHeartbeat() { return Map.of("status", "ok"); }
 

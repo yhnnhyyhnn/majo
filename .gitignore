@@ -55,3 +55,4 @@ data/
 hs_err_pid*
 /.omo/
 /console/
+/.playwright-mcp/

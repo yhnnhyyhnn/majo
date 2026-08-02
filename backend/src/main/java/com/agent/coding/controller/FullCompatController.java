@@ -597,80 +597,6 @@ public class FullCompatController {
     @GetMapping("/providers/{provider_id}/oauth/callback")
     public Map<String, String> providerOauthCallback(@PathVariable String provider_id) { return Map.of("status", "ok"); }
 
-    // ===== SKILLS =====
-    @DeleteMapping("/skills/{skill_name}")
-    public Map<String, String> skillDelete(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PutMapping("/skills/{skill_name}/channels")
-    public Map<String, String> skillChannels(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @GetMapping("/skills/{skill_name}/config")
-    public Map<String, String> skillConfig(@PathVariable String skill_name) { return Map.of(); }
-    @DeleteMapping("/skills/{skill_name}/config")
-    public Map<String, String> skillConfigDelete(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PutMapping("/skills/{skill_name}/config")
-    public Map<String, String> skillConfigUpdate(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PostMapping("/skills/{skill_name}/disable")
-    public Map<String, String> skillDisable(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PostMapping("/skills/{skill_name}/enable")
-    public Map<String, String> skillEnable(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @GetMapping("/skills/{skill_name}/files/{file_path}")
-    public Map<String, String> skillFile(@PathVariable String skill_name, @PathVariable String file_path) { return Map.of("content", ""); }
-    @PutMapping("/skills/{skill_name}/tags")
-    public Map<String, String> skillTags(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PostMapping("/skills/ai/optimize/stream")
-    public Map<String, String> skillAiOptimize() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/batch-delete")
-    public Map<String, String> skillBatchDelete() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/batch-disable")
-    public Map<String, String> skillBatchDisable() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/batch-enable")
-    public Map<String, String> skillBatchEnable() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/hub/install/cancel/{task_id}")
-    public Map<String, String> skillHubCancel(@PathVariable String task_id) { return Map.of("status", "ok"); }
-    @PostMapping("/skills/hub/install/start")
-    public Map<String, String> skillHubInstall() { return Map.of("task_id", UUID.randomUUID().toString()); }
-    @GetMapping("/skills/hub/install/status/{task_id}")
-    public Map<String, String> skillHubStatus(@PathVariable String task_id) { return Map.of("status", "completed"); }
-    @GetMapping("/skills/pool")
-    public List<Map<String, String>> skillPool() { return List.of(); }
-    @DeleteMapping("/skills/pool/{skill_name}")
-    public Map<String, String> skillPoolDelete(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PutMapping("/skills/pool/{skill_name}/auto-update")
-    public Map<String, String> skillPoolAutoUpdate(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @GetMapping("/skills/pool/{skill_name}/config")
-    public Map<String, String> skillPoolConfig(@PathVariable String skill_name) { return Map.of(); }
-    @DeleteMapping("/skills/pool/{skill_name}/config")
-    public Map<String, String> skillPoolConfigDelete(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PutMapping("/skills/pool/{skill_name}/config")
-    public Map<String, String> skillPoolConfigUpdate(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PutMapping("/skills/pool/{skill_name}/tags")
-    public Map<String, String> skillPoolTags(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/{skill_name}/update-builtin")
-    public Map<String, String> skillPoolUpdateBuiltin(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/batch-delete")
-    public Map<String, String> skillPoolBatchDelete() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/create")
-    public Map<String, String> skillPoolCreate() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/download")
-    public Map<String, String> skillPoolDownload() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/import")
-    public Map<String, String> skillPoolImport() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/import-builtin")
-    public Map<String, String> skillPoolImportBuiltin() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/refresh")
-    public Map<String, String> skillPoolRefresh() { return Map.of("status", "ok"); }
-    @PutMapping("/skills/pool/save")
-    public Map<String, String> skillPoolSave() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/upload")
-    public Map<String, String> skillPoolUpload() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/pool/upload-zip")
-    public Map<String, String> skillPoolUploadZip() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/refresh")
-    public Map<String, String> skillRefresh() { return Map.of("status", "ok"); }
-    @PutMapping("/skills/save")
-    public Map<String, String> skillSave() { return Map.of("status", "ok"); }
-    @PostMapping("/skills/upload")
-    public Map<String, String> skillUpload() { return Map.of("status", "ok"); }
-
     // ===== TOOL CALLS =====
     @GetMapping("/tool-calls/{session_id}/{tool_call_id}")
     public Map<String, String> toolCallDetail(@PathVariable String session_id, @PathVariable String tool_call_id) { return Map.of(); }
@@ -740,9 +666,6 @@ public class FullCompatController {
 
     @PutMapping("/settings/language")
     public Map<String, String> languageUpdate() { return Map.of("status", "ok"); }
-
-    @PostMapping("/skills")
-    public Map<String, String> skillsCreate() { return Map.of("status", "ok"); }
 
     @GetMapping("/loops")
     public List<Map<String, String>> loopsGet() { return List.of(); }
