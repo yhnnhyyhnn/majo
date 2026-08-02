@@ -398,10 +398,12 @@ public class FullCompatController {
     // ===== CONSOLE =====
     @GetMapping("/console/debug/backend-logs")
     public List<Map<String, String>> consoleBackendLogs() { return List.of(); }
-    @DeleteMapping("/console/inbox/events/{event_id}")
-    public Map<String, String> consoleInboxDelete(@PathVariable String event_id) { return Map.of("status", "ok"); }
-    @GetMapping("/console/inbox/traces/{run_id}")
-    public Map<String, Object> consoleInboxTrace(@PathVariable String run_id) { return Map.of(); }
+
+    // ==== CONSOLE ====
+    // NOTE: /console/inbox/events, /console/inbox/read,
+    // /console/inbox/events/{event_id}, /console/inbox/traces/{run_id} are
+    // implemented in ConsoleController. Duplicate routes are intentionally not
+    // declared here to avoid Spring ambiguous-mapping errors.
 
     // ===== CRON =====
     @GetMapping("/cron/dispatch-targets")

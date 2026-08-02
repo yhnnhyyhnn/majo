@@ -4,6 +4,8 @@ import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.dto.TokenUsageSummary;
 import com.agent.coding.dto.TokenUsageRecord;
+import com.agent.coding.inbox.InboxStore;
+import com.agent.coding.inbox.InboxTraceStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
@@ -169,13 +171,67 @@ public class ConsoleController {
     }
 
     @GetMapping("/console/inbox/events")
-    public List<Map<String, String>> inboxEvents() {
-        return List.of();
+    public Map<String, Object> inboxEvents(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(required = false) String source_type,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String agent_id,
+            @RequestParam(defaultValue = "false") boolean unread_only) {
+        int safeLimit = Math.min(Math.max(limit, 1), 500);
+        return Map.of("events", InboxStore.listEvents(
+                safeLimit, offset, source_type, status, agent_id, unread_only));
     }
 
+    public record MarkInboxReadRequest(List<String> event_ids, boolean all) {}
+
     @PostMapping("/console/inbox/read")
-    public Map<String, String> markInboxRead() {
-        return Map.of("status", "ok");
+    public Map<String, Object> markInboxRead(@RequestBody(required = false) MarkInboxReadRequest body) {
+        boolean all = body != null && body.all;
+        List<String> eventIds = body == null ? List.of()
+                : (body.event_ids() == null ? List.of() : body.event_ids());
+        int updated = all ? InboxStore.markAllRead() : InboxStore.markRead(eventIds);
+        return Map.of("updated", updated);
+    }
+
+    @DeleteMapping("/console/inbox/events/{event_id}")
+    public org.springframework.http.ResponseEntity<?> deleteInboxEvent(@PathVariable String event_id) {
+        var result = InboxStore.deleteEvent(event_id);
+        if (!result.deleted()) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .body(Map.of("detail", "event not found"));
+        }
+        boolean traceDeleted = false;
+        if (result.runId() != null && !result.runId().isBlank() && !result.runIdStillReferenced()) {
+            traceDeleted = InboxTraceStore.deleteTrace(result.runId());
+        }
+        return org.springframework.http.ResponseEntity.ok(Map.of(
+                "deleted", true,
+                "trace_deleted", traceDeleted,
+                "run_id", result.runId()));
+    }
+
+    @GetMapping("/console/inbox/traces/{run_id}")
+    public Map<String, Object> getInboxTrace(@PathVariable String run_id) {
+        Map<String, Object> trace = InboxTraceStore.getTrace(run_id);
+        if (trace == null) {
+            throw new InboxNotFoundException("trace not found");
+        }
+        return trace;
+    }
+
+    /** 404 + {"detail": ...} body, matching FastAPI HTTPException so the
+     *  frontend parseErrorDetail can read it. */
+    public static class InboxNotFoundException extends RuntimeException {
+        public InboxNotFoundException(String detail) { super(detail); }
+        public String getDetail() { return getMessage(); }
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(InboxNotFoundException.class)
+    public org.springframework.http.ResponseEntity<Map<String, Object>> handleInboxNotFound(InboxNotFoundException e) {
+        return org.springframework.http.ResponseEntity
+                .status(org.springframework.http.HttpStatus.NOT_FOUND)
+                .body(Map.of("detail", e.getDetail()));
     }
 
     @GetMapping("/console/push-messages")
