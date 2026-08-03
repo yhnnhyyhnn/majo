@@ -9,6 +9,7 @@ import com.agent.coding.inbox.InboxTraceStore;
 import com.agent.coding.service.ModelRoutingService;
 import com.agent.coding.service.TaskTracker;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.tool.Toolkit;
@@ -26,6 +27,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -43,13 +45,16 @@ public class ConsoleController {
     private final TaskTracker taskTracker;
     private final ChatService chatService;
     private final Toolkit toolkit;
+    private final Set<String> implementedToolNames;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
-                              ChatService chatService, Toolkit toolkit) {
+                              ChatService chatService, Toolkit toolkit,
+                              Set<String> implementedToolNames) {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
         this.chatService = chatService;
         this.toolkit = toolkit;
+        this.implementedToolNames = implementedToolNames;
     }
 
     @PostMapping(value = "/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -201,8 +206,82 @@ public class ConsoleController {
     }
 
     @GetMapping("/agent-stats")
-    public AgentStatsResponse agentStats() {
-        return new AgentStatsResponse(1, 1);
+    public AgentStatsSummary agentStats(
+            @RequestParam(required = false) String start_date,
+            @RequestParam(required = false) String end_date) {
+        var now = LocalDate.now();
+        var end = end_date != null && !end_date.isBlank() ? LocalDate.parse(end_date) : now;
+        var start = start_date != null && !start_date.isBlank() ? LocalDate.parse(start_date) : end.minusDays(30);
+        if (start.isAfter(end)) { var tmp = start; start = end; end = tmp; }
+
+        var summary = new AgentStatsSummary();
+        summary.setStartDate(start.toString());
+        summary.setEndDate(end.toString());
+
+        // By-date aggregation
+        var days = new java.util.LinkedHashMap<String, AgentStatsSummary.DailyStats>();
+        for (var d = start; !d.isAfter(end); d = d.plusDays(1)) {
+            days.put(d.toString(), new AgentStatsSummary.DailyStats(d.toString()));
+        }
+
+        // Chats by creation date
+        var allChats = chatService.list(null, null, null);
+        for (var c : allChats) {
+            if (c.getCreatedAt() != null) {
+                var d = c.getCreatedAt().toLocalDate();
+                var ds = days.get(d.toString());
+                if (ds != null) ds.setChats(ds.getChats() + 1);
+            }
+        }
+
+        // Messages aggregation from DB
+        var channelMap = new java.util.LinkedHashMap<String, AgentStatsSummary.ChannelStats>();
+        int totalUser = 0, totalAsst = 0, totalTool = 0;
+        var activeSessionSet = new java.util.HashSet<String>();
+
+        for (var c : allChats) {
+            var msgs = chatService.getMessages(c.getId());
+            String ch = c.getChannel() != null ? c.getChannel() : "console";
+            var cs = channelMap.computeIfAbsent(ch, AgentStatsSummary.ChannelStats::new);
+            for (var m : msgs) {
+                if (m.getCreatedAt() == null) continue;
+                var d = m.getCreatedAt().toLocalDate();
+                var ds = days.get(d.toString());
+                if (ds == null) continue;
+                if ("user".equals(m.getRole())) {
+                    ds.setUserMessages(ds.getUserMessages() + 1);
+                    totalUser++;
+                    cs.setUserMessages(cs.getUserMessages() + 1);
+                    activeSessionSet.add(c.getId() + ":" + d);
+                } else if ("assistant".equals(m.getRole())) {
+                    ds.setAssistantMessages(ds.getAssistantMessages() + 1);
+                    totalAsst++;
+                    cs.setAssistantMessages(cs.getAssistantMessages() + 1);
+                }
+                if (m.getToolCalls() != null && !m.getToolCalls().isBlank()) {
+                    ds.setToolCalls(ds.getToolCalls() + 1);
+                    totalTool++;
+                }
+                ds.setTotalMessages(ds.getUserMessages() + ds.getAssistantMessages());
+            }
+            cs.setTotalMessages(cs.getUserMessages() + cs.getAssistantMessages());
+            cs.setSessionCount(cs.getSessionCount() + 1);
+        }
+
+        for (var ds : days.values()) {
+            ds.setActiveSessions(activeSessionSet.stream()
+                .filter(s -> s.endsWith(":" + ds.getDate())).mapToInt(x -> 1).sum());
+        }
+
+        summary.setByDate(new ArrayList<>(days.values()));
+        summary.setChannelStats(new ArrayList<>(channelMap.values()));
+        summary.setTotalUserMessages(totalUser);
+        summary.setTotalAssistantMessages(totalAsst);
+        summary.setTotalMessages(totalUser + totalAsst);
+        summary.setTotalToolCalls(totalTool);
+        summary.setTotalActiveSessions((int) activeSessionSet.stream().map(s -> s.split(":")[0]).distinct().count());
+
+        return summary;
     }
 
     @GetMapping("/auth/status")
@@ -274,18 +353,36 @@ public class ConsoleController {
     @GetMapping("/tools")
     public List<ToolInfo> tools() {
         return List.of(
-            new ToolInfo("read_file", "Read file"),
-            new ToolInfo("write_file", "Write file"),
-            new ToolInfo("edit_file", "Edit file"),
-            new ToolInfo("execute_command", "Run shell command"),
-            new ToolInfo("search_code", "Search code"),
-            new ToolInfo("list_directory", "List directory"),
-            new ToolInfo("find_symbol", "Find symbol"),
-            new ToolInfo("git_status", "Git status"),
-            new ToolInfo("git_diff", "Git diff"),
-            new ToolInfo("git_log", "Git log"),
-            new ToolInfo("git_commit", "Git commit")
+            tool("read_file", "Read file contents", "📄"),
+            tool("write_file", "Write content to file", "✍️"),
+            tool("edit_file", "Edit file using find-and-replace", "🖊️"),
+            tool("append_file", "Append content to a file", "📎"),
+            tool("grep_search", "Search file contents by pattern", "🔍"),
+            tool("glob_search", "Find files matching a glob pattern", "📁"),
+            tool("execute_shell_command", "Execute shell commands", "💻"),
+            tool("send_file_to_user", "Send files to user", "📤"),
+            tool("browser_use", "Browser automation and web interaction", "🌐"),
+            tool("web_search", "Search the web for real-time information", "🔎"),
+            tool("web_fetch", "Fetch and read content from a URL", "📥"),
+            tool("desktop_screenshot", "Capture desktop screenshots", "📸"),
+            tool("view_image", "Load an image into LLM context for visual analysis", "🖼️"),
+            tool("view_video", "Load a video into LLM context for visual analysis", "🎥"),
+            tool("get_current_time", "Get current date and time", "🕐"),
+            tool("set_user_timezone", "Set user timezone", "🌍"),
+            tool("get_token_usage", "Get llm token usage", "📊"),
+            tool("list_agents", "List configured agents from the local API", "🤖"),
+            tool("chat_with_agent", "Send a message to another configured agent and wait for the response", "💬"),
+            tool("submit_to_agent", "Submit a background task to another configured agent", "📨"),
+            tool("check_agent_task", "Check the status of a background agent task", "⏳"),
+            tool("spawn_subagent", "Spawn an ephemeral sub-task within the current workspace", "🔀"),
+            tool("delegate_external_agent", "Delegate work to an external ACP agent runner", "📡"),
+            tool("materialize_skill", "Materialize a skill definition into the workspace", "🧩"),
+            tool("ast_search", "Search code by AST pattern (coding mode)", "🌳")
         );
+    }
+
+    private ToolInfo tool(String name, String desc, String icon) {
+        return new ToolInfo(name, implementedToolNames.contains(name), desc, icon);
     }
 
     @GetMapping("/token-usage")

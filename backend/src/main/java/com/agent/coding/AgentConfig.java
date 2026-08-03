@@ -5,8 +5,31 @@ import io.agentscope.core.tool.Toolkit;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Configuration
 public class AgentConfig {
+
+    /**
+     * SDK-registered tool name → qwenpaw API name mapping.
+     * Add new tools here and to the Toolkit bean below.
+     */
+    static final Map<String, String> TOOL_NAME_MAP = Map.of(
+        "read_file", "read_file",
+        "write_file", "write_file",
+        "edit_file", "edit_file",
+        "execute_command", "execute_shell_command",
+        "search_code", "grep_search",
+        "list_directory", "glob_search",
+        "find_symbol", "ast_search"
+    );
+
+    @Bean
+    Set<String> implementedQwenpawToolNames() {
+        return TOOL_NAME_MAP.values().stream().collect(Collectors.toUnmodifiableSet());
+    }
 
     @Bean
     Toolkit toolkit(ReadFileTool readFile, WriteFileTool writeFile,
