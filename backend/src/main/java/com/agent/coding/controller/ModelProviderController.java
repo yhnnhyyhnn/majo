@@ -1,5 +1,7 @@
 package com.agent.coding.controller;
 
+import com.agent.coding.dto.ModelInfoDto;
+import com.agent.coding.dto.ProviderInfoDto;
 import com.agent.coding.entity.ModelConfigEntity;
 import com.agent.coding.entity.ProviderEntity;
 import com.agent.coding.entity.ProviderModelEntity;
@@ -38,96 +40,92 @@ public class ModelProviderController {
     }
 
     @GetMapping("/models")
-    public List<Map<String, Object>> listProviders() {
-        List<Map<String, Object>> result = new ArrayList<>();
+    public List<ProviderInfoDto> listProviders() {
+        List<ProviderInfoDto> result = new ArrayList<>();
         for (ProviderEntity p : providerRepo.findAllByOrderByNameAsc()) {
-            result.add(toProviderMap(p));
+            result.add(toProviderDto(p));
         }
         for (ModelConfigEntity e : modelRepo.findAll()) {
-            result.add(toCustomProviderMap(e));
+            result.add(toCustomProviderDto(e));
         }
         return result;
     }
 
-    private Map<String, Object> toProviderMap(ProviderEntity p) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("id", p.getId()); m.put("name", p.getName());
-        m.put("base_url", p.getBaseUrl()); m.put("api_key", p.getApiKey());
-        m.put("chat_model", p.getChatModel());
-        m.put("models", toModelList(providerModelRepo.findByProviderId(p.getId())));
-        m.put("extra_models", List.of());
-        m.put("api_key_prefix", p.getApiKeyPrefix());
-        m.put("api_key_prefixes", parseJson(p.getApiKeyPrefixes()));
-        m.put("is_local", p.getIsLocal()); m.put("freeze_url", p.getFreezeUrl());
-        m.put("require_api_key", p.getRequireApiKey()); m.put("is_custom", p.getIsCustom());
-        m.put("support_model_discovery", p.getSupportModelDiscovery());
-        m.put("support_connection_check", p.getSupportConnectionCheck());
-        m.put("generate_kwargs", parseJson(p.getGenerateKwargs()));
-        m.put("custom_headers", parseJson(p.getCustomHeaders()));
-        m.put("auth_mode", p.getAuthMode());         m.put("supports_oauth", p.getSupportsOauth());
-        m.put("oauth_connected", p.getOauthConnected()); m.put("is_free_tier", p.getIsFreeTier());
-        m.put("provider_group", p.getProviderGroup()); m.put("provider_group_name", p.getProviderGroupName());
-        m.put("provider_variant", p.getProviderVariant());
-        m.put("thinking_param_style", p.getThinkingParamStyle());
-        m.put("reasoning_effort_options", parseJson(p.getReasoningEffortOptions()));
-        m.put("thinking_budget_range", parseJson(p.getThinkingBudgetRange()));
-        m.put("meta", parseJson(p.getExtraFields()));
-        return m;
+    private ProviderInfoDto toProviderDto(ProviderEntity p) {
+        var d = new ProviderInfoDto();
+        d.setId(p.getId()); d.setName(p.getName());
+        d.setBaseUrl(p.getBaseUrl()); d.setApiKey(p.getApiKey());
+        d.setChatModel(p.getChatModel());
+        d.setModels(toModelDtoList(providerModelRepo.findByProviderId(p.getId())));
+        d.setExtraModels(List.of());
+        d.setApiKeyPrefix(p.getApiKeyPrefix());
+        d.setApiKeyPrefixes(parseJson(p.getApiKeyPrefixes()));
+        d.setLocal(p.getIsLocal()); d.setFreezeUrl(p.getFreezeUrl());
+        d.setRequireApiKey(p.getRequireApiKey()); d.setCustom(p.getIsCustom());
+        d.setSupportModelDiscovery(p.getSupportModelDiscovery());
+        d.setSupportConnectionCheck(p.getSupportConnectionCheck());
+        d.setGenerateKwargs(parseJson(p.getGenerateKwargs()));
+        d.setCustomHeaders(parseJson(p.getCustomHeaders()));
+        d.setAuthMode(p.getAuthMode()); d.setSupportsOauth(p.getSupportsOauth());
+        d.setOauthConnected(p.getOauthConnected()); d.setFreeTier(p.getIsFreeTier());
+        d.setProviderGroup(p.getProviderGroup()); d.setProviderGroupName(p.getProviderGroupName());
+        d.setProviderVariant(p.getProviderVariant());
+        d.setThinkingParamStyle(p.getThinkingParamStyle());
+        d.setReasoningEffortOptions(parseJson(p.getReasoningEffortOptions()));
+        d.setThinkingBudgetRange(parseJson(p.getThinkingBudgetRange()));
+        d.setMeta(parseJson(p.getExtraFields()));
+        return d;
     }
 
-    private List<Map<String, Object>> toModelList(List<ProviderModelEntity> models) {
-        List<Map<String, Object>> list = new ArrayList<>();
+    private List<ModelInfoDto> toModelDtoList(List<ProviderModelEntity> models) {
+        List<ModelInfoDto> list = new ArrayList<>();
         for (ProviderModelEntity m : models) {
-            Map<String, Object> mm = new LinkedHashMap<>();
-            mm.put("id", m.getModelId()); mm.put("name", m.getName());
-            mm.put("supports_multimodal", m.getSupportsMultimodal());
-            mm.put("supports_image", m.getSupportsImage()); mm.put("supports_video", m.getSupportsVideo());
-            mm.put("probe_source", m.getProbeSource()); mm.put("is_free", m.getIsFree());
-            mm.put("max_tokens", m.getMaxTokens()); mm.put("max_input_length", m.getMaxInputLength());
-            mm.put("max_input_length_configured", m.getMaxInputLengthConfigured());
-            mm.put("generate_kwargs", parseJson(m.getGenerateKwargs()));
-            mm.put("relay_reasoning", m.getRelayReasoning());
-            mm.put("thinking_enabled", m.getThinkingEnabled());
-            mm.put("thinking_budget", m.getThinkingBudget());
-            mm.put("reasoning_effort", m.getReasoningEffort());
-            mm.put("thinking_param_style", m.getThinkingParamStyle());
-            mm.put("reasoning_effort_options", parseJson(m.getReasoningEffortOptions()));
-            mm.put("thinking_budget_range", parseJson(m.getThinkingBudgetRange()));
-            list.add(mm);
+            var d = new ModelInfoDto();
+            d.setId(m.getModelId()); d.setName(m.getName());
+            d.setSupportsMultimodal(m.getSupportsMultimodal());
+            d.setSupportsImage(m.getSupportsImage()); d.setSupportsVideo(m.getSupportsVideo());
+            d.setProbeSource(m.getProbeSource()); d.setIsFree(m.getIsFree());
+            d.setMaxTokens(m.getMaxTokens()); d.setMaxInputLength(m.getMaxInputLength());
+            d.setMaxInputLengthConfigured(m.getMaxInputLengthConfigured());
+            d.setGenerateKwargs(parseJson(m.getGenerateKwargs()));
+            d.setRelayReasoning(m.getRelayReasoning());
+            d.setThinkingEnabled(m.getThinkingEnabled());
+            d.setThinkingBudget(m.getThinkingBudget());
+            d.setReasoningEffort(m.getReasoningEffort());
+            d.setThinkingParamStyle(m.getThinkingParamStyle());
+            d.setReasoningEffortOptions(parseJson(m.getReasoningEffortOptions()));
+            d.setThinkingBudgetRange(parseJson(m.getThinkingBudgetRange()));
+            list.add(d);
         }
         return list;
     }
 
-    private Map<String, Object> toCustomProviderMap(ModelConfigEntity e) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("id", e.getId().toString()); m.put("name", e.getName());
-        m.put("base_url", e.getBaseUrl()); m.put("api_key", e.getApiKey().isEmpty() ? "" : "****");
-        m.put("chat_model", "OpenAIChatModel");
-        Map<String, Object> model = new LinkedHashMap<>();
-        model.put("id", e.getModelName()); model.put("name", e.getModelName());
-        model.put("supports_multimodal", false); model.put("supports_image", false); model.put("supports_video", false);
-        model.put("probe_source", "custom"); model.put("is_free", false);
-        model.put("max_tokens", 128000); model.put("max_input_length", 128000);
-        model.put("max_input_length_configured", false); model.put("generate_kwargs", Map.of());
-        model.put("relay_reasoning", true); model.put("thinking_enabled", null);
-        model.put("thinking_budget", null); model.put("reasoning_effort", null);
-        model.put("thinking_param_style", null); model.put("reasoning_effort_options", null);
-        model.put("thinking_budget_range", null);
-        m.put("models", List.of(model));
-        m.put("extra_models", List.of());
-        m.put("api_key_prefix", e.getApiKey().isEmpty() ? "" : e.getApiKey().substring(0, Math.min(4, e.getApiKey().length())) + "***");
-        m.put("api_key_prefixes", List.of());
-        m.put("is_local", false); m.put("freeze_url", false); m.put("require_api_key", true);
-        m.put("is_custom", true); m.put("support_model_discovery", false); m.put("support_connection_check", true);
-        m.put("generate_kwargs", Map.of()); m.put("custom_headers", Map.of());
-        m.put("auth_mode", "api_key"); m.put("supports_oauth", false); m.put("oauth_connected", false);
-        m.put("is_free_tier", false);
-        m.put("provider_group", ""); m.put("provider_group_name", ""); m.put("provider_variant", "");
-        m.put("thinking_param_style", null);
-        m.put("reasoning_effort_options", List.of("none","minimal","low","medium","high","xhigh"));
-        m.put("thinking_budget_range", List.of(1, 81920));
-        m.put("meta", Map.of());
-        return m;
+    private ProviderInfoDto toCustomProviderDto(ModelConfigEntity e) {
+        var d = new ProviderInfoDto();
+        d.setId(e.getId().toString()); d.setName(e.getName());
+        d.setBaseUrl(e.getBaseUrl()); d.setApiKey(e.getApiKey().isEmpty() ? "" : "****");
+        d.setChatModel("OpenAIChatModel");
+        var model = new ModelInfoDto();
+        model.setId(e.getModelName()); model.setName(e.getModelName());
+        model.setSupportsMultimodal(false); model.setSupportsImage(false); model.setSupportsVideo(false);
+        model.setProbeSource("custom"); model.setIsFree(false);
+        model.setMaxTokens(128000); model.setMaxInputLength(128000);
+        model.setMaxInputLengthConfigured(false); model.setGenerateKwargs(Map.of());
+        model.setRelayReasoning(true);
+        d.setModels(List.of(model));
+        d.setExtraModels(List.of());
+        d.setApiKeyPrefix(e.getApiKey().isEmpty() ? "" : e.getApiKey().substring(0, Math.min(4, e.getApiKey().length())) + "***");
+        d.setApiKeyPrefixes(List.of());
+        d.setLocal(false); d.setFreezeUrl(false); d.setRequireApiKey(true);
+        d.setCustom(true); d.setSupportModelDiscovery(false); d.setSupportConnectionCheck(true);
+        d.setGenerateKwargs(Map.of()); d.setCustomHeaders(Map.of());
+        d.setAuthMode("api_key"); d.setSupportsOauth(false); d.setOauthConnected(false);
+        d.setFreeTier(false);
+        d.setProviderGroup(""); d.setProviderGroupName(""); d.setProviderVariant("");
+        d.setReasoningEffortOptions(List.of("none","minimal","low","medium","high","xhigh"));
+        d.setThinkingBudgetRange(List.of(1, 81920));
+        d.setMeta(Map.of());
+        return d;
     }
 
     private Object parseJson(String json) {
@@ -241,7 +239,7 @@ public class ModelProviderController {
     }
 
     @PutMapping("/models/{provider_id}/config")
-    public Map<String, Object> configureProvider(@PathVariable String provider_id,
+    public ResponseEntity<?> configureProvider(@PathVariable String provider_id,
                                                   @RequestBody Map<String, Object> body) {
         providerRepo.findById(provider_id).ifPresent(p -> {
             if (body.containsKey("api_key")) p.setApiKey(Objects.toString(body.get("api_key"), ""));
@@ -250,47 +248,47 @@ public class ModelProviderController {
             providerRepo.save(p);
         });
         return providerRepo.findById(provider_id)
-            .map(this::toProviderMap)
-            .orElse(Map.of("error", "not found"));
+            .<ResponseEntity<?>>map(p -> ResponseEntity.ok(toProviderDto(p)))
+            .orElse(ResponseEntity.status(404).body(Map.of("error", "not found")));
     }
 
     @PostMapping("/models/custom-providers")
-    public Map<String, Object> createProvider(@RequestBody Map<String, String> body) {
+    public ProviderInfoDto createProvider(@RequestBody Map<String, String> body) {
         var e = new ModelConfigEntity();
         e.setName(body.getOrDefault("name", "Custom"));
         e.setApiKey(body.getOrDefault("apiKey", ""));
         e.setBaseUrl(body.getOrDefault("baseUrl", "https://api.openai.com/v1"));
         e.setModelName(body.getOrDefault("modelName", "gpt-4o-mini"));
         modelRepo.save(e);
-        return toCustomProviderMap(e);
+        return toCustomProviderDto(e);
     }
 
     @DeleteMapping("/models/custom-providers/{provider_id}")
-    public List<Map<String, Object>> deleteProvider(@PathVariable String provider_id) {
+    public List<ProviderInfoDto> deleteProvider(@PathVariable String provider_id) {
         try { modelRepo.deleteById(Long.parseLong(provider_id)); } catch (NumberFormatException ignored) {}
         return listProviders();
     }
 
     @PostMapping("/models/{provider_id}/models")
-    public Map<String, Object> addModel(@PathVariable String provider_id, @RequestBody Map<String, String> body) {
+    public Object addModel(@PathVariable String provider_id, @RequestBody Map<String, String> body) {
         try {
             Long id = Long.parseLong(provider_id);
             var e = modelRepo.findById(id).orElse(null);
             if (e != null) {
                 e.setModelName(body.getOrDefault("model_id", body.getOrDefault("modelName", e.getModelName())));
                 modelRepo.save(e);
-                return toCustomProviderMap(e);
+                return toCustomProviderDto(e);
             }
         } catch (NumberFormatException ignored) {}
         return Map.of();
     }
 
     @DeleteMapping("/models/{provider_id}/models/{model_id}")
-    public Map<String, Object> removeModel(@PathVariable String provider_id, @PathVariable String model_id) {
+    public Object removeModel(@PathVariable String provider_id, @PathVariable String model_id) {
         try {
             Long id = Long.parseLong(provider_id);
             var e = modelRepo.findById(id).orElse(null);
-            if (e != null) { e.setModelName("gpt-4o-mini"); modelRepo.save(e); return toCustomProviderMap(e); }
+            if (e != null) { e.setModelName("gpt-4o-mini"); modelRepo.save(e); return toCustomProviderDto(e); }
         } catch (NumberFormatException ignored) {}
         return Map.of();
     }

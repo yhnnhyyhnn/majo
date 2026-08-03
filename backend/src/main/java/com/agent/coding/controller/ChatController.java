@@ -2,6 +2,7 @@ package com.agent.coding.controller;
 
 import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
+import com.agent.coding.dto.StatusResponse;
 import com.agent.coding.entity.ModelConfigEntity;
 import com.agent.coding.repository.ModelConfigRepository;
 import com.agent.coding.service.ModelRoutingService;
@@ -166,7 +167,7 @@ public class ChatController {
     }
 
     @GetMapping("/health")
-    public Map<String, String> health() {
-        return Map.of("status", "ok");
+    public StatusResponse health() {
+        return StatusResponse.ok();
     }
 }

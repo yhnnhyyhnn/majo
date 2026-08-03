@@ -1,5 +1,6 @@
 package com.agent.coding.controller;
 
+import com.agent.coding.dto.EnvVarDto;
 import com.agent.coding.entity.EnvVarEntity;
 import com.agent.coding.repository.EnvVarRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,16 +18,16 @@ public class EnvsController {
     public EnvsController(EnvVarRepository repo) { this.repo = repo; }
 
     @GetMapping("/envs")
-    public List<Map<String, String>> list() {
+    public List<EnvVarDto> list() {
         return repo.findAll().stream()
             .sorted(Comparator.comparing(EnvVarEntity::getKey))
-            .map(e -> Map.of("key", e.getKey(), "value", e.getValue()))
+            .map(e -> new EnvVarDto(e.getKey(), e.getValue()))
             .toList();
     }
 
     @PutMapping("/envs")
     @Transactional
-    public List<Map<String, String>> save(@RequestBody Map<String, String> body) {
+    public List<EnvVarDto> save(@RequestBody Map<String, String> body) {
         repo.deleteAll();
         body.forEach((k, v) -> {
             if (!k.isBlank()) repo.save(new EnvVarEntity(k.trim(), v));
@@ -36,7 +37,7 @@ public class EnvsController {
 
     @DeleteMapping("/envs/{key}")
     @Transactional
-    public List<Map<String, String>> delete(@PathVariable String key) {
+    public List<EnvVarDto> delete(@PathVariable String key) {
         repo.deleteById(key);
         return list();
     }

@@ -2,9 +2,7 @@ package com.agent.coding.controller;
 
 import com.agent.coding.ChatService;
 import com.agent.coding.WorkspaceContext;
-import com.agent.coding.dto.LoopModeInfo;
-import com.agent.coding.dto.TokenUsageSummary;
-import com.agent.coding.dto.TokenUsageRecord;
+import com.agent.coding.dto.*;
 import com.agent.coding.entity.ChatEntity;
 import com.agent.coding.inbox.InboxStore;
 import com.agent.coding.inbox.InboxTraceStore;
@@ -195,41 +193,36 @@ public class ConsoleController {
 
     @GetMapping("/agents")
     public Map<String, Object> listAgents() {
-        return Map.of("agents", List.of(Map.of(
-            "id", "default",
-            "name", "majo",
-            "description", "Majo AI Coding Agent",
-            "workspace_dir", System.getProperty("user.dir"),
-            "enabled", true,
-            "startup_status", "running",
-            "backend", "majo",
-            "backend_capabilities", Map.of("workspace_ui", true, "code_files", true)
+        return Map.of("agents", List.of(new AgentInfo(
+            "default", "majo", "Majo AI Coding Agent",
+            System.getProperty("user.dir"), true, "running", "majo",
+            Map.of("workspace_ui", true, "code_files", true)
         )));
     }
 
     @GetMapping("/agent-stats")
-    public Map<String, Object> agentStats() {
-        return Map.of("agent_count", 1, "active_count", 1);
+    public AgentStatsResponse agentStats() {
+        return new AgentStatsResponse(1, 1);
     }
 
     @GetMapping("/auth/status")
-    public Map<String, Object> authStatus() {
-        return Map.of("enabled", false);
+    public AuthStatusResponse authStatus() {
+        return new AuthStatusResponse(false);
     }
 
     @GetMapping("/version")
-    public Map<String, String> version() {
-        return Map.of("version", "0.1.0");
+    public VersionResponse version() {
+        return new VersionResponse("0.1.0");
     }
 
     @GetMapping("/healthz")
-    public Map<String, String> healthz() {
-        return Map.of("status", "ok");
+    public StatusResponse healthz() {
+        return StatusResponse.ok();
     }
 
     @PostMapping("/console/chat/stop")
-    public Map<String, String> stopChat() {
-        return Map.of("status", "ok");
+    public StatusResponse stopChat() {
+        return StatusResponse.ok();
     }
 
     @GetMapping("/loops/status")
@@ -274,24 +267,24 @@ public class ConsoleController {
     }
 
     @GetMapping("/settings/language")
-    public Map<String, String> language() {
-        return Map.of("language", "en");
+    public LanguageResponse language() {
+        return new LanguageResponse("en");
     }
 
     @GetMapping("/tools")
-    public List<Map<String, String>> tools() {
+    public List<ToolInfo> tools() {
         return List.of(
-            Map.of("name", "read_file", "description", "Read file"),
-            Map.of("name", "write_file", "description", "Write file"),
-            Map.of("name", "edit_file", "description", "Edit file"),
-            Map.of("name", "execute_command", "description", "Run shell command"),
-            Map.of("name", "search_code", "description", "Search code"),
-            Map.of("name", "list_directory", "description", "List directory"),
-            Map.of("name", "find_symbol", "description", "Find symbol"),
-            Map.of("name", "git_status", "description", "Git status"),
-            Map.of("name", "git_diff", "description", "Git diff"),
-            Map.of("name", "git_log", "description", "Git log"),
-            Map.of("name", "git_commit", "description", "Git commit")
+            new ToolInfo("read_file", "Read file"),
+            new ToolInfo("write_file", "Write file"),
+            new ToolInfo("edit_file", "Edit file"),
+            new ToolInfo("execute_command", "Run shell command"),
+            new ToolInfo("search_code", "Search code"),
+            new ToolInfo("list_directory", "List directory"),
+            new ToolInfo("find_symbol", "Find symbol"),
+            new ToolInfo("git_status", "Git status"),
+            new ToolInfo("git_diff", "Git diff"),
+            new ToolInfo("git_log", "Git log"),
+            new ToolInfo("git_commit", "Git commit")
         );
     }
 
@@ -398,7 +391,7 @@ public class ConsoleController {
     }
 
     @PostMapping("/console/upload")
-    public Map<String, String> consoleUpload() {
+    public Map<String, Object> consoleUpload() {
         return Map.of("url", "", "file_name", "");
     }
 
@@ -413,25 +406,25 @@ public class ConsoleController {
     }
 
     @PostMapping("/harnesses/{provider_id}/login")
-    public Map<String, String> harnessLogin(@PathVariable String provider_id) {
-        return Map.of("status", "ok");
+    public StatusResponse harnessLogin(@PathVariable String provider_id) {
+        return StatusResponse.ok();
     }
 
     @PostMapping("/harnesses/{provider_id}/logout")
-    public Map<String, String> harnessLogout(@PathVariable String provider_id) {
-        return Map.of("status", "ok");
+    public StatusResponse harnessLogout(@PathVariable String provider_id) {
+        return StatusResponse.ok();
     }
 
     @PostMapping("/harnesses/{provider_id}/status")
-    public Map<String, String> harnessStatus(@PathVariable String provider_id) {
-        return Map.of("status", "ok");
+    public StatusResponse harnessStatus(@PathVariable String provider_id) {
+        return StatusResponse.ok();
     }
 
     @GetMapping("/config/heartbeat")
-    public Map<String, String> globalHeartbeat() { return Map.of("status", "ok"); }
+    public StatusResponse globalHeartbeat() { return StatusResponse.ok(); }
 
     @GetMapping("/config/channels")
-    public List<Map<String, String>> globalChannels() { return List.of(); }
+    public List<Object> globalChannels() { return List.of(); }
 
     @PostMapping("/fork/agent")
     public Map<String, String> forkAgent() { return Map.of("id", UUID.randomUUID().toString()); }
