@@ -1,6 +1,7 @@
 package com.agent.coding.controller;
 
 import com.agent.coding.ChatService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,19 +28,29 @@ public class ChatsController {
         map.put("user_id", c.getUserId());
         map.put("channel", c.getChannel());
         map.put("name", c.getTitle());
-        map.put("title", c.getTitle());
         map.put("status", c.getStatus());
         map.put("created_at", c.getCreatedAt() != null ? c.getCreatedAt().format(ISO) : null);
         map.put("updated_at", c.getUpdatedAt() != null ? c.getUpdatedAt().format(ISO) : null);
         map.put("pinned", c.getPinned());
         map.put("archived", c.getArchivedAt() != null);
         map.put("archived_at", c.getArchivedAt() != null ? c.getArchivedAt().format(ISO) : null);
+        map.put("meta", new LinkedHashMap<>());
         return map;
     }
 
     @GetMapping("/chats")
-    public List<Map<String, Object>> list() {
-        return service.list().stream().map(this::toChatSpec).toList();
+    public List<Map<String, Object>> list(
+            @RequestParam(required = false) String user_id,
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false) Boolean archived) {
+        var chats = service.list(user_id, channel, archived);
+        return chats.stream().map(this::toChatSpec).toList();
+    }
+
+    private static String resolveMessageType(com.agent.coding.entity.MessageEntity m) {
+        if ("user".equals(m.getRole())) return "message";
+        if (m.getThinking() != null && !m.getThinking().isBlank()) return "reasoning";
+        return "message";
     }
 
     @PostMapping("/chats")
@@ -56,19 +67,30 @@ public class ChatsController {
             .map(m -> {
                 Map<String, Object> map = new LinkedHashMap<>();
                 map.put("id", m.getId().toString());
+                map.put("type", resolveMessageType(m));
                 map.put("role", m.getRole());
-                map.put("content", m.getContent());
+                // Parse content as JSON array if possible, else wrap in text array
+                Object parsed = tryParseJson(m.getContent());
+                map.put("content", parsed != null ? parsed : m.getContent());
+                map.put("status", "completed");
                 map.put("created_at", m.getCreatedAt() != null ? m.getCreatedAt().format(ISO) : null);
                 map.put("metadata", m.getToolCalls() != null ? Map.of("toolCalls", m.getToolCalls()) : Map.of());
                 return map;
             })
             .toList();
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("id", chat.getId());
-        result.put("name", chat.getTitle());
-        result.put("status", chat.getStatus());
         result.put("messages", messages);
+        result.put("status", chat.getStatus());
         return result;
+    }
+
+    private static Object tryParseJson(String s) {
+        if (s == null || s.isBlank() || !s.trim().startsWith("[")) return null;
+        try {
+            return new ObjectMapper().readValue(s, List.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @PostMapping("/chats/{id}/messages")
@@ -80,14 +102,15 @@ public class ChatsController {
     }
 
     @DeleteMapping("/chats/{id}")
-    public Map<String, String> delete(@PathVariable String id) {
+    public Map<String, Object> delete(@PathVariable String id) {
         service.delete(id);
-        return Map.of("status", "ok");
+        return Map.of("deleted", true);
     }
 
     @PatchMapping("/chats/{id}")
     public Map<String, Object> rename(@PathVariable String id, @RequestBody Map<String, String> body) {
-        var chat = service.rename(id, body.getOrDefault("title", "New Chat"));
+        String newName = body.getOrDefault("name", body.get("title"));
+        var chat = service.rename(id, newName != null ? newName : "New Chat");
         if (chat == null) return Map.of("error", "not found");
         return toChatSpec(chat);
     }
@@ -95,7 +118,8 @@ public class ChatsController {
     @Transactional
     @PutMapping("/chats/{id}")
     public Map<String, Object> update(@PathVariable String id, @RequestBody Map<String, String> body) {
-        if (body.containsKey("title")) service.rename(id, body.get("title"));
+        String newName = body.getOrDefault("name", body.get("title")); // frontend sends "name"
+        if (newName != null && !newName.isBlank()) service.rename(id, newName);
         if (body.containsKey("pinned")) {
             var chat = service.getChat(id);
             if (chat != null) { chat.setPinned(Boolean.valueOf(body.get("pinned"))); }

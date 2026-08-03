@@ -1,11 +1,15 @@
 package com.agent.coding.controller;
 
-import com.agent.coding.SettingsService;
+import com.agent.coding.ChatService;
 import com.agent.coding.WorkspaceContext;
+import com.agent.coding.dto.LoopModeInfo;
 import com.agent.coding.dto.TokenUsageSummary;
 import com.agent.coding.dto.TokenUsageRecord;
+import com.agent.coding.entity.ChatEntity;
 import com.agent.coding.inbox.InboxStore;
 import com.agent.coding.inbox.InboxTraceStore;
+import com.agent.coding.service.ModelRoutingService;
+import com.agent.coding.service.TaskTracker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
@@ -15,8 +19,11 @@ import io.agentscope.harness.agent.HarnessAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,17 +39,24 @@ public class ConsoleController {
     private static final String SYS_PROMPT = "你是一个专业的编码助手。工具包括: read_file/write_file/edit_file(读写编辑), search_code/find_symbol/list_directory(搜索), execute_command(执行命令), git_status/git_diff/git_branch/git_commit/git_add/git_log(Git操作)。回答简洁专业。";
     private static final Path DEFAULT_WORKSPACE = Paths.get(System.getProperty("user.dir"));
 
-    private final SettingsService settingsService;
-    private final Toolkit toolkit;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    public ConsoleController(SettingsService settingsService, Toolkit toolkit) {
-        this.settingsService = settingsService;
+    private final ModelRoutingService modelRouting;
+    private final TaskTracker taskTracker;
+    private final ChatService chatService;
+    private final Toolkit toolkit;
+
+    public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
+                              ChatService chatService, Toolkit toolkit) {
+        this.modelRouting = modelRouting;
+        this.taskTracker = taskTracker;
+        this.chatService = chatService;
         this.toolkit = toolkit;
     }
 
     @PostMapping(value = "/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> consoleChat(@RequestBody Map<String, Object> body) {
+    public Flux<String> consoleChat(@RequestBody Map<String, Object> body,
+                                     HttpServletRequest request) {
         String prompt = extractPrompt(body);
         if (prompt.isBlank()) {
             return Flux.just(event("error", "prompt is required"));
@@ -50,35 +64,133 @@ public class ConsoleController {
 
         String sessionId = Objects.toString(body.getOrDefault("session_id", UUID.randomUUID().toString()), UUID.randomUUID().toString());
         String workspace = Objects.toString(body.getOrDefault("workspace", ""), "");
+        String agentId = request.getHeader("X-Agent-Id");
+        if (agentId == null || agentId.isBlank()) {
+            agentId = Objects.toString(body.get("agent_id"), "default");
+        }
 
         WorkspaceContext.set(workspace);
-        HarnessAgent agent = resolveAgent(workspace);
+
+        // Find or create chat by session_id (qwenpaw: get_or_create_chat)
+        var chatEntity = chatService.getOrCreateBySession(sessionId, prompt);
+        final String chatId = chatEntity.getId();
+        final String placeholderTitle = chatEntity.getTitle();
+        final String firstUserText = prompt;
+        chatService.setStatus(chatId, "running");
+        taskTracker.setRunning(chatId);
+
+        HarnessAgent agent = resolveAgent(workspace, agentId);
 
         var ctx = RuntimeContext.builder()
             .sessionId(sessionId)
             .userId(Objects.toString(body.getOrDefault("user_id", "web-user"), "web-user"))
             .build();
 
-        return agent.streamEvents(new UserMessage(prompt), ctx)
-            .map(event -> {
-                try {
-                    var node = mapper.createObjectNode();
+        String responseId = "response_" + UUID.randomUUID().toString().replace("-", "");
+        var seq = new java.util.concurrent.atomic.AtomicLong(1);
+        var thinker = new StringBuilder();
+        var texter = new StringBuilder();
+        var thinkingMsgId = new String[] { null };
+        var textMsgId = new String[] { null };
+        var usageHolder = new Object() { int inputTokens, outputTokens; double timeSec; };
+        List<Map<String, Object>> completedMessages = new ArrayList<>();
+
+        return Flux.concat(
+            Flux.just(
+                sseEvent(qwenResponseCreated(responseId, sessionId, seq)),
+                sseEvent(qwenResponseInProgress(responseId, sessionId, seq))
+            ),
+            agent.streamEvents(new UserMessage(prompt), ctx)
+                .handle((event, sink) -> {
                     String type = event.getClass().getSimpleName();
-                    node.put("type", type);
-                    node.put("timestamp", System.currentTimeMillis());
-                    node.set("data", mapper.valueToTree(event));
-                    return mapper.writeValueAsString(node);
-                } catch (Exception e) {
-                    return event("error", e.getMessage());
-                }
-            })
-            .startWith(event("thinking", "Thinking..."))
-            .concatWithValues(event("done", ""))
-            .onErrorResume(e -> {
-                log.error("Console chat stream error", e);
-                return Flux.just(event("error", e.getMessage()), event("done", ""));
-            })
-            .doFinally(sig -> WorkspaceContext.clear());
+                    try {
+                        switch (type) {
+                            case "ThinkingBlockStartEvent": {
+                                thinkingMsgId[0] = "msg_" + UUID.randomUUID().toString().replace("-", "");
+                                thinker.setLength(0);
+                                sink.next(sseEvent(QwenEvents.reasoningInProgress(thinkingMsgId[0], seq)));
+                                return;
+                            }
+                            case "ThinkingBlockDeltaEvent": {
+                                String delta = event.getClass().getMethod("getDelta").invoke(event).toString();
+                                thinker.append(delta);
+                                sink.next(sseEvent(QwenEvents.contentDelta(thinkingMsgId[0], delta, seq, thinker.toString())));
+                                return;
+                            }
+                            case "ThinkingBlockEndEvent": {
+                                String full = thinker.toString();
+                                var msg = new LinkedHashMap<String, Object>();
+                                msg.put("id", thinkingMsgId[0]);
+                                msg.put("type", "reasoning");
+                                msg.put("role", "assistant");
+                                msg.put("content", List.of(Map.of("type", "text", "text", full)));
+                                msg.put("status", "completed");
+                                completedMessages.add(msg);
+                                sink.next(sseEvent(QwenEvents.contentFinal(thinkingMsgId[0], full, seq)));
+                                sink.next(sseEvent(QwenEvents.reasoningCompleted(thinkingMsgId[0], full, seq)));
+                                return;
+                            }
+                            case "TextBlockStartEvent": {
+                                textMsgId[0] = "msg_" + UUID.randomUUID().toString().replace("-", "");
+                                texter.setLength(0);
+                                sink.next(sseEvent(QwenEvents.textMessageInProgress(textMsgId[0], seq)));
+                                return;
+                            }
+                            case "TextBlockDeltaEvent": {
+                                String delta = event.getClass().getMethod("getDelta").invoke(event).toString();
+                                texter.append(delta);
+                                sink.next(sseEvent(QwenEvents.contentDelta(textMsgId[0], delta, seq, texter.toString())));
+                                return;
+                            }
+                            case "TextBlockEndEvent": {
+                                String full = texter.toString();
+                                var msg = new LinkedHashMap<String, Object>();
+                                msg.put("id", textMsgId[0]);
+                                msg.put("type", "message");
+                                msg.put("role", "assistant");
+                                msg.put("content", List.of(Map.of("type", "text", "text", full)));
+                                msg.put("status", "completed");
+                                completedMessages.add(msg);
+                                sink.next(sseEvent(QwenEvents.contentFinal(textMsgId[0], full, seq)));
+                                sink.next(sseEvent(QwenEvents.textMessageCompleted(textMsgId[0], full, seq)));
+                                return;
+                            }
+                            case "ModelCallEndEvent": {
+                                try {
+                                    var usageMethod = event.getClass().getMethod("getUsage");
+                                    var usage = usageMethod.invoke(event);
+                                    if (usage != null) {
+                                        var u = (Map<?, ?>) usage;
+                                        usageHolder.inputTokens = intVal(u, "inputTokens");
+                                        usageHolder.outputTokens = intVal(u, "outputTokens");
+                                        usageHolder.timeSec = doubleVal(u, "time");
+                                    }
+                                } catch (Exception ignored) {}
+                                return;
+                            }
+                            default:
+                                return;
+                        }
+                    } catch (Exception e) {
+                        return;
+                    }
+                }),
+            Flux.defer(() -> Flux.just(
+                sseEvent(QwenEvents.responseCompleted(responseId, sessionId, seq,
+                    usageHolder.inputTokens, usageHolder.outputTokens, completedMessages)),
+                sseEvent(QwenEvents.turnUsage(sessionId, seq, usageHolder.inputTokens, usageHolder.outputTokens))
+            ))
+        ).doFinally(sig -> {
+            taskTracker.setDone(chatId);
+            saveConsoleMessages(chatId, prompt, completedMessages);
+            chatService.setStatus(chatId, "idle");
+            // Background LLM title generation (qwenpaw: generate_and_update_title)
+            if (firstUserText != null && !firstUserText.isBlank()
+                    && !"New Chat".equals(placeholderTitle)) {
+                new Thread(() -> generateTitle(chatId, placeholderTitle, firstUserText)).start();
+            }
+            WorkspaceContext.clear();
+        });
     }
 
     @GetMapping("/agents")
@@ -118,6 +230,47 @@ public class ConsoleController {
     @PostMapping("/console/chat/stop")
     public Map<String, String> stopChat() {
         return Map.of("status", "ok");
+    }
+
+    @GetMapping("/loops/status")
+    public Map<String, Object> loopStatus(
+            @RequestParam(required = false) String chat_id,
+            @RequestParam(required = false) String session_id) {
+
+        String executionPhase = "awaiting_user";
+        String resolvedSessionId = session_id;
+
+        if (chat_id != null && !chat_id.isBlank()) {
+            try {
+                ChatEntity chat = chatService.getChat(chat_id);
+                if (chat != null) {
+                    resolvedSessionId = chat.getSessionId();
+                    String runStatus = taskTracker.getStatus(chat.getId());
+                    if ("running".equals(runStatus)) {
+                        executionPhase = "running";
+                    }
+                } else if (resolvedSessionId == null || resolvedSessionId.isBlank()) {
+                    return idleStatus();
+                }
+            } catch (Exception ignored) {
+                if (resolvedSessionId == null || resolvedSessionId.isBlank()) {
+                    return idleStatus();
+                }
+            }
+        }
+
+        if (resolvedSessionId == null || resolvedSessionId.isBlank()) {
+            return idleStatus();
+        }
+
+        return idleStatus();
+    }
+
+    private static Map<String, Object> idleStatus() {
+        var m = new LinkedHashMap<String, Object>();
+        m.put("state", "idle");
+        m.put("mode", null);
+        return m;
     }
 
     @GetMapping("/settings/language")
@@ -306,7 +459,7 @@ public class ConsoleController {
         return "";
     }
 
-    private HarnessAgent resolveAgent(String workspace) {
+    private HarnessAgent resolveAgent(String workspace, String agentId) {
         Path wsPath = workspace.isBlank() ? DEFAULT_WORKSPACE
             : Paths.get(workspace).toAbsolutePath().normalize();
         if (!workspace.isBlank() && !Files.isDirectory(wsPath)) {
@@ -315,28 +468,348 @@ public class ConsoleController {
         return HarnessAgent.builder()
             .name("majo")
             .sysPrompt(SYS_PROMPT)
-            .model(createModel())
+            .model(createModel(agentId))
             .toolkit(toolkit)
             .workspace(wsPath)
             .build();
     }
 
-    private OpenAIChatModel createModel() {
-        return OpenAIChatModel.builder()
-            .apiKey(settingsService.getApiKey())
-            .baseUrl(settingsService.getBaseUrl())
-            .modelName(settingsService.getModelName())
-            .build();
+    private OpenAIChatModel createModel(String agentId) {
+        var slot = modelRouting.resolveEffectiveModel(agentId);
+        if (!slot.hasBoth()) {
+            log.warn("No active model configured for agent '{}', using gpt-4o-mini fallback", agentId);
+            return OpenAIChatModel.builder()
+                .apiKey("")
+                .baseUrl("https://api.openai.com/v1")
+                .modelName("gpt-4o-mini")
+                .build();
+        }
+        log.info("Effective model for agent '{}': {}/{}", agentId, slot.providerId(), slot.modelId());
+        return modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
+    }
+
+    private void saveConsoleMessages(String chatId, String userPrompt,
+                                       List<Map<String, Object>> completedMessages) {
+        if (chatId == null || chatId.isBlank()) return;
+        List<Map<String, String>> msgs = new ArrayList<>();
+        // User message with content array
+        Map<String, String> userMsg = new LinkedHashMap<>();
+        userMsg.put("role", "user");
+        String userContent;
+        try {
+            userContent = MAPPER.writeValueAsString(
+                userPrompt != null && !userPrompt.isBlank()
+                    ? List.of(Map.of("type", "text", "text", userPrompt))
+                    : List.of());
+        } catch (Exception e) {
+            userContent = "[]";
+        }
+        userMsg.put("content", userContent);
+        msgs.add(userMsg);
+        // Assistant messages from completed blocks
+        for (var cm : completedMessages) {
+            Map<String, String> asstMsg = new LinkedHashMap<>();
+            asstMsg.put("role", "assistant");
+            @SuppressWarnings("unchecked")
+            var contentList = (List<Map<String, Object>>) cm.getOrDefault("content", List.of());
+            String contentJson;
+            try {
+                contentJson = MAPPER.writeValueAsString(contentList);
+            } catch (Exception e) {
+                contentJson = "[]";
+            }
+            asstMsg.put("content", contentJson);
+            String messageType = Objects.toString(cm.get("type"), "message");
+            // Store reasoning as thinking for display
+            if ("reasoning".equals(messageType)) {
+                StringBuilder sb = new StringBuilder();
+                for (var c : contentList) {
+                    Object text = c.get("text");
+                    if (text != null) sb.append(text.toString());
+                }
+                if (sb.length() > 0) {
+                    asstMsg.put("thinking", sb.toString());
+                }
+            }
+            msgs.add(asstMsg);
+        }
+        chatService.saveMessages(chatId, msgs);
+    }
+
+    private void generateTitle(String chatId, String placeholderTitle, String userMessage) {
+        try {
+            var slot = modelRouting.resolveEffectiveModel(null);
+            if (!slot.hasBoth()) return;
+            var model = modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
+            String systemPrompt = "You generate short titles for chat sessions. Given the first user "
+                + "message, reply with a concise title (at most 6 words, no quotes, no "
+                + "trailing punctuation, same language as the message) that captures the "
+                + "topic. Reply with the title only.";
+            String prompt = userMessage.length() > 500 ? userMessage.substring(0, 500) : userMessage;
+            var messages = List.of(
+                io.agentscope.core.message.Msg.builder()
+                    .name("system").role(io.agentscope.core.message.MsgRole.SYSTEM)
+                    .content(io.agentscope.core.message.TextBlock.builder().text(systemPrompt).build())
+                    .build(),
+                io.agentscope.core.message.Msg.builder()
+                    .name("user").role(io.agentscope.core.message.MsgRole.USER)
+                    .content(io.agentscope.core.message.TextBlock.builder().text(prompt).build())
+                    .build()
+            );
+            var sb = new StringBuilder();
+            model.stream(messages, null, null)
+                .doOnNext(r -> {
+                    String text = extractMsgText(r);
+                    if (text != null && !text.isEmpty() && text.length() > sb.length()) {
+                        sb.setLength(0);
+                        sb.append(text);
+                    }
+                })
+                .blockLast();
+            String raw = sb.toString();
+            String title = _cleanTitle(raw);
+            if (!title.isEmpty()) {
+                chatService.patchChatIfNameMatches(chatId, placeholderTitle, title);
+            }
+        } catch (Exception e) {
+            log.warn("Background title generation failed for chat {}: {}", chatId, e.getMessage());
+        }
+    }
+
+    private static String extractMsgText(Object response) {
+        if (response == null) return null;
+        try {
+            var m = response.getClass().getMethod("getTextContent");
+            return (String) m.invoke(response);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String _cleanTitle(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String title = raw.trim().split("\\n")[0].trim();
+        title = title.replaceAll("^[\"'`\"\"'']+|[\"'`\"\"'']+$", "");
+        while (!title.isEmpty() && ". ,;:!?".indexOf(title.charAt(title.length() - 1)) >= 0) {
+            title = title.substring(0, title.length() - 1).trim();
+        }
+        if (title.length() > 60) title = title.substring(0, 60).trim();
+        return title;
     }
 
     private String event(String type, String content) {
         try {
-            var node = mapper.createObjectNode();
+            var node = MAPPER.createObjectNode();
             node.put("type", type);
             node.put("content", content);
-            return mapper.writeValueAsString(node);
+            return MAPPER.writeValueAsString(node);
         } catch (Exception e) {
             return "{\"type\":\"error\"}";
+        }
+    }
+
+    private static String sseEvent(String json) {
+        return json;
+    }
+
+    private static String qwenResponseCreated(String responseId, String sessionId,
+                                                java.util.concurrent.atomic.AtomicLong seq) {
+        return toJson(jo -> {
+            jo.put("id", responseId);
+            jo.put("output", MAPPER.createArrayNode());
+            jo.put("status", "created");
+            jo.put("created_at", java.time.Instant.now().toString());
+            jo.putNull("completed_at");
+            jo.putNull("metadata");
+            jo.put("object", "response");
+            jo.put("session_id", sessionId);
+            jo.put("sequence_number", seq.getAndIncrement());
+        });
+    }
+
+    private static String qwenResponseInProgress(String responseId, String sessionId,
+                                                   java.util.concurrent.atomic.AtomicLong seq) {
+        return toJson(jo -> {
+            jo.put("id", responseId);
+            jo.put("output", MAPPER.createArrayNode());
+            jo.put("status", "in_progress");
+            jo.put("created_at", java.time.Instant.now().toString());
+            jo.putNull("completed_at");
+            jo.putNull("metadata");
+            jo.put("object", "response");
+            jo.put("session_id", sessionId);
+            jo.put("sequence_number", seq.getAndIncrement());
+        });
+    }
+
+    private static int intVal(Map<?, ?> m, String key) {
+        Object v = m.get(key);
+        if (v instanceof Number n) return n.intValue();
+        return 0;
+    }
+
+    private static double doubleVal(Map<?, ?> m, String key) {
+        Object v = m.get(key);
+        if (v instanceof Number n) return n.doubleValue();
+        return 0;
+    }
+
+    @FunctionalInterface
+    private interface JsonFiller { void fill(com.fasterxml.jackson.databind.node.ObjectNode jo); }
+
+    private static String toJson(JsonFiller filler) {
+        try {
+            var jo = MAPPER.createObjectNode();
+            filler.fill(jo);
+            return MAPPER.writeValueAsString(jo);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    static class QwenEvents {
+        static String reasoningInProgress(String msgId, java.util.concurrent.atomic.AtomicLong seq) {
+            return toJson(jo -> {
+                jo.put("id", msgId);
+                jo.put("type", "reasoning");
+                jo.put("role", "assistant");
+                jo.put("content", MAPPER.createArrayNode());
+                jo.put("status", "in_progress");
+                jo.putNull("metadata");
+                jo.put("name", "assistant");
+                jo.put("object", "message");
+                jo.put("sequence_number", seq.getAndIncrement());
+            });
+        }
+
+        static String reasoningCompleted(String msgId, String fullText, java.util.concurrent.atomic.AtomicLong seq) {
+            return toJson(jo -> {
+                jo.put("id", msgId);
+                jo.put("type", "reasoning");
+                jo.put("role", "assistant");
+                jo.put("content", MAPPER.createArrayNode()
+                    .add(MAPPER.createObjectNode()
+                        .put("type", "text")
+                        .put("delta", false)
+                        .put("index", 0)
+                        .putNull("status")
+                        .put("object", "content")
+                        .put("text", fullText)));
+                jo.put("status", "completed");
+                jo.putNull("metadata");
+                jo.put("name", "assistant");
+                jo.put("object", "message");
+                jo.put("sequence_number", seq.getAndIncrement());
+            });
+        }
+
+        static String textMessageInProgress(String msgId, java.util.concurrent.atomic.AtomicLong seq) {
+            return toJson(jo -> {
+                jo.put("id", msgId);
+                jo.put("type", "message");
+                jo.put("role", "assistant");
+                jo.put("content", MAPPER.createArrayNode());
+                jo.put("status", "in_progress");
+                jo.putNull("metadata");
+                jo.put("name", "assistant");
+                jo.put("object", "message");
+                jo.put("sequence_number", seq.getAndIncrement());
+            });
+        }
+
+        static String textMessageCompleted(String msgId, String fullText, java.util.concurrent.atomic.AtomicLong seq) {
+            return toJson(jo -> {
+                jo.put("id", msgId);
+                jo.put("type", "message");
+                jo.put("role", "assistant");
+                jo.put("content", MAPPER.createArrayNode()
+                    .add(MAPPER.createObjectNode()
+                        .put("type", "text")
+                        .put("delta", false)
+                        .put("index", 0)
+                        .putNull("status")
+                        .put("object", "content")
+                        .put("text", fullText)));
+                jo.put("status", "completed");
+                jo.putNull("metadata");
+                jo.put("name", "assistant");
+                jo.put("object", "message");
+                jo.put("sequence_number", seq.getAndIncrement());
+                var usage = MAPPER.createObjectNode();
+                usage.put("input_tokens", 0);
+                usage.put("output_tokens", 0);
+                jo.set("usage", usage);
+            });
+        }
+
+        static String contentDelta(String msgId, String delta, java.util.concurrent.atomic.AtomicLong seq,
+                                    String fullSoFar) {
+            return toJson(jo -> {
+                jo.put("type", "text");
+                jo.put("delta", true);
+                jo.put("index", 0);
+                jo.putNull("status");
+                jo.put("object", "content");
+                jo.put("msg_id", msgId);
+                jo.put("text", delta);
+                jo.put("sequence_number", seq.getAndIncrement());
+            });
+        }
+
+        static String contentFinal(String msgId, String fullText, java.util.concurrent.atomic.AtomicLong seq) {
+            return toJson(jo -> {
+                jo.put("type", "text");
+                jo.put("delta", false);
+                jo.put("index", 0);
+                jo.putNull("status");
+                jo.put("object", "content");
+                jo.put("msg_id", msgId);
+                jo.put("text", fullText);
+                jo.put("sequence_number", seq.getAndIncrement());
+            });
+        }
+
+        static String responseCompleted(String responseId, String sessionId,
+                                          java.util.concurrent.atomic.AtomicLong seq,
+                                          int inputTokens, int outputTokens,
+                                          List<Map<String, Object>> completedMessages) {
+            return toJson(jo -> {
+                jo.put("id", responseId);
+                var output = MAPPER.createArrayNode();
+                for (var msg : completedMessages) {
+                    output.add(MAPPER.valueToTree(msg));
+                }
+                jo.set("output", output);
+                jo.put("status", "completed");
+                jo.put("created_at", java.time.Instant.now().toString());
+                jo.put("completed_at", java.time.Instant.now().toString());
+                jo.putNull("metadata");
+                jo.put("object", "response");
+                jo.put("session_id", sessionId);
+                jo.put("sequence_number", seq.getAndIncrement());
+                var u = MAPPER.createObjectNode();
+                u.put("input_tokens", inputTokens);
+                u.put("output_tokens", outputTokens);
+                jo.set("usage", u);
+            });
+        }
+
+        static String turnUsage(String sessionId, java.util.concurrent.atomic.AtomicLong seq,
+                                 int inputTokens, int outputTokens) {
+            return toJson(jo -> {
+                jo.put("type", "turn_usage");
+                jo.put("session_id", sessionId);
+                var u = MAPPER.createObjectNode();
+                u.put("provider_id", "");
+                u.put("model_name", "");
+                u.put("prompt_tokens", inputTokens);
+                u.put("completion_tokens", outputTokens);
+                u.put("total_tokens", inputTokens + outputTokens);
+                u.put("context_size", 131072);
+                u.put("compact_threshold", 0.8);
+                jo.set("usage", u);
+                jo.put("sequence_number", seq.getAndIncrement());
+            });
         }
     }
 }

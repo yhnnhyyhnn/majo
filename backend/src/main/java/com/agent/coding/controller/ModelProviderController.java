@@ -1,14 +1,17 @@
 package com.agent.coding.controller;
 
-import com.agent.coding.SettingsService;
 import com.agent.coding.entity.ModelConfigEntity;
 import com.agent.coding.entity.ProviderEntity;
 import com.agent.coding.entity.ProviderModelEntity;
 import com.agent.coding.repository.ModelConfigRepository;
 import com.agent.coding.repository.ProviderModelRepository;
 import com.agent.coding.repository.ProviderRepository;
+import com.agent.coding.service.ModelRoutingService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -18,15 +21,17 @@ import java.util.*;
 @CrossOrigin(origins = "*")
 public class ModelProviderController {
 
-    private final SettingsService settingsService;
+    private static final Logger log = LoggerFactory.getLogger(ModelProviderController.class);
+
+    private final ModelRoutingService modelRouting;
     private final ModelConfigRepository modelRepo;
     private final ProviderRepository providerRepo;
     private final ProviderModelRepository providerModelRepo;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public ModelProviderController(SettingsService settingsService, ModelConfigRepository modelRepo,
+    public ModelProviderController(ModelRoutingService modelRouting, ModelConfigRepository modelRepo,
                                     ProviderRepository providerRepo, ProviderModelRepository providerModelRepo) {
-        this.settingsService = settingsService;
+        this.modelRouting = modelRouting;
         this.modelRepo = modelRepo;
         this.providerRepo = providerRepo;
         this.providerModelRepo = providerModelRepo;
@@ -130,25 +135,109 @@ public class ModelProviderController {
         try { return mapper.readValue(json, new TypeReference<Object>() {}); } catch (Exception e) { return json; }
     }
 
+    // ── Active model endpoints (qwenpaw-aligned) ─────────────────────
+
     @GetMapping("/models/active")
-    public Map<String, Object> getActiveModels() {
-        Map<String, Object> result = new LinkedHashMap<>();
-        Map<String, Object> llm = new LinkedHashMap<>();
-        llm.put("provider_id", "default");
-        llm.put("model", settingsService.getModelName());
-        result.put("active_llm", llm);
-        result.put("effective_max_input_length", null);
-        return result;
+    public Map<String, Object> getActiveModels(
+            @RequestParam(defaultValue = "effective") String scope,
+            @RequestParam(required = false) String agent_id) {
+
+        var slot = switch (scope) {
+            case "global" -> modelRouting.resolveGlobalModel();
+            case "agent" -> {
+                if (agent_id == null || agent_id.isBlank()) {
+                    throw new IllegalArgumentException("agent_id is required when scope is 'agent'");
+                }
+                yield modelRouting.resolveAgentModel(agent_id);
+            }
+            default -> modelRouting.resolveEffectiveModel(agent_id);
+        };
+
+        return buildActiveModelsInfo(slot);
     }
 
     @PutMapping("/models/active")
-    public Map<String, Object> setActiveModel(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> setActiveModel(
+            @RequestBody Map<String, Object> body) {
+
         String providerId = Objects.toString(body.get("provider_id"), "");
         String model = Objects.toString(body.get("model"), "");
-        if (!model.isEmpty()) {
-            settingsService.setModelName(model);
+        String scope = Objects.toString(body.get("scope"), "global");
+
+        if (scope == null || scope.isBlank()) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("detail", "scope is required"));
         }
-        return getActiveModels();
+
+        // Validate provider & model exist (qwenpaw: _validate_model_slot)
+        if (!providerId.isBlank() && !model.isBlank()) {
+            if (!modelExists(providerId, model)) {
+                var prov = modelRouting.resolveProviderConnection(providerId);
+                if (prov.baseUrl().isBlank()) {
+                    return ResponseEntity.status(404)
+                        .body(Map.of("detail", "Provider '" + providerId + "' not found."));
+                }
+                return ResponseEntity.status(400)
+                    .body(Map.of("detail",
+                        "Model '" + model + "' not found in provider '" + providerId + "'."));
+            }
+        } else {
+            // Neither provider_id nor model provided → clear the slot
+            modelRouting.setGlobalActiveModel("", "");
+            return ResponseEntity.ok(buildActiveModelsInfo(null));
+        }
+
+        if ("agent".equals(scope)) {
+            String agentId = Objects.toString(body.get("agent_id"), null);
+            if (agentId == null || agentId.isBlank()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("detail", "agent_id is required when scope is 'agent'"));
+            }
+            modelRouting.setAgentActiveModel(agentId, providerId, model);
+            var slot = modelRouting.resolveAgentModel(agentId);
+            return ResponseEntity.ok(buildActiveModelsInfo(slot));
+        }
+
+        ModelRoutingService.ModelSlot slot;
+        if ("global".equals(scope)) {
+            modelRouting.setGlobalActiveModel(providerId, model);
+            slot = modelRouting.resolveGlobalModel();
+        } else {
+            modelRouting.setGlobalActiveModel(providerId, model);
+            slot = modelRouting.resolveGlobalModel();
+        }
+        return ResponseEntity.ok(buildActiveModelsInfo(slot));
+    }
+
+    private boolean modelExists(String providerId, String modelId) {
+        // Check built-in providers first
+        var bp = providerRepo.findById(providerId).orElse(null);
+        if (bp != null) {
+            return providerModelRepo.findByProviderIdAndModelId(providerId, modelId).isPresent();
+        }
+        // Check custom providers
+        try {
+            long id = Long.parseLong(providerId);
+            var mc = modelRepo.findById(id).orElse(null);
+            return mc != null && modelId.equals(mc.getModelName());
+        } catch (NumberFormatException ignored) {}
+        return false;
+    }
+
+    private Map<String, Object> buildActiveModelsInfo(ModelRoutingService.ModelSlot slot) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (slot != null && slot.hasBoth()) {
+            Map<String, Object> llm = new LinkedHashMap<>();
+            llm.put("provider_id", slot.providerId());
+            llm.put("model", slot.modelId());
+            result.put("active_llm", llm);
+            Integer ctx = modelRouting.getContextSize(slot.providerId(), slot.modelId());
+            result.put("effective_max_input_length", ctx);
+        } else {
+            result.put("active_llm", null);
+            result.put("effective_max_input_length", null);
+        }
+        return result;
     }
 
     @PutMapping("/models/{provider_id}/config")

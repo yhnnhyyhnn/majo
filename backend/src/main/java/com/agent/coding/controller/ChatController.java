@@ -4,6 +4,7 @@ import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.entity.ModelConfigEntity;
 import com.agent.coding.repository.ModelConfigRepository;
+import com.agent.coding.service.ModelRoutingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
@@ -34,12 +35,15 @@ public class ChatController {
 
     private final SettingsService settingsService;
     private final ModelConfigRepository modelConfigRepo;
+    private final ModelRoutingService modelRouting;
     private final Toolkit toolkit;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public ChatController(SettingsService settingsService, ModelConfigRepository modelConfigRepo, Toolkit toolkit) {
+    public ChatController(SettingsService settingsService, ModelConfigRepository modelConfigRepo,
+                          ModelRoutingService modelRouting, Toolkit toolkit) {
         this.settingsService = settingsService;
         this.modelConfigRepo = modelConfigRepo;
+        this.modelRouting = modelRouting;
         this.toolkit = toolkit;
     }
 
@@ -130,7 +134,13 @@ public class ChatController {
             }
         }
 
-        // Fallback: use legacy single settings
+        // Fallback: resolve effective model from the qwenpaw-aligned routing
+        var slot = modelRouting.resolveEffectiveModel(null);
+        if (slot.hasBoth()) {
+            log.info("Resolved effective model: {}/{}", slot.providerId(), slot.modelId());
+            return modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
+        }
+        // Ultimate fallback
         String apiKey = settingsService.getApiKey();
         String baseUrl = settingsService.getBaseUrl();
         String modelName = settingsService.getModelName();

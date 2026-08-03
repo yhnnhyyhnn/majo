@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -27,6 +28,50 @@ public class ChatService {
         return chatRepo.findAllByOrderByUpdatedAtDesc();
     }
 
+    public List<ChatEntity> list(String userId, String channel, Boolean archived) {
+        if (Boolean.TRUE.equals(archived)) {
+            return chatRepo.findAllByArchivedAtIsNotNullOrderByUpdatedAtDesc();
+        }
+        if (Boolean.FALSE.equals(archived)) {
+            return chatRepo.findAllByArchivedAtIsNullOrderByUpdatedAtDesc();
+        }
+        return chatRepo.findAllByOrderByUpdatedAtDesc();
+    }
+
+    @Transactional
+    public ChatEntity getOrCreateBySession(String sessionId, String firstPrompt) {
+        var existing = chatRepo.findBySessionId(sessionId);
+        if (existing.isPresent()) {
+            var chat = existing.get();
+            chat.setUpdatedAt(LocalDateTime.now());
+            return chatRepo.save(chat);
+        }
+        var chat = new ChatEntity();
+        chat.setId(UUID.randomUUID().toString());
+        chat.setSessionId(sessionId);
+        // Placeholder: first 10 chars (qwenpaw: _extract_placeholder_name)
+        String title = "New Chat";
+        if (firstPrompt != null && !firstPrompt.isBlank()) {
+            title = firstPrompt.length() > 10 ? firstPrompt.substring(0, 10) : firstPrompt;
+        }
+        chat.setTitle(title);
+        chat.setStatus("idle");
+        chat.setCreatedAt(LocalDateTime.now());
+        chat.setUpdatedAt(LocalDateTime.now());
+        return chatRepo.save(chat);
+    }
+
+    @Transactional
+    public boolean patchChatIfNameMatches(String chatId, String expectedTitle, String newTitle) {
+        var chat = chatRepo.findById(chatId).orElse(null);
+        if (chat == null) return false;
+        if (!Objects.equals(chat.getTitle(), expectedTitle)) return false;
+        chat.setTitle(newTitle);
+        chat.setUpdatedAt(LocalDateTime.now());
+        chatRepo.save(chat);
+        return true;
+    }
+
     @Transactional
     public ChatEntity create() {
         var chat = new ChatEntity();
@@ -36,6 +81,13 @@ public class ChatService {
         chat.setCreatedAt(LocalDateTime.now());
         chat.setUpdatedAt(LocalDateTime.now());
         return chatRepo.save(chat);
+    }
+
+    @Transactional
+    public ChatEntity create(ChatEntity entity) {
+        if (entity.getCreatedAt() == null) entity.setCreatedAt(LocalDateTime.now());
+        if (entity.getUpdatedAt() == null) entity.setUpdatedAt(LocalDateTime.now());
+        return chatRepo.save(entity);
     }
 
     public List<MessageEntity> getMessages(String chatId) {
@@ -73,20 +125,6 @@ public class ChatService {
             entity.setThinking(m.getOrDefault("thinking", null));
             entity.setCreatedAt(LocalDateTime.now());
             msgRepo.save(entity);
-        }
-        // Auto-title from first user message
-        if (msgRepo.countByChatId(chatId) == messages.size()) {
-            var firstUserMsg = messages.stream()
-                .filter(m -> "user".equals(m.get("role")))
-                .findFirst();
-            firstUserMsg.ifPresent(m -> {
-                String content = m.get("content");
-                String title = content.length() > 40 ? content.substring(0, 40) + "..." : content;
-                chatRepo.findById(chatId).ifPresent(chat -> {
-                    chat.setTitle(title);
-                    chatRepo.save(chat);
-                });
-            });
         }
     }
 
