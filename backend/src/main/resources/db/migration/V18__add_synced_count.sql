@@ -1,0 +1,1 @@
+ALTER TABLE sync_configs ADD COLUMN IF NOT EXISTS synced_count INT NOT NULL DEFAULT 0;

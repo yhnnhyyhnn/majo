@@ -1,11 +1,14 @@
 package com.agent.coding.controller;
 
 import com.agent.coding.ChatService;
+import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.dto.*;
 import com.agent.coding.entity.ChatEntity;
+import com.agent.coding.entity.TokenUsageEntity;
 import com.agent.coding.inbox.InboxStore;
 import com.agent.coding.inbox.InboxTraceStore;
+import com.agent.coding.repository.TokenUsageRepository;
 import com.agent.coding.service.ModelRoutingService;
 import com.agent.coding.service.TaskTracker;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,15 +49,24 @@ public class ConsoleController {
     private final ChatService chatService;
     private final Toolkit toolkit;
     private final Set<String> implementedToolNames;
+    private final TokenUsageRepository tokenUsageRepo;
+    private final SettingsService settingsService;
+    private final InboxStore inboxStore;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
                               ChatService chatService, Toolkit toolkit,
-                              Set<String> implementedToolNames) {
+                              Set<String> implementedToolNames,
+                              TokenUsageRepository tokenUsageRepo,
+                              SettingsService settingsService,
+                              InboxStore inboxStore) {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
         this.chatService = chatService;
         this.toolkit = toolkit;
         this.implementedToolNames = implementedToolNames;
+        this.tokenUsageRepo = tokenUsageRepo;
+        this.settingsService = settingsService;
+        this.inboxStore = inboxStore;
     }
 
     @PostMapping(value = "/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -67,10 +79,9 @@ public class ConsoleController {
 
         String sessionId = Objects.toString(body.getOrDefault("session_id", UUID.randomUUID().toString()), UUID.randomUUID().toString());
         String workspace = Objects.toString(body.getOrDefault("workspace", ""), "");
-        String agentId = request.getHeader("X-Agent-Id");
-        if (agentId == null || agentId.isBlank()) {
-            agentId = Objects.toString(body.get("agent_id"), "default");
-        }
+        String rawAgentId = request.getHeader("X-Agent-Id");
+        final String agentId = (rawAgentId != null && !rawAgentId.isBlank())
+            ? rawAgentId : Objects.toString(body.get("agent_id"), "default");
 
         WorkspaceContext.set(workspace);
 
@@ -168,7 +179,18 @@ public class ConsoleController {
                                         usageHolder.outputTokens = intVal(u, "outputTokens");
                                         usageHolder.timeSec = doubleVal(u, "time");
                                     }
-                                } catch (Exception ignored) {}
+                                } catch (Exception e) {
+                                    // Fallback: try ObjectMapper serialization
+                                    try {
+                                        var tree = MAPPER.valueToTree(event);
+                                        var usage = tree.get("usage");
+                                        if (usage != null) {
+                                            usageHolder.inputTokens = usage.get("inputTokens").asInt();
+                                            usageHolder.outputTokens = usage.get("outputTokens").asInt();
+                                            if (usage.has("time")) usageHolder.timeSec = usage.get("time").asDouble();
+                                        }
+                                    } catch (Exception ignored) {}
+                                }
                                 return;
                             }
                             default:
@@ -187,6 +209,15 @@ public class ConsoleController {
             taskTracker.setDone(chatId);
             saveConsoleMessages(chatId, prompt, completedMessages);
             chatService.setStatus(chatId, "idle");
+            // Save token usage
+            if (usageHolder.inputTokens > 0 || usageHolder.outputTokens > 0) {
+                var slot = modelRouting.resolveEffectiveModel(agentId);
+                String today = LocalDate.now().toString();
+                tokenUsageRepo.save(new TokenUsageEntity(today,
+                    slot.providerId() != null ? slot.providerId() : "",
+                    slot.modelId() != null ? slot.modelId() : "",
+                    usageHolder.inputTokens, usageHolder.outputTokens));
+            }
             // Background LLM title generation (qwenpaw: generate_and_update_title)
             if (firstUserText != null && !firstUserText.isBlank()
                     && !"New Chat".equals(placeholderTitle)) {
@@ -391,7 +422,48 @@ public class ConsoleController {
             @RequestParam(required = false) String end_date,
             @RequestParam(required = false) String model,
             @RequestParam(required = false) String provider) {
-        return new TokenUsageSummary(0, 0, 0, java.util.Collections.emptyMap(), java.util.Collections.emptyMap());
+        var now = LocalDate.now().toString();
+        var end = end_date != null && !end_date.isBlank() ? end_date : now;
+        var start = start_date != null && !start_date.isBlank() ? start_date : "1970-01-01";
+
+        var records = tokenUsageRepo.findByDateRange(start, end);
+        var summary = new TokenUsageSummary();
+        var byModel = new java.util.LinkedHashMap<String, TokenUsageStats>();
+        var byDate = new java.util.LinkedHashMap<String, TokenUsageStats>();
+
+        long totalPrompt = 0, totalCompl = 0, totalCalls = 0;
+        for (var r : records) {
+            if (model != null && !model.isBlank() && !model.equals(r.getModel())) continue;
+            if (provider != null && !provider.isBlank() && !provider.equals(r.getProviderId())) continue;
+
+            totalPrompt += r.getPromptTokens();
+            totalCompl += r.getCompletionTokens();
+            totalCalls += r.getCallCount();
+
+            String modelKey = r.getProviderId().isBlank() ? r.getModel()
+                : r.getProviderId() + ":" + r.getModel();
+            var bm = byModel.computeIfAbsent(modelKey, k -> {
+                var s = new TokenUsageStats();
+                s.setProviderId(r.getProviderId());
+                s.setModel(r.getModel());
+                return s;
+            });
+            bm.setPromptTokens(bm.getPromptTokens() + r.getPromptTokens());
+            bm.setCompletionTokens(bm.getCompletionTokens() + r.getCompletionTokens());
+            bm.setCallCount(bm.getCallCount() + r.getCallCount());
+
+            var bd = byDate.computeIfAbsent(r.getUsageDate(), k -> new TokenUsageStats());
+            bd.setPromptTokens(bd.getPromptTokens() + r.getPromptTokens());
+            bd.setCompletionTokens(bd.getCompletionTokens() + r.getCompletionTokens());
+            bd.setCallCount(bd.getCallCount() + r.getCallCount());
+        }
+
+        summary.setTotalPromptTokens(totalPrompt);
+        summary.setTotalCompletionTokens(totalCompl);
+        summary.setTotalCalls(totalCalls);
+        summary.setByModel(byModel);
+        summary.setByDate(byDate);
+        return summary;
     }
 
     @GetMapping("/token-usage/details")
@@ -400,7 +472,16 @@ public class ConsoleController {
             @RequestParam(required = false) String end_date,
             @RequestParam(required = false) String model,
             @RequestParam(required = false) String provider) {
-        return List.of();
+        var now = LocalDate.now().toString();
+        var end = end_date != null && !end_date.isBlank() ? end_date : now;
+        var start = start_date != null && !start_date.isBlank() ? start_date : "1970-01-01";
+
+        return tokenUsageRepo.findByDateRange(start, end).stream()
+            .filter(r -> model == null || model.isBlank() || model.equals(r.getModel()))
+            .filter(r -> provider == null || provider.isBlank() || provider.equals(r.getProviderId()))
+            .map(r -> new TokenUsageRecord(r.getUsageDate(), r.getProviderId(), r.getModel(),
+                    r.getPromptTokens(), r.getCompletionTokens(), r.getCallCount()))
+            .toList();
     }
 
     @PostMapping("/console/chat/task")
@@ -422,7 +503,7 @@ public class ConsoleController {
             @RequestParam(required = false) String agent_id,
             @RequestParam(defaultValue = "false") boolean unread_only) {
         int safeLimit = Math.min(Math.max(limit, 1), 500);
-        return Map.of("events", InboxStore.listEvents(
+        return Map.of("events", inboxStore.listEvents(
                 safeLimit, offset, source_type, status, agent_id, unread_only));
     }
 
@@ -433,13 +514,13 @@ public class ConsoleController {
         boolean all = body != null && body.all;
         List<String> eventIds = body == null ? List.of()
                 : (body.event_ids() == null ? List.of() : body.event_ids());
-        int updated = all ? InboxStore.markAllRead() : InboxStore.markRead(eventIds);
+        int updated = all ? inboxStore.markAllRead() : inboxStore.markRead(eventIds);
         return Map.of("updated", updated);
     }
 
     @DeleteMapping("/console/inbox/events/{event_id}")
     public org.springframework.http.ResponseEntity<?> deleteInboxEvent(@PathVariable String event_id) {
-        var result = InboxStore.deleteEvent(event_id);
+        var result = inboxStore.deleteEvent(event_id);
         if (!result.deleted()) {
             return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
                     .body(Map.of("detail", "event not found"));
@@ -451,7 +532,7 @@ public class ConsoleController {
         return org.springframework.http.ResponseEntity.ok(Map.of(
                 "deleted", true,
                 "trace_deleted", traceDeleted,
-                "run_id", result.runId()));
+                "run_id", Objects.toString(result.runId(), "")));
     }
 
     @GetMapping("/console/inbox/traces/{run_id}")
@@ -516,12 +597,6 @@ public class ConsoleController {
     public StatusResponse harnessStatus(@PathVariable String provider_id) {
         return StatusResponse.ok();
     }
-
-    @GetMapping("/config/heartbeat")
-    public StatusResponse globalHeartbeat() { return StatusResponse.ok(); }
-
-    @GetMapping("/config/channels")
-    public List<Object> globalChannels() { return List.of(); }
 
     @PostMapping("/fork/agent")
     public Map<String, String> forkAgent() { return Map.of("id", UUID.randomUUID().toString()); }

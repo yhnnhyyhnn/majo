@@ -340,24 +340,6 @@ public class FullCompatController {
     public Map<String, String> configLlmRouting() { return Map.of("mode", "default"); }
     @PutMapping("/config/agents/llm-routing")
     public Map<String, String> configLlmRoutingUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/config/channels/{channel_name}")
-    public Map<String, String> configChannelDetail(@PathVariable String channel_name) { return Map.of("name", channel_name); }
-    @PutMapping("/config/channels/{channel_name}")
-    public Map<String, String> configChannelUpdate(@PathVariable String channel_name) { return Map.of("status", "ok"); }
-    @GetMapping("/config/channels/{channel_name}/health")
-    public Map<String, String> configChannelHealth(@PathVariable String channel_name) { return Map.of("status", "ok"); }
-    @PostMapping("/config/channels/{channel_name}/restart")
-    public Map<String, String> configChannelRestart(@PathVariable String channel_name) { return Map.of("status", "ok"); }
-    @GetMapping("/config/channels/{channel}/qrcode")
-    public Map<String, String> configChannelQrcode(@PathVariable String channel) { return Map.of("url", ""); }
-    @GetMapping("/config/channels/{channel}/qrcode/status")
-    public Map<String, String> configChannelQrcodeStatus(@PathVariable String channel) { return Map.of("status", "pending"); }
-    @GetMapping("/config/channels/schemas")
-    public List<Map<String, String>> configChannelSchemas() { return List.of(); }
-    @GetMapping("/config/channels/types")
-    public List<Map<String, String>> configChannelTypes() { return List.of(); }
-    @PostMapping("/config/heartbeat/run")
-    public Map<String, String> configHeartbeatRun() { return Map.of("status", "ok"); }
     @GetMapping("/config/security/allow-no-auth-hosts")
     public Map<String, Object> configSecurityAuthHosts() { return Map.of("enabled", false, "hosts", List.of()); }
     @PutMapping("/config/security/allow-no-auth-hosts")
@@ -566,11 +548,6 @@ public class FullCompatController {
     public Map<String, String> codingModeSet() { return Map.of("status", "ok"); }
     @GetMapping("/coding-mode")
     public Map<String, Object> codingModeGet() { return Map.of("enabled", false, "mode", "chat"); }
-
-    @PutMapping("/config/channels")
-    public Map<String, String> configChannelsUpdate() { return Map.of("status", "ok"); }
-    @PutMapping("/config/heartbeat")
-    public Map<String, String> configHeartbeatUpdate() { return Map.of("status", "ok"); }
 
     @PostMapping("/loops/custom")
     public Map<String, String> loopsCustomCreate() { return Map.of("id", UUID.randomUUID().toString()); }

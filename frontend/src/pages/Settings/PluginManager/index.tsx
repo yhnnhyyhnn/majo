@@ -1,17 +1,20 @@
 import { useTranslation } from "react-i18next";
 import { Button, Empty, Spin, Table, Tabs } from "antd";
-import { ExternalLink, Package, Plus } from "lucide-react";
+import { ExternalLink, Package, Plus, Settings } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { usePluginManager } from "./hooks/usePluginManager";
 import { usePluginColumns } from "./hooks/usePluginColumns";
 import { useInstallModal } from "./hooks/useInstallModal";
 import { InstallPluginModal } from "./components/InstallPluginModal";
+import { SyncSettingsModal } from "./components/SyncSettingsModal";
 import { OfficialPluginList } from "./components/OfficialPluginList";
 import { MarketPluginList } from "./components/MarketPluginList";
+import { useState } from "react";
 import styles from "./index.module.less";
 
 export default function PluginManagerPage() {
   const { t } = useTranslation();
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const { plugins, loading, refresh, uninstallingId, handleUninstall } =
     usePluginManager();
@@ -67,6 +70,10 @@ export default function PluginManagerPage() {
         extra={
           <>
             <Button
+              icon={<Settings size={16} />}
+              onClick={() => setSyncOpen(true)}
+            />
+            <Button
               icon={<ExternalLink size={16} />}
               onClick={() =>
                 window.open("https://platform.agentscope.io/plugins", "_blank")
@@ -90,6 +97,11 @@ export default function PluginManagerPage() {
       </div>
 
       <InstallPluginModal {...installModal} />
+      <SyncSettingsModal
+        open={syncOpen}
+        onClose={() => setSyncOpen(false)}
+        onSynced={refresh}
+      />
     </div>
   );
 }

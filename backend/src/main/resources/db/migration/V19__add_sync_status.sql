@@ -1,0 +1,1 @@
+ALTER TABLE sync_configs ADD COLUMN IF NOT EXISTS sync_status VARCHAR(16) NOT NULL DEFAULT 'pending';

@@ -3042,7 +3042,21 @@
     "marketSortFavorites": "收藏量最多",
     "compatWarningTitle": "兼容性警告",
     "compatWarningContent": "该插件标注适配 QwenPaw {{labels}}，而您当前的 QwenPaw 版本为 {{version}}。安装后可能出现错误，是否确认继续？",
-    "compatWarningConfirm": "仍然安装"
+    "compatWarningConfirm": "仍然安装",
+    "syncSettings": "同步设置",
+    "officialCatalog": "官方插件",
+    "market": "插件市场",
+    "syncUrl": "数据源地址",
+    "lastSync": "上次同步",
+    "syncCount": "同步数量",
+    "syncSuccess": "同步成功",
+    "syncFailed": "同步失败",
+    "syncPending": "未同步",
+    "syncNow": "立即同步",
+    "noSyncConfig": "暂无同步配置",
+    "syncSave": "保存",
+    "syncSaved": "地址保存成功",
+    "syncSavedFailed": "地址保存失败"
   },
   "codingMode": {
     "title": "编程模式",

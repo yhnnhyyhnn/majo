@@ -1,5 +1,9 @@
 package com.agent.coding.controller;
 
+import com.agent.coding.SettingsService;
+import com.agent.coding.repository.ProviderRepository;
+import com.agent.coding.repository.ModelConfigRepository;
+import com.agent.coding.service.PluginRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +33,21 @@ public class WorkspaceController {
         ".pytest_cache", ".ruff_cache", ".hypothesis", "target", ".idea"
     );
     private static final DateTimeFormatter ISO = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
+    private final SettingsService settingsService;
+    private final ProviderRepository providerRepo;
+    private final ModelConfigRepository modelConfigRepo;
+    private final PluginRegistry pluginRegistry;
+
+    public WorkspaceController(SettingsService settingsService,
+                                ProviderRepository providerRepo,
+                                ModelConfigRepository modelConfigRepo,
+                                PluginRegistry pluginRegistry) {
+        this.settingsService = settingsService;
+        this.providerRepo = providerRepo;
+        this.modelConfigRepo = modelConfigRepo;
+        this.pluginRegistry = pluginRegistry;
+    }
 
     private boolean isSkipped(String name) {
         return name.startsWith(".") || SKIP_NAMES.contains(name);
@@ -189,24 +208,55 @@ public class WorkspaceController {
 
     // === Audio / Transcription ===
 
-    @GetMapping("/workspace/audio-mode")
-    public Map<String, String> audioMode() { return Map.of("enabled", "false"); }
-    @PutMapping("/workspace/audio-mode")
-    public Map<String, String> audioModeUpdate() { return Map.of("status", "ok"); }
     @GetMapping("/workspace/local-whisper-status")
-    public Map<String, String> whisperStatus() { return Map.of("available", "false"); }
+    public Map<String, Object> localWhisperStatus() {
+        return Map.of("whisper_installed", false);
+    }
     @PostMapping("/workspace/transcribe")
     public Map<String, String> transcribe() { return Map.of("text", ""); }
     @GetMapping("/workspace/transcription-provider")
-    public Map<String, String> transcriptionProvider() { return Map.of("provider", "none"); }
+    public Map<String, String> getConfiguredTranscriptionProvider() {
+        return Map.of("provider_id", settingsService.getTranscriptionProviderId());
+    }
     @PutMapping("/workspace/transcription-provider")
-    public Map<String, String> transcriptionProviderSet() { return Map.of("status", "ok"); }
+    public ResponseEntity<?> putTranscriptionProvider(@RequestBody Map<String, Object> body) {
+        String id = Objects.toString(body.get("provider_id"), "").trim();
+        settingsService.setTranscriptionProviderId(id);
+        return ResponseEntity.ok(Map.of("provider_id", id));
+    }
     @GetMapping("/workspace/transcription-providers")
-    public List<Map<String, String>> transcriptionProviders() { return List.of(); }
+    public Map<String, Object> getTranscriptionProviders() {
+        var providers = new ArrayList<Map<String, Object>>();
+        // qwenpaw: isinstance(provider, OpenAIProvider) && (key || !require_key)
+        for (var p : providerRepo.findAll()) {
+            if (!"OpenAIChatModel".equalsIgnoreCase(p.getChatModel())) continue;
+            if (p.getBaseUrl() == null || p.getBaseUrl().isBlank()) continue;
+            if (p.getRequireApiKey() != null && p.getRequireApiKey()
+                    && (p.getApiKey() == null || p.getApiKey().isBlank())) continue;
+            providers.add(Map.of("id", p.getId(), "name", p.getName(), "available", true));
+        }
+        for (var e : modelConfigRepo.findAll()) {
+            if (e.getBaseUrl() != null && !e.getBaseUrl().isBlank()) {
+                providers.add(Map.of("id", e.getId().toString(), "name", e.getName(), "available", true));
+            }
+        }
+        return Map.of("providers", providers,
+            "configured_provider_id", settingsService.getTranscriptionProviderId());
+    }
     @GetMapping("/workspace/transcription-provider-type")
-    public Map<String, String> transcriptionProviderType() { return Map.of("type", "none"); }
+    public Map<String, String> getTranscriptionProviderType() {
+        return Map.of("transcription_provider_type", settingsService.getTranscriptionProviderType());
+    }
     @PutMapping("/workspace/transcription-provider-type")
-    public Map<String, String> transcriptionProviderTypeSet() { return Map.of("status", "ok"); }
+    public ResponseEntity<?> putTranscriptionProviderType(@RequestBody Map<String, Object> body) {
+        String type = Objects.toString(body.get("transcription_provider_type"), "").trim().toLowerCase();
+        if (!Set.of("disabled", "whisper_api", "local_whisper").contains(type)) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("detail", "Invalid type '" + type + "'. Must be one of: disabled, whisper_api, local_whisper"));
+        }
+        settingsService.setTranscriptionProviderType(type);
+        return ResponseEntity.ok(Map.of("transcription_provider_type", type));
+    }
 
     // === Config ===
 
@@ -263,4 +313,114 @@ public class WorkspaceController {
     public ResponseEntity<Resource> agentDownload(@PathVariable String agentId) { return downloadWorkspace(); }
     @GetMapping("/agents/{agentId}/workspace/watch")
     public Map<String, String> agentWatch(@PathVariable String agentId) { return watch(); }
+
+    // ── Audio mode (persisted via SettingsService) ────────────────────
+    @GetMapping("/workspace/audio-mode")
+    public Map<String, String> getAudioMode() {
+        return Map.of("audio_mode", settingsService.getAudioMode());
+    }
+
+    @PutMapping("/workspace/audio-mode")
+    public ResponseEntity<?> putAudioMode(@RequestBody Map<String, Object> body) {
+        String mode = Objects.toString(body.get("audio_mode"), "").trim().toLowerCase();
+        if (!Set.of("auto", "native").contains(mode)) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("detail", "Invalid audio_mode '" + mode + "'. Must be one of: auto, native"));
+        }
+        settingsService.setAudioMode(mode);
+        return ResponseEntity.ok(Map.of("audio_mode", settingsService.getAudioMode()));
+    }
+
+    // ── Channels config (qwenpaw: config.py /channels) ────────────────
+    private static final List<String> BUILTIN_CHANNEL_KEYS = List.of(
+        "imessage", "discord", "dingtalk", "feishu", "qq", "telegram",
+        "mattermost", "mqtt", "console", "matrix", "slack", "voice",
+        "sip", "wecom", "xiaoyi", "yuanbao", "wechat", "onebot"
+    );
+
+    @GetMapping("/config/channels/types")
+    public List<String> channelTypes() {
+        var all = new ArrayList<>(BUILTIN_CHANNEL_KEYS);
+        all.addAll(pluginRegistry.getRegisteredChannels().keySet());
+        return all;
+    }
+
+    @GetMapping("/config/channels")
+    public Map<String, Object> listChannels() {
+        var result = new LinkedHashMap<String, Object>();
+        for (String key : BUILTIN_CHANNEL_KEYS) {
+            result.put(key, Map.of("enabled", "console".equals(key), "bot_prefix", "", "isBuiltin", true));
+        }
+        for (var entry : pluginRegistry.getRegisteredChannels().entrySet()) {
+            result.put(entry.getKey(), Map.of("enabled", false, "bot_prefix", "", "isBuiltin", false));
+        }
+        return result;
+    }
+
+    @GetMapping("/config/channels/schemas")
+    public Map<String, Map<String, Object>> channelSchemas() {
+        return pluginRegistry.getRegisteredChannels();
+    }
+
+    @PutMapping("/config/channels")
+    public Map<String, Object> updateChannels(@RequestBody Map<String, Object> body) {
+        return body;
+    }
+
+    @GetMapping("/config/channels/{channelName}")
+    public Map<String, Object> getChannel(@PathVariable String channelName) {
+        return Map.of("enabled", true, "bot_prefix", "", "isBuiltin", true);
+    }
+
+    @PutMapping("/config/channels/{channelName}")
+    public Map<String, Object> updateChannel(@PathVariable String channelName,
+                                              @RequestBody Map<String, Object> body) {
+        return body;
+    }
+
+    @GetMapping("/config/channels/{channel}/qrcode")
+    public ResponseEntity<?> channelQrcode(@PathVariable String channel) {
+        return ResponseEntity.status(404).body(Map.of("detail", "QR code not supported for channel: " + channel));
+    }
+
+    @GetMapping("/config/channels/{channel}/qrcode/status")
+    public ResponseEntity<?> channelQrcodeStatus(@PathVariable String channel, @RequestParam String token) {
+        return ResponseEntity.status(404).body(Map.of("detail", "QR code not supported for channel: " + channel));
+    }
+
+    @GetMapping("/config/channels/{channelName}/health")
+    public Map<String, Object> channelHealth(@PathVariable String channelName) {
+        return Map.of("channel", channelName, "status", "healthy", "detail", "");
+    }
+
+    @PostMapping("/config/channels/{channelName}/restart")
+    public Map<String, Object> channelRestart(@PathVariable String channelName) {
+        return Map.of("channel", channelName, "status", "restarted", "detail", "");
+    }
+
+    // ── Heartbeat config (qwenpaw: config.py /heartbeat) ──────────────
+    @GetMapping("/config/heartbeat")
+    public Map<String, Object> getHeartbeat() {
+        return Map.of(
+            "enabled", settingsService.isHeartbeatEnabled(),
+            "every", settingsService.getHeartbeatEvery(),
+            "target", settingsService.getHeartbeatTarget(),
+            "timeoutSeconds", settingsService.getHeartbeatTimeoutSeconds()
+        );
+    }
+
+    @PutMapping("/config/heartbeat")
+    public Map<String, Object> putHeartbeat(@RequestBody Map<String, Object> body) {
+        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
+        String every = Objects.toString(body.get("every"), "6h");
+        String target = Objects.toString(body.get("target"), "main");
+        int timeout = ((Number) body.getOrDefault("timeoutSeconds", 120)).intValue();
+        settingsService.setHeartbeatConfig(enabled, every, target, timeout);
+        return getHeartbeat();
+    }
+
+    @PostMapping("/config/heartbeat/run")
+    public Map<String, Object> runHeartbeat() {
+        return Map.of("started", true);
+    }
 }

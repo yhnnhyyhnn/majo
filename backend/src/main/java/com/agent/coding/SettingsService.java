@@ -19,6 +19,13 @@ public class SettingsService {
     private volatile String baseUrl = "https://api.openai.com/v1";
     private volatile String modelName = "gpt-4o-mini";
     private volatile String workspace = "";
+    private volatile String audioMode = "auto";
+    private volatile String transcriptionProviderType = "disabled";
+    private volatile String transcriptionProviderId = "";
+    private volatile boolean heartbeatEnabled = false;
+    private volatile String heartbeatEvery = "6h";
+    private volatile String heartbeatTarget = "main";
+    private volatile int heartbeatTimeoutSeconds = 120;
 
     public SettingsService(SettingsRepository repository) {
         this.repository = repository;
@@ -31,11 +38,17 @@ public class SettingsService {
             this.baseUrl = entity.getBaseUrl();
             this.modelName = entity.getModelName();
             this.workspace = entity.getWorkspace();
-            log.info("Settings loaded from DB — baseUrl: {}, modelName: {}, apiKey: {}...",
-                baseUrl, modelName,
-                apiKey.length() > 8 ? apiKey.substring(0, 8) : apiKey);
+            this.audioMode = entity.getAudioMode() != null ? entity.getAudioMode() : "auto";
+            this.transcriptionProviderType = entity.getTranscriptionProviderType() != null ? entity.getTranscriptionProviderType() : "disabled";
+            this.transcriptionProviderId = entity.getTranscriptionProviderId() != null ? entity.getTranscriptionProviderId() : "";
+            this.heartbeatEnabled = entity.isHeartbeatEnabled();
+            this.heartbeatEvery = entity.getHeartbeatEvery() != null ? entity.getHeartbeatEvery() : "6h";
+            this.heartbeatTarget = entity.getHeartbeatTarget() != null ? entity.getHeartbeatTarget() : "main";
+            this.heartbeatTimeoutSeconds = entity.getHeartbeatTimeoutSeconds() > 0 ? entity.getHeartbeatTimeoutSeconds() : 120;
+            log.info("Settings loaded — baseUrl: {}, modelName: {}, audioMode: {}",
+                baseUrl, modelName, audioMode);
         }, () -> {
-            log.warn("No settings found in DB (id=1), using defaults — modelName: {}", modelName);
+            log.warn("No settings found in DB (id=1), using defaults");
         });
     }
 
@@ -59,6 +72,32 @@ public class SettingsService {
     @Transactional
     public void setWorkspace(String workspace) { this.workspace = workspace; persist(); }
 
+    public String getAudioMode() { return audioMode; }
+    @Transactional
+    public void setAudioMode(String audioMode) { this.audioMode = audioMode; persist(); }
+
+    public String getTranscriptionProviderType() { return transcriptionProviderType; }
+    @Transactional
+    public void setTranscriptionProviderType(String v) { this.transcriptionProviderType = v; persist(); }
+
+    public String getTranscriptionProviderId() { return transcriptionProviderId; }
+    @Transactional
+    public void setTranscriptionProviderId(String v) { this.transcriptionProviderId = v; persist(); }
+
+    public boolean isHeartbeatEnabled() { return heartbeatEnabled; }
+    public String getHeartbeatEvery() { return heartbeatEvery; }
+    public String getHeartbeatTarget() { return heartbeatTarget; }
+    public int getHeartbeatTimeoutSeconds() { return heartbeatTimeoutSeconds; }
+
+    @Transactional
+    public void setHeartbeatConfig(boolean enabled, String every, String target, int timeoutSec) {
+        this.heartbeatEnabled = enabled;
+        this.heartbeatEvery = every;
+        this.heartbeatTarget = target;
+        this.heartbeatTimeoutSeconds = timeoutSec;
+        persist();
+    }
+
     private void persist() {
         SettingsEntity entity = repository.findById(1).orElseGet(SettingsEntity::new);
         entity.setId(1);
@@ -66,6 +105,13 @@ public class SettingsService {
         entity.setBaseUrl(baseUrl);
         entity.setModelName(modelName);
         entity.setWorkspace(workspace);
+        entity.setAudioMode(audioMode);
+        entity.setTranscriptionProviderType(transcriptionProviderType);
+        entity.setTranscriptionProviderId(transcriptionProviderId);
+        entity.setHeartbeatEnabled(heartbeatEnabled);
+        entity.setHeartbeatEvery(heartbeatEvery);
+        entity.setHeartbeatTarget(heartbeatTarget);
+        entity.setHeartbeatTimeoutSeconds(heartbeatTimeoutSeconds);
         repository.save(entity);
         log.info("Settings persisted — baseUrl: {}, modelName: {}", baseUrl, modelName);
     }

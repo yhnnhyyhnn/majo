@@ -24,6 +24,27 @@ public class SettingsEntity {
     @Column(name = "workspace", length = 1024, nullable = false)
     private String workspace = "";
 
+    @Column(name = "audio_mode", length = 16, nullable = false)
+    private String audioMode = "auto";
+
+    @Column(name = "transcription_provider_type", length = 32, nullable = false)
+    private String transcriptionProviderType = "disabled";
+
+    @Column(name = "transcription_provider_id", length = 64, nullable = false)
+    private String transcriptionProviderId = "";
+
+    @Column(name = "heartbeat_enabled", nullable = false)
+    private boolean heartbeatEnabled = false;
+
+    @Column(length = 16, nullable = false)
+    private String heartbeatEvery = "6h";
+
+    @Column(length = 64, nullable = false)
+    private String heartbeatTarget = "main";
+
+    @Column(name = "heartbeat_timeout_seconds", nullable = false)
+    private int heartbeatTimeoutSeconds = 120;
+
     public SettingsEntity() {
     }
 
@@ -66,4 +87,21 @@ public class SettingsEntity {
     public void setWorkspace(String workspace) {
         this.workspace = workspace;
     }
+
+    public String getAudioMode() { return audioMode; }
+    public void setAudioMode(String audioMode) { this.audioMode = audioMode; }
+
+    public String getTranscriptionProviderType() { return transcriptionProviderType; }
+    public void setTranscriptionProviderType(String v) { this.transcriptionProviderType = v; }
+    public String getTranscriptionProviderId() { return transcriptionProviderId; }
+    public void setTranscriptionProviderId(String v) { this.transcriptionProviderId = v; }
+
+    public boolean isHeartbeatEnabled() { return heartbeatEnabled; }
+    public void setHeartbeatEnabled(boolean v) { this.heartbeatEnabled = v; }
+    public String getHeartbeatEvery() { return heartbeatEvery; }
+    public void setHeartbeatEvery(String v) { this.heartbeatEvery = v; }
+    public String getHeartbeatTarget() { return heartbeatTarget; }
+    public void setHeartbeatTarget(String v) { this.heartbeatTarget = v; }
+    public int getHeartbeatTimeoutSeconds() { return heartbeatTimeoutSeconds; }
+    public void setHeartbeatTimeoutSeconds(int v) { this.heartbeatTimeoutSeconds = v; }
 }

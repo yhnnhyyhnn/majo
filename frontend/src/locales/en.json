@@ -3023,7 +3023,21 @@
     "marketSortFavorites": "Most favorited",
     "compatWarningTitle": "Compatibility Warning",
     "compatWarningContent": "This plugin is labeled for QwenPaw {{labels}}. Your QwenPaw version is {{version}}. Installing it may cause errors. Are you sure you want to continue?",
-    "compatWarningConfirm": "Install anyway"
+    "compatWarningConfirm": "Install anyway",
+    "syncSettings": "Sync Settings",
+    "officialCatalog": "Official Catalog",
+    "market": "Plugin Market",
+    "syncUrl": "Source URL",
+    "lastSync": "Last Sync",
+    "syncCount": "Synced Count",
+    "syncSuccess": "Synced",
+    "syncFailed": "Sync Failed",
+    "syncPending": "Not Synced",
+    "syncNow": "Sync Now",
+    "noSyncConfig": "No sync configuration found",
+    "syncSave": "Save",
+    "syncSaved": "URL saved successfully",
+    "syncSavedFailed": "Failed to save URL"
   },
   "codingMode": {
     "title": "Coding Mode",

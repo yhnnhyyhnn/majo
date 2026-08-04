@@ -17,6 +17,13 @@ public class TokenUsageRecord {
     private long callCount;
 
     public TokenUsageRecord() {}
+
+    public TokenUsageRecord(String date, String providerId, String model,
+                             long promptTokens, long completionTokens, long callCount) {
+        this.date = date; this.providerId = providerId; this.model = model;
+        this.promptTokens = promptTokens; this.completionTokens = completionTokens;
+        this.callCount = callCount;
+    }
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
     public String getProviderId() { return providerId; }
