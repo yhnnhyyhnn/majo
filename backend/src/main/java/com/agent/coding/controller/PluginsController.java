@@ -447,10 +447,17 @@ public class PluginsController {
     }
 
     @GetMapping("/plugins/sync-config")
-    public Object getSyncConfigs() {
-        var configs = syncConfigRepo.findAll();
-        if (configs.isEmpty()) return DEFAULT_SYNC_CONFIGS;
-        return configs.stream().map(this::toSyncConfigMap).toList();
+    public List<Map<String, Object>> getSyncConfigs() {
+        var stored = syncConfigRepo.findAll();
+        Map<String, SyncConfigEntity> byKey = new java.util.HashMap<>();
+        for (var s : stored) byKey.put(s.getConfigKey(), s);
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (var defConfig : DEFAULT_SYNC_CONFIGS) {
+            String key = (String) defConfig.get("key");
+            var entity = byKey.get(key);
+            result.add(entity != null ? toSyncConfigMap(entity) : defConfig);
+        }
+        return result;
     }
 
     @PutMapping("/plugins/sync-config")
