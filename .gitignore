@@ -53,6 +53,7 @@ application.properties
 
 # H2 Database
 data/
+backend/data/
 
 # Logs & cache
 *.log

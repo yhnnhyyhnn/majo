@@ -5,31 +5,56 @@ Spring Boot + AgentScope + React + H2 + Flyway
 ## 架构
 
 ```
-frontend (React)  ──POST /api/chat──▶  backend (Spring Boot)
-     │                                      │
-     │  Settings UI                          │  ChatController
-     │  POST /api/settings                  │  SettingsService
-     │                                      │  AgentConfig (Toolkit)
-     └──────────────────────────────────────┘
-                                                      │
-                                                      ▼
-                                              H2 Database (file)
-                                              └── settings 表 (api_key, base_url, model_name)
-                                              └── Flyway 迁移管理
+                    ┌─────────────────────────────────────┐
+                    │          Spring Boot Backend         │
+                    │  port 18789                          │
+                    │                                      │
+  Browser ──────────┤  /                ← static (前端 SPA) │
+                    │  /api/chat        ← Chat SSE 流式    │
+                    │  /api/console/chat← Console Chat     │
+                    │  /api/agents      ← 多Agent 管理      │
+                    │  /api/skills      ← 技能池 + 市场     │
+                    │  /api/chats       ← 会话管理          │
+                    │  /api/settings    ← 大模型配置        │
+                    │  /api/providers   ← 模型供应商        │
+                    │                                      │
+                    │  ┌──────────────────────────────┐    │
+                    │  │ AgentScope 2.0 (Harness)      │    │
+                    │  │ read_file / write_file / ...  │    │
+                    │  └──────────────────────────────┘    │
+                    │                                      │
+                    │  ┌──────────┐  ┌─────────────────┐   │
+                    │  │ H2 (file)│  │ skill_pool/      │   │
+                    │  │          │  │ workspaces/{id}/ │   │
+                    │  │ Flyway   │  │ agents.json      │   │
+                    │  └──────────┘  └─────────────────┘   │
+                    └─────────────────────────────────────┘
 ```
 
 ## 快速开始
 
-### 1. 启动后端
+### Docker（推荐）
+
+```bash
+docker compose up -d
+```
+
+浏览器打开 http://localhost:18789 。前端已嵌入后端 JAR，无需额外启动。
+
+数据持久化在 Docker volume `majo_data` 中（H2、agents.json、workspaces）。
+
+### 本地开发
+
+#### 1. 启动后端
 
 ```powershell
 cd backend
 mvn spring-boot:run
 ```
 
-首次启动 Flyway 会自动创建 `data/majo.mv.db` 并建表。
+首次启动 Flyway 会自动执行数据库迁移，`skill_pool/`、`agents.json`、`workspaces/` 自动创建。
 
-### 2. 启动前端
+#### 2. 启动前端
 
 ```powershell
 cd frontend
@@ -37,9 +62,11 @@ npm install
 npm run dev
 ```
 
-### 3. 配置大模型
+前端 dev server 运行在 http://localhost:5173 ，API 请求代理到 `localhost:18789`。
 
-浏览器打开前端页面 → 点击 **Settings** → 填入：
+#### 3. 配置大模型
+
+浏览器打开页面 → 点击 **Settings** → 填入：
 
 | 字段 | 示例 |
 |---|---|
@@ -47,7 +74,34 @@ npm run dev
 | API Key | `sk-xxxxxxxx` |
 | Model | `deepseek-v4-pro-guan` |
 
-点击 **Save** 即可生效，无需重启后端。配置保存在 H2 数据库中，重启后仍然保留。
+点击 **Save** 即可生效，无需重启后端。
+
+## Docker 部署
+
+### docker compose
+
+```bash
+# 构建并启动
+docker compose up -d
+
+# 查看日志
+docker compose logs -f
+
+# 停止
+docker compose down
+```
+
+### 镜像构建
+
+```bash
+docker build -t majo .
+```
+
+镜像为三阶段构建：Node 构建前端 → Maven 打包后端（前端嵌入 `static/`）→ JRE 运行。
+
+### CI/CD
+
+push 到 `main`/`master` 分支或推送 `v*` tag 时，GitHub Actions 自动构建并推送镜像到 `ghcr.io`。
 
 ## 项目结构
 
@@ -55,23 +109,37 @@ npm run dev
 majo/
 ├── backend/
 │   ├── src/main/java/com/agent/coding/
-│   │   ├── AgentApplication.java        # 入口
-│   │   ├── AgentConfig.java             # Toolkit Bean
-│   │   ├── SettingsService.java         # 大模型配置 CRUD
-│   │   ├── WorkspaceContext.java        # 工作区上下文
-│   │   ├── entity/SettingsEntity.java   # JPA Entity
-│   │   ├── repository/SettingsRepository.java
+│   │   ├── AgentApplication.java            # 入口
+│   │   ├── ChatService.java                 # 会话管理
+│   │   ├── SettingsService.java             # 大模型配置
+│   │   ├── WorkspaceContext.java            # 工作区上下文
+│   │   ├── agent/
+│   │   │   └── AgentStore.java              # 多Agent 注册表 (agents.json)
 │   │   ├── controller/
-│   │   │   ├── ChatController.java      # POST /api/chat (SSE)
-│   │   │   └── SettingsController.java  # GET/POST /api/settings
-│   │   └── tool/                        # AgentScope 工具
-│   └── src/main/resources/
-│       ├── application.yml              # 服务端口 + DB 配置
-│       └── db/migration/
-│           └── V1__create_settings_table.sql
+│   │   │   ├── ChatController.java          # POST /api/chat (SSE)
+│   │   │   ├── ConsoleController.java       # POST /api/console/chat
+│   │   │   ├── ChatsController.java         # /api/chats CRUD
+│   │   │   ├── AgentsController.java        # /api/agents 多Agent
+│   │   │   ├── SkillsController.java        # /api/skills 技能池
+│   │   │   └── SettingsController.java      # GET/POST /api/settings
+│   │   ├── skill/                           # 技能系统 (pool + workspace)
+│   │   ├── entity/                          # JPA Entity
+│   │   └── repository/
+│   ├── src/main/resources/
+│   │   ├── application.yml                  # 服务端口 + DB 配置
+│   │   ├── builtin-skills/                  # 17 个内置技能 (classpath)
+│   │   └── db/migration/                    # Flyway 迁移脚本 (V1-V21)
+│   └── local-repo/                          # AgentScope jar (本地 Maven 仓库)
 ├── frontend/
-│   └── src/App.jsx                      # React 聊天界面 + Settings
-└── pom.xml                              # 父 POM
+│   └── src/
+│       ├── pages/Chat/                      # 聊天界面
+│       ├── pages/Settings/                  # 设置页面
+│       ├── stores/agentStore.ts             # 多Agent 前端状态
+│       └── api/modules/                     # API 客户端
+├── Dockerfile
+├── docker-compose.yml
+├── .github/workflows/docker-build.yml       # CI/CD
+└── pom.xml                                  # 父 POM
 ```
 
 ## API
@@ -79,9 +147,18 @@ majo/
 | 端点 | 方法 | 说明 |
 |---|---|---|
 | `/api/health` | GET | 健康检查 |
-| `/api/settings` | GET | 获取当前大模型配置 |
-| `/api/settings` | POST | 保存大模型配置 `{apiKey, baseUrl, modelName}` |
-| `/api/chat` | POST | 发送聊天消息 (SSE 流式) `{prompt, sessionId?, workspace?}` |
+| `/api/chat` | POST | 聊天消息 (SSE 流式) |
+| `/api/console/chat` | POST | Console Chat (SSE，支持 `X-Agent-Id`) |
+| `/api/chats` | GET | 会话列表（支持 `X-Agent-Id` 按 Agent 过滤） |
+| `/api/chats/{id}` | GET | 会话详情 + 消息历史 |
+| `/api/chats/{id}` | DELETE | 删除会话 |
+| `/api/agents` | GET | 多Agent 列表 |
+| `/api/agents` | POST | 创建 Agent |
+| `/api/agents/{id}` | PUT/PATCH/DELETE | Agent CRUD |
+| `/api/skills/pool` | GET | 技能池列表 |
+| `/api/skills/workspaces` | GET | 各 Agent workspace 技能 |
+| `/api/settings` | GET/POST | 大模型配置 |
+| `/api/providers` | GET | 模型供应商管理 |
 
 ## 配置文件
 
@@ -102,9 +179,9 @@ spring:
 
 ## 切换到 PostgreSQL
 
-1. `pom.xml` 替换依赖：
+1. `pom.xml` 替换 H2 依赖为 PostgreSQL：
+
    ```xml
-   <!-- 移除 h2 -->
    <dependency>
        <groupId>org.postgresql</groupId>
        <artifactId>postgresql</artifactId>
@@ -117,6 +194,7 @@ spring:
    ```
 
 2. `application.yml` 修改数据源：
+
    ```yaml
    spring:
      datasource:
@@ -139,5 +217,6 @@ Flyway 会自动在 PostgreSQL 上执行已有迁移脚本。
 | 数据库 | H2 (file) → 可切换 PostgreSQL |
 | 迁移工具 | Flyway 10 |
 | ORM | Spring Data JPA + Hibernate 6 |
-| 前端 | React + Vite |
+| 前端 | React + Vite + @agentscope-ai/chat |
+| 部署 | Docker + Docker Compose + GitHub Actions |
 | Java | 21 |

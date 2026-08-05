@@ -1,0 +1,16 @@
+services:
+  majo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: majo
+    ports:
+      - "18789:18789"
+    volumes:
+      - majo_data:/app
+    restart: unless-stopped
+    environment:
+      - JAVA_OPTS=-Xmx2g -Xms512m
+
+volumes:
+  majo_data:
