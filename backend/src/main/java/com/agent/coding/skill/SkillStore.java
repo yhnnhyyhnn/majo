@@ -407,6 +407,16 @@ public class SkillStore {
         try (FileChannel channel = FileChannel.open(lockPath,
                 StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
              FileLock ignored = channel.lock()) {
+            writeJsonAtomicUnlocked(path, payload);
+        } catch (Exception e) {
+            log.warn("Failed to write JSON atomically to {}", path, e);
+            throw new SkillsError("Failed to write manifest: " + path.getFileName());
+        }
+    }
+
+    /** Atomic write without acquiring the lock (caller must hold it). */
+    public static void writeJsonAtomicUnlocked(Path path, Map<String, Object> payload) {
+        try {
             Path temp = path.resolveSibling(path.getFileName() + ".tmp");
             String json = new com.fasterxml.jackson.databind.ObjectMapper()
                     .writerWithDefaultPrettyPrinter().writeValueAsString(payload);
@@ -437,7 +447,7 @@ public class SkillStore {
              FileLock ignored = channel.lock()) {
             Map<String, Object> payload = readJsonUnlocked(path, defaultPayload);
             T result = mutator.apply(payload);
-            writeJsonAtomic(path, payload);
+            writeJsonAtomicUnlocked(path, payload);
             return result;
         } catch (Exception e) {
             throw new SkillsError("Failed to mutate manifest: " + path.getFileName());

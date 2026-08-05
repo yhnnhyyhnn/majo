@@ -3,6 +3,7 @@ package com.agent.coding.controller;
 import com.agent.coding.ChatService;
 import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
+import com.agent.coding.agent.AgentStore;
 import com.agent.coding.dto.*;
 import com.agent.coding.entity.ChatEntity;
 import com.agent.coding.entity.TokenUsageEntity;
@@ -86,7 +87,7 @@ public class ConsoleController {
         WorkspaceContext.set(workspace);
 
         // Find or create chat by session_id (qwenpaw: get_or_create_chat)
-        var chatEntity = chatService.getOrCreateBySession(sessionId, prompt);
+        var chatEntity = chatService.getOrCreateBySession(agentId, sessionId, prompt);
         final String chatId = chatEntity.getId();
         final String placeholderTitle = chatEntity.getTitle();
         final String firstUserText = prompt;
@@ -221,19 +222,10 @@ public class ConsoleController {
             // Background LLM title generation (qwenpaw: generate_and_update_title)
             if (firstUserText != null && !firstUserText.isBlank()
                     && !"New Chat".equals(placeholderTitle)) {
-                new Thread(() -> generateTitle(chatId, placeholderTitle, firstUserText)).start();
+                new Thread(() -> generateTitle(chatId, placeholderTitle, firstUserText, agentId)).start();
             }
             WorkspaceContext.clear();
         });
-    }
-
-    @GetMapping("/agents")
-    public Map<String, Object> listAgents() {
-        return Map.of("agents", List.of(new AgentInfo(
-            "default", "majo", "Majo AI Coding Agent",
-            System.getProperty("user.dir"), true, "running", "majo",
-            Map.of("workspace_ui", true, "code_files", true)
-        )));
     }
 
     @GetMapping("/agent-stats")
@@ -625,18 +617,40 @@ public class ConsoleController {
     }
 
     private HarnessAgent resolveAgent(String workspace, String agentId) {
-        Path wsPath = workspace.isBlank() ? DEFAULT_WORKSPACE
-            : Paths.get(workspace).toAbsolutePath().normalize();
-        if (!workspace.isBlank() && !Files.isDirectory(wsPath)) {
-            wsPath = DEFAULT_WORKSPACE;
+        Path wsPath;
+        String agentName = "majo";
+
+        if (!workspace.isBlank()) {
+            wsPath = Paths.get(workspace).toAbsolutePath().normalize();
+            if (!Files.isDirectory(wsPath)) {
+                wsPath = resolveAgentWorkspace(agentId);
+            }
+        } else {
+            wsPath = resolveAgentWorkspace(agentId);
         }
+
+        var profile = AgentStore.getProfile(agentId);
+        if (profile != null && profile.get("name") != null) {
+            agentName = profile.get("name").toString();
+        }
+        log.info("Resolved agent '{}' workspace: {}, name: {}", agentId, wsPath, agentName);
+
         return HarnessAgent.builder()
-            .name("majo")
+            .name(agentName)
             .sysPrompt(SYS_PROMPT)
             .model(createModel(agentId))
             .toolkit(toolkit)
             .workspace(wsPath)
             .build();
+    }
+
+    private Path resolveAgentWorkspace(String agentId) {
+        try {
+            return AgentStore.workspaceDirForAgent(agentId);
+        } catch (Exception e) {
+            log.warn("Failed to resolve workspace for agent '{}', using default: {}", agentId, e.getMessage());
+            return DEFAULT_WORKSPACE;
+        }
     }
 
     private OpenAIChatModel createModel(String agentId) {
@@ -701,9 +715,9 @@ public class ConsoleController {
         chatService.saveMessages(chatId, msgs);
     }
 
-    private void generateTitle(String chatId, String placeholderTitle, String userMessage) {
+    private void generateTitle(String chatId, String placeholderTitle, String userMessage, String agentId) {
         try {
-            var slot = modelRouting.resolveEffectiveModel(null);
+            var slot = modelRouting.resolveEffectiveModel(agentId);
             if (!slot.hasBoth()) return;
             var model = modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
             String systemPrompt = "You generate short titles for chat sessions. Given the first user "

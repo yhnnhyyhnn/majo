@@ -36,6 +36,14 @@ backend/agents/
 backend/web-user/
 developer/
 
+# Runtime skill pool (auto-populated from classpath builtin-skills/)
+skill_pool/
+backend/skill_pool/
+
+# Runtime agent registry (auto-created on startup if missing)
+agents.json
+backend/agents.json
+
 # Environment / Secrets
 .env
 .env.local
@@ -56,3 +64,5 @@ hs_err_pid*
 /.omo/
 /console/
 /.playwright-mcp/
+/workspaces/
+/backend/default/

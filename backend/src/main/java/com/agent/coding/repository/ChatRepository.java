@@ -12,4 +12,10 @@ public interface ChatRepository extends JpaRepository<ChatEntity, String> {
     List<ChatEntity> findAllByArchivedAtIsNullOrderByUpdatedAtDesc();
     List<ChatEntity> findAllByArchivedAtIsNotNullOrderByUpdatedAtDesc();
     Optional<ChatEntity> findBySessionId(String sessionId);
+
+    // Agent-scoped queries
+    List<ChatEntity> findAllByAgentIdOrderByUpdatedAtDesc(String agentId);
+    List<ChatEntity> findAllByAgentIdAndArchivedAtIsNullOrderByUpdatedAtDesc(String agentId);
+    List<ChatEntity> findAllByAgentIdAndArchivedAtIsNotNullOrderByUpdatedAtDesc(String agentId);
+    Optional<ChatEntity> findByAgentIdAndSessionId(String agentId, String sessionId);
 }

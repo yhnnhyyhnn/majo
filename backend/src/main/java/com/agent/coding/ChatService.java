@@ -38,9 +38,22 @@ public class ChatService {
         return chatRepo.findAllByOrderByUpdatedAtDesc();
     }
 
+    public List<ChatEntity> listByAgent(String agentId, Boolean archived) {
+        if (agentId == null || agentId.isBlank()) return list(null, null, archived);
+        if (Boolean.TRUE.equals(archived)) {
+            return chatRepo.findAllByAgentIdAndArchivedAtIsNotNullOrderByUpdatedAtDesc(agentId);
+        }
+        if (Boolean.FALSE.equals(archived)) {
+            return chatRepo.findAllByAgentIdAndArchivedAtIsNullOrderByUpdatedAtDesc(agentId);
+        }
+        return chatRepo.findAllByAgentIdOrderByUpdatedAtDesc(agentId);
+    }
+
     @Transactional
-    public ChatEntity getOrCreateBySession(String sessionId, String firstPrompt) {
-        var existing = chatRepo.findBySessionId(sessionId);
+    public ChatEntity getOrCreateBySession(String agentId, String sessionId, String firstPrompt) {
+        var existing = (agentId != null && !agentId.isBlank())
+            ? chatRepo.findByAgentIdAndSessionId(agentId, sessionId)
+            : chatRepo.findBySessionId(sessionId);
         if (existing.isPresent()) {
             var chat = existing.get();
             chat.setUpdatedAt(LocalDateTime.now());
@@ -56,6 +69,9 @@ public class ChatService {
         }
         chat.setTitle(title);
         chat.setStatus("idle");
+        if (agentId != null && !agentId.isBlank()) {
+            chat.setAgentId(agentId);
+        }
         chat.setCreatedAt(LocalDateTime.now());
         chat.setUpdatedAt(LocalDateTime.now());
         return chatRepo.save(chat);

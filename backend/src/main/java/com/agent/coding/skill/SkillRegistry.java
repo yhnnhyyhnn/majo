@@ -1,5 +1,6 @@
 package com.agent.coding.skill;
 
+import com.agent.coding.agent.AgentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -155,7 +156,18 @@ public class SkillRegistry {
             log.warn("Cannot create pool dir: {}", poolDir);
             return false;
         }
-        if (Files.isRegularFile(SkillStore.getPoolSkillManifestPath())) return true;
+        if (Files.isRegularFile(SkillStore.getPoolSkillManifestPath())) {
+            // heal: an existing manifest may predate builtin import (empty skills map)
+            Map<String, Object> manifest = SkillStore.readPoolManifest();
+            Map<String, Object> skills = SkillService.asMap(manifest.get("skills"));
+            for (String name : getPackagedBuiltinVersions().keySet()) {
+                if (!skills.containsKey(name)) {
+                    reconcilePoolManifest();
+                    break;
+                }
+            }
+            return true;
+        }
         reconcilePoolManifest();
         return true;
     }
@@ -188,6 +200,26 @@ public class SkillRegistry {
                 if (dir == null || !Files.isRegularFile(dir.resolve("SKILL.md"))) {
                     it.remove();
                 }
+            }
+            // import packaged builtins missing from the pool (qwenpaw does this at startup)
+            String preference = getBuiltinSkillLanguagePreference();
+            Map<String, BuiltinVariant> preferred = new LinkedHashMap<>();
+            for (BuiltinVariant v : iterPackagedBuiltinVariants()) {
+                BuiltinVariant existing = preferred.get(v.skillName());
+                if (existing == null
+                        || (v.language().equals(preference) && !existing.language().equals(preference))) {
+                    preferred.put(v.skillName(), v);
+                }
+            }
+            for (BuiltinVariant v : preferred.values()) {
+                if (skills.containsKey(v.skillName())) continue;
+                Path targetDir = SkillStore.safeSkillDir(poolDir, v.skillName());
+                SkillStore.copySkillDir(v.dir(), targetDir);
+                Map<String, Object> entry = SkillStore.buildSkillMetadata(v.skillName(), targetDir, "builtin", false);
+                entry.put("external", false);
+                entry.put("builtin_language", v.language());
+                entry.put("builtin_source_name", v.skillName());
+                skills.put(v.skillName(), entry);
             }
             // register orphan skill dirs
             if (Files.isDirectory(poolDir)) {
@@ -265,21 +297,12 @@ public class SkillRegistry {
     // Workspaces
     // ------------------------------------------------------------------
 
-    /** majo has a single default agent/workspace rooted at user.dir. */
     public static List<Map<String, String>> listWorkspaces() {
-        Path workspaceDir = SkillStore.WORKING_DIR;
-        Map<String, String> ws = new LinkedHashMap<>();
-        ws.put("agent_id", "default");
-        ws.put("agent_name", "default");
-        ws.put("workspace_dir", workspaceDir.toString());
-        return List.of(ws);
+        return AgentStore.listWorkspaces();
     }
 
     public static Path workspaceDirForAgent(String agentId) {
-        if (agentId == null || agentId.isBlank() || agentId.equals("default")) {
-            return SkillStore.WORKING_DIR;
-        }
-        throw new SkillNotFoundException("Workspace '" + agentId + "' not found");
+        return AgentStore.workspaceDirForAgent(agentId);
     }
 
     // ------------------------------------------------------------------

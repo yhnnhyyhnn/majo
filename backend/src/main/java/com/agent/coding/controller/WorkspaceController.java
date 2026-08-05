@@ -57,13 +57,17 @@ public class WorkspaceController {
 
     @GetMapping("/workspace/code-files")
     public List<Map<String, Object>> listCodeFiles() {
+        return listCodeFiles(WORKSPACE);
+    }
+
+    public List<Map<String, Object>> listCodeFiles(Path workspace) {
         List<Map<String, Object>> files = new ArrayList<>();
         try {
-            Files.walkFileTree(WORKSPACE, new SimpleFileVisitor<>() {
+            Files.walkFileTree(workspace, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                     String name = dir.getFileName().toString();
-                    if (WORKSPACE.equals(dir)) return FileVisitResult.CONTINUE;
+                    if (workspace.equals(dir)) return FileVisitResult.CONTINUE;
                     return isSkipped(name) ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
                 }
                 @Override
@@ -71,7 +75,7 @@ public class WorkspaceController {
                     String name = file.getFileName().toString();
                     if (isSkipped(name)) return FileVisitResult.CONTINUE;
                     Map<String, Object> entry = new LinkedHashMap<>();
-                    String rel = WORKSPACE.relativize(file).toString().replace("\\", "/");
+                    String rel = workspace.relativize(file).toString().replace("\\", "/");
                     entry.put("filename", rel);
                     entry.put("path", rel);
                     entry.put("size", attrs.size());
@@ -88,16 +92,23 @@ public class WorkspaceController {
 
     @GetMapping("/workspace/code-files/**")
     public ResponseEntity<?> readCodeFile(HttpServletRequest req) {
+        return readCodeFile(WORKSPACE, req);
+    }
+
+    public ResponseEntity<?> readCodeFile(Path workspace, HttpServletRequest req) {
         String filePath = req.getRequestURI().replace("/api/workspace/code-files/", "");
-        Path target = WORKSPACE.resolve(filePath).normalize();
-        if (!target.startsWith(WORKSPACE)) return ResponseEntity.badRequest().body(Map.of("error", "Path traversal"));
+        if (req.getRequestURI().contains("/agents/")) {
+            filePath = req.getRequestURI().replaceAll(".*/agents/[^/]+/workspace/code-files/", "");
+        }
+        Path target = workspace.resolve(filePath).normalize();
+        if (!target.startsWith(workspace)) return ResponseEntity.badRequest().body(Map.of("error", "Path traversal"));
         if (!Files.exists(target)) return ResponseEntity.notFound().build();
         if (Files.isDirectory(target)) {
             List<Map<String, Object>> list = new ArrayList<>();
             try {
                 Files.list(target).filter(f -> !isSkipped(f.getFileName().toString())).forEach(f -> {
                     Map<String, Object> e = new LinkedHashMap<>();
-                    String rel = WORKSPACE.relativize(f).toString().replace("\\", "/");
+                    String rel = workspace.relativize(f).toString().replace("\\", "/");
                     e.put("filename", rel); e.put("path", rel);
                     e.put("size", f.toFile().length());
                     e.put("modified_time", ISO.format(Instant.ofEpochMilli(f.toFile().lastModified()).atZone(ZoneId.systemDefault())));
@@ -119,9 +130,16 @@ public class WorkspaceController {
 
     @PutMapping("/workspace/code-files/**")
     public ResponseEntity<?> writeCodeFile(HttpServletRequest req, @RequestBody Map<String, String> body) {
+        return writeCodeFile(WORKSPACE, req, body);
+    }
+
+    public ResponseEntity<?> writeCodeFile(Path workspace, HttpServletRequest req, Map<String, String> body) {
         String filePath = req.getRequestURI().replace("/api/workspace/code-files/", "");
-        Path target = WORKSPACE.resolve(filePath).normalize();
-        if (!target.startsWith(WORKSPACE)) return ResponseEntity.badRequest().body(Map.of("error", "Path traversal"));
+        if (req.getRequestURI().contains("/agents/")) {
+            filePath = req.getRequestURI().replaceAll(".*/agents/[^/]+/workspace/code-files/", "");
+        }
+        Path target = workspace.resolve(filePath).normalize();
+        if (!target.startsWith(workspace)) return ResponseEntity.badRequest().body(Map.of("error", "Path traversal"));
         try {
             Files.createDirectories(target.getParent());
             Files.writeString(target, body.getOrDefault("content", ""));
@@ -135,8 +153,12 @@ public class WorkspaceController {
 
     @GetMapping("/workspace/files")
     public List<Map<String, Object>> listMdFiles() {
+        return listMdFiles(WORKSPACE);
+    }
+
+    public List<Map<String, Object>> listMdFiles(Path workspace) {
         List<Map<String, Object>> files = new ArrayList<>();
-        try (var stream = Files.list(WORKSPACE)) {
+        try (var stream = Files.list(workspace)) {
             stream.filter(f -> f.getFileName().toString().endsWith(".md") && !isSkipped(f.getFileName().toString()))
                 .forEach(f -> {
                     Map<String, Object> m = new LinkedHashMap<>();
@@ -152,8 +174,12 @@ public class WorkspaceController {
 
     @GetMapping("/workspace/files/{name}")
     public ResponseEntity<?> readMdFile(@PathVariable String name) {
-        Path target = WORKSPACE.resolve(name).normalize();
-        if (!target.startsWith(WORKSPACE)) return ResponseEntity.badRequest().body(Map.of("error", "Invalid path"));
+        return readMdFile(WORKSPACE, name);
+    }
+
+    public ResponseEntity<?> readMdFile(Path workspace, String name) {
+        Path target = workspace.resolve(name).normalize();
+        if (!target.startsWith(workspace)) return ResponseEntity.badRequest().body(Map.of("error", "Invalid path"));
         if (!Files.exists(target)) return ResponseEntity.notFound().build();
         try {
             return ResponseEntity.ok(Map.of("content", Files.readString(target)));
@@ -164,8 +190,12 @@ public class WorkspaceController {
 
     @PutMapping("/workspace/files/{name}")
     public ResponseEntity<?> writeMdFile(@PathVariable String name, @RequestBody Map<String, String> body) {
-        Path target = WORKSPACE.resolve(name).normalize();
-        if (!target.startsWith(WORKSPACE)) return ResponseEntity.badRequest().body(Map.of("error", "Invalid path"));
+        return writeMdFile(WORKSPACE, name, body);
+    }
+
+    public ResponseEntity<?> writeMdFile(Path workspace, String name, Map<String, String> body) {
+        Path target = workspace.resolve(name).normalize();
+        if (!target.startsWith(workspace)) return ResponseEntity.badRequest().body(Map.of("error", "Invalid path"));
         try {
             Files.writeString(target, body.getOrDefault("content", ""));
             return ResponseEntity.ok(Map.of("written", true));
@@ -178,10 +208,14 @@ public class WorkspaceController {
 
     @GetMapping("/workspace/download")
     public ResponseEntity<Resource> downloadWorkspace() {
+        return downloadWorkspace(WORKSPACE);
+    }
+
+    public ResponseEntity<Resource> downloadWorkspace(Path workspace) {
         // Return a simple zip stub — full implementation would zip the workspace
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM)
             .header("Content-Disposition", "attachment; filename=workspace.zip")
-            .body(new FileSystemResource(WORKSPACE.resolve("pom.xml")));
+            .body(new FileSystemResource(workspace.resolve("pom.xml")));
     }
 
     @PostMapping("/workspace/upload")
@@ -285,20 +319,32 @@ public class WorkspaceController {
     @GetMapping("/workspace/binary-files/{path}")
     public Map<String, String> binaryFile(@PathVariable String path) { return Map.of("url", ""); }
 
-    // === Agent-scoped workspace (delegates to same logic) ===
+    // === Agent-scoped workspace (resolves per-agent workspace_dir) ===
 
     @GetMapping("/agents/{agentId}/workspace/code-files")
-    public List<Map<String, Object>> agentCodeFiles(@PathVariable String agentId) { return listCodeFiles(); }
+    public List<Map<String, Object>> agentCodeFiles(@PathVariable String agentId) {
+        return listCodeFiles(workspaceFor(agentId));
+    }
     @GetMapping("/agents/{agentId}/workspace/code-files/**")
-    public ResponseEntity<?> agentCodeFile(@PathVariable String agentId, HttpServletRequest req) { return readCodeFile(req); }
+    public ResponseEntity<?> agentCodeFile(@PathVariable String agentId, HttpServletRequest req) {
+        return readCodeFile(workspaceFor(agentId), req);
+    }
     @PutMapping("/agents/{agentId}/workspace/code-files/**")
-    public ResponseEntity<?> agentCodeFileSave(@PathVariable String agentId, HttpServletRequest req, @RequestBody Map<String, String> body) { return writeCodeFile(req, body); }
+    public ResponseEntity<?> agentCodeFileSave(@PathVariable String agentId, HttpServletRequest req, @RequestBody Map<String, String> body) {
+        return writeCodeFile(workspaceFor(agentId), req, body);
+    }
     @GetMapping("/agents/{agentId}/workspace/files")
-    public List<Map<String, Object>> agentFiles(@PathVariable String agentId) { return listMdFiles(); }
+    public List<Map<String, Object>> agentFiles(@PathVariable String agentId) {
+        return listMdFiles(workspaceFor(agentId));
+    }
     @GetMapping("/agents/{agentId}/workspace/files/{name}")
-    public ResponseEntity<?> agentMdFile(@PathVariable String agentId, @PathVariable String name) { return readMdFile(name); }
+    public ResponseEntity<?> agentMdFile(@PathVariable String agentId, @PathVariable String name) {
+        return readMdFile(workspaceFor(agentId), name);
+    }
     @PutMapping("/agents/{agentId}/workspace/files/{name}")
-    public ResponseEntity<?> agentMdFileSave(@PathVariable String agentId, @PathVariable String name, @RequestBody Map<String, String> body) { return writeMdFile(name, body); }
+    public ResponseEntity<?> agentMdFileSave(@PathVariable String agentId, @PathVariable String name, @RequestBody Map<String, String> body) {
+        return writeMdFile(workspaceFor(agentId), name, body);
+    }
     @GetMapping("/agents/{agentId}/workspace/running-config")
     public Map<String, Object> agentRunningConfig(@PathVariable String agentId) { return runningConfig(); }
     @GetMapping("/agents/{agentId}/workspace/language")
@@ -310,9 +356,13 @@ public class WorkspaceController {
     @GetMapping("/agents/{agentId}/workspace/memory")
     public List<Map<String, String>> agentMemory(@PathVariable String agentId) { return memory(); }
     @GetMapping("/agents/{agentId}/workspace/download")
-    public ResponseEntity<Resource> agentDownload(@PathVariable String agentId) { return downloadWorkspace(); }
+    public ResponseEntity<Resource> agentDownload(@PathVariable String agentId) { return downloadWorkspace(workspaceFor(agentId)); }
     @GetMapping("/agents/{agentId}/workspace/watch")
     public Map<String, String> agentWatch(@PathVariable String agentId) { return watch(); }
+
+    private Path workspaceFor(String agentId) {
+        return com.agent.coding.skill.SkillRegistry.workspaceDirForAgent(agentId);
+    }
 
     // ── Audio mode (persisted via SettingsService) ────────────────────
     @GetMapping("/workspace/audio-mode")

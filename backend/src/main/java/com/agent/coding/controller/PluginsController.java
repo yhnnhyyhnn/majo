@@ -1,6 +1,8 @@
 package com.agent.coding.controller;
 
 import com.agent.coding.inbox.InboxStore;
+import com.agent.coding.dto.MarketPluginEntry;
+import com.agent.coding.dto.MarketSearchResponse;
 import com.agent.coding.entity.PluginCacheEntity;
 import com.agent.coding.entity.SyncConfigEntity;
 import com.agent.coding.repository.PluginCacheRepository;
@@ -178,6 +180,7 @@ public class PluginsController {
             var conn = (java.net.HttpURLConnection) new java.net.URI(url).toURL().openConnection();
             conn.setRequestProperty("Accept", "application/json");
             conn.setRequestProperty("Accept-Encoding", "gzip");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
             conn.setConnectTimeout(15000);
             conn.setReadTimeout(15000);
             conn.setInstanceFollowRedirects(true);
@@ -198,11 +201,18 @@ public class PluginsController {
         }
     }
 
+    /**
+     * Build the catalog response matching the reference backend contract:
+     * {@code plugins} is a JSON ARRAY (sorted by kind, then name), not a map.
+     * Installed state is derived from plugin.json manifests on disk, exactly
+     * like the reference {@code _installed_plugin_ids()} + {@code _is_upgrade_available()}.
+     */
     private Map<String, Object> toCatalogResult(List<PluginCacheEntity> list) {
+        Map<String, String> installedVersions = installedPluginVersions();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("updated_at", list.get(0).getCachedAt().toString());
         result.put("error", null);
-        Map<String, Object> plugins = new LinkedHashMap<>();
+        List<Map<String, Object>> plugins = new ArrayList<>();
         for (var e : list) {
             Map<String, Object> p = new LinkedHashMap<>();
             p.put("id", e.getId()); p.put("plugin_id", e.getPluginId());
@@ -210,11 +220,72 @@ public class PluginsController {
             p.put("version", e.getVersion()); p.put("author", e.getAuthor());
             p.put("kind", e.getKind()); p.put("size", e.getDisplaySize());
             p.put("sha256", e.getSha256()); p.put("install_url", e.getInstallUrl());
-            p.put("installed", false); p.put("installed_version", null); p.put("upgrade_available", false);
-            plugins.put(e.getId(), p);
+            String installedVersion = installedVersions.get(e.getPluginId());
+            boolean installed = installedVersion != null;
+            p.put("installed", installed);
+            p.put("installed_version", installed ? installedVersion : null);
+            p.put("upgrade_available", installed
+                && isUpgradeAvailable(installedVersion, e.getVersion()));
+            plugins.add(p);
         }
+        plugins.sort(Comparator
+            .comparing((Map<String, Object> m) -> String.valueOf(m.getOrDefault("kind", "")))
+            .thenComparing(m -> String.valueOf(m.getOrDefault("name", ""))));
         result.put("plugins", plugins);
         return result;
+    }
+
+    /**
+     * Scan PLUGINS_DIR for plugin.json manifests and return
+     * {@code {plugin_id: installed_version}}, mirroring the reference
+     * {@code _installed_plugin_ids()}.
+     */
+    private Map<String, String> installedPluginVersions() {
+        Map<String, String> installed = new HashMap<>();
+        File[] items = PLUGINS_DIR.toFile().listFiles(File::isDirectory);
+        if (items == null) return installed;
+        for (File item : items) {
+            File mf = new File(item, "plugin.json");
+            if (!mf.exists()) continue;
+            try {
+                Map<String, Object> manifest = MAPPER.readValue(mf, Map.class);
+                String id = Objects.toString(manifest.getOrDefault("id", item.getName()), "");
+                if (!id.isBlank()) {
+                    installed.put(id, Objects.toString(manifest.getOrDefault("version", "0.0.0"), "0.0.0"));
+                }
+            } catch (Exception ignored) { }
+        }
+        return installed;
+    }
+
+    /**
+     * True when the catalog version is strictly newer than the installed
+     * version (numeric dot-segment compare; falls back to inequality when
+     * either version is not parseable) — mirrors reference {@code _is_upgrade_available()}.
+     */
+    private static boolean isUpgradeAvailable(String installedVersion, String catalogVersion) {
+        if (installedVersion == null || installedVersion.isBlank()
+            || catalogVersion == null || catalogVersion.isBlank()) {
+            return false;
+        }
+        int cmp = compareVersions(catalogVersion, installedVersion);
+        return cmp != Integer.MIN_VALUE ? cmp > 0 : !installedVersion.equals(catalogVersion);
+    }
+
+    private static int compareVersions(String a, String b) {
+        try {
+            String[] pa = a.split("\\.");
+            String[] pb = b.split("\\.");
+            int n = Math.max(pa.length, pb.length);
+            for (int i = 0; i < n; i++) {
+                int va = i < pa.length ? Integer.parseInt(pa[i].replaceAll("[^0-9].*$", "")) : 0;
+                int vb = i < pb.length ? Integer.parseInt(pb[i].replaceAll("[^0-9].*$", "")) : 0;
+                if (va != vb) return Integer.compare(va, vb);
+            }
+            return 0;
+        } catch (NumberFormatException e) {
+            return Integer.MIN_VALUE; // sentinel: caller falls back to string inequality
+        }
     }
 
     private static ResponseEntity<Map<String, Object>> syncError(String msg) {
@@ -232,12 +303,6 @@ public class PluginsController {
         return Objects.toString(value, "");
     }
 
-    private Map<String, Object> emptyCatalog() {
-        Map<String, Object> r = new LinkedHashMap<>();
-        r.put("updated_at", null); r.put("plugins", Map.of()); r.put("error", "Failed to fetch catalog");
-        return r;
-    }
-
     // ── Plugin management stubs ────────────────────────────────────────
     @GetMapping("/plugins/catalog")
     public Object pluginsCatalog() {
@@ -245,7 +310,11 @@ public class PluginsController {
         if (!list.isEmpty()) {
             return toCatalogResult(list);
         }
-        return Map.of("plugins", Map.of(), "updated_at", null, "error", null);
+        Map<String, Object> empty = new LinkedHashMap<>();
+        empty.put("plugins", List.of());
+        empty.put("updated_at", null);
+        empty.put("error", null);
+        return empty;
     }
 
     @PostMapping("/plugins/catalog/sync")
@@ -365,69 +434,194 @@ public class PluginsController {
     public Map<String, String> pluginStatus(@PathVariable String plugin_id) { return Map.of("status", "active"); }
 
     @GetMapping("/plugins/market/search")
-    public Object pluginMarketSearch(
+    public MarketSearchResponse pluginMarketSearch(
             @RequestParam(defaultValue = "1") int page_number,
             @RequestParam(defaultValue = "20") int page_size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String sort_by) {
-        String q = (search != null && !search.isBlank()) ? search.toLowerCase() : null;
-        String cat = (category != null && !category.isBlank()) ? category : null;
-        var items = pluginCacheRepo.search("market", q, cat);
-        int total = items.size();
-        int totalPages = (int) Math.ceil((double) total / page_size);
-        int from = (page_number - 1) * page_size;
-        int to = Math.min(from + page_size, total);
-        var page = from >= total ? List.of() : items.subList(from, to).stream()
-            .map(e -> {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id", e.getId()); m.put("plugin_id", e.getPluginId());
-                m.put("name", e.getName()); m.put("description", e.getDescription());
-                m.put("version", e.getVersion()); m.put("author", e.getAuthor());
-                m.put("kind", e.getKind()); m.put("size", e.getDisplaySize());
-                m.put("install_url", e.getInstallUrl()); m.put("category", e.getCategory());
-                return m;
-            }).toList();
-        return Map.of("items", page, "total", total,
-            "page_number", page_number, "page_size", page_size, "total_pages", totalPages);
+        try {
+            String q = (search != null && !search.isBlank()) ? search.toLowerCase() : null;
+            String cat = mapMarketCategory(category);
+            boolean emptyByDesign = category != null && !category.isBlank() && cat == null;
+            List<PluginCacheEntity> items = emptyByDesign ? List.of()
+                : pluginCacheRepo.search("market", q, cat);
+
+            String sort = sort_by != null ? sort_by : "downloads";
+            Comparator<PluginCacheEntity> cmp;
+            switch (sort) {
+                case "downloads" -> cmp = Comparator.comparing(
+                    (PluginCacheEntity e) -> e.getDownloads() == null ? Long.MIN_VALUE : e.getDownloads(),
+                    Comparator.reverseOrder());
+                case "fauvarate" -> cmp = Comparator.comparing(
+                    (PluginCacheEntity e) -> e.getViewCount() == null ? Long.MIN_VALUE : e.getViewCount(),
+                    Comparator.reverseOrder());
+                default -> cmp = Comparator.comparing(
+                    (PluginCacheEntity e) -> e.getSortRank() == null ? Integer.MAX_VALUE : e.getSortRank());
+            }
+            List<PluginCacheEntity> sorted = new ArrayList<>(items);
+            sorted.sort(cmp);
+
+            int total = sorted.size();
+            int from = (page_number - 1) * page_size;
+            int to = Math.min(from + page_size, total);
+            List<MarketPluginEntry> page = from >= total ? List.of()
+                : sorted.subList(from, to).stream().map(PluginsController::toMarketEntry).toList();
+            return MarketSearchResponse.ok(total, page);
+        } catch (Exception e) {
+            log.warn("Market search failed: {}", e.getMessage());
+            return MarketSearchResponse.error(e.getMessage());
+        }
+    }
+
+    private static String mapMarketCategory(String category) {
+        if (category == null || category.isBlank()) return null;
+        return switch (category) {
+            case "app" -> "App";
+            case "agent-tool" -> "Tool";
+            case "provider" -> "Provider";
+            case "command" -> "Command";
+            case "hook" -> null; // platform has no Hook category
+            case "frontend" -> "Frontend";
+            case "general" -> "General";
+            default -> category;
+        };
+    }
+
+    private static MarketPluginEntry toMarketEntry(PluginCacheEntity e) {
+        Map<String, Map<String, String>> locales = parseLocales(e.getLocales());
+        List<String> compat = parseCompatLabels(e.getCompatLabels());
+        return new MarketPluginEntry(
+            e.getId(),
+            e.getDisplayName() != null ? e.getDisplayName() : e.getName(),
+            e.getDeveloper(),
+            e.getOwner(),
+            e.getVersion(),
+            e.getLogoUrl(),
+            e.getDownloads() == null ? 0 : e.getDownloads(),
+            e.getViewCount() == null ? 0 : e.getViewCount(),
+            e.getDetailsUrl(),
+            locales,
+            compat,
+            Boolean.TRUE.equals(e.getFeatured()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Map<String, String>> parseLocales(String json) {
+        if (json == null || json.isBlank()) return Map.of();
+        try {
+            Map<String, Object> raw = MAPPER.readValue(json, Map.class);
+            Map<String, Map<String, String>> out = new LinkedHashMap<>();
+            for (var entry : raw.entrySet()) {
+                if (entry.getValue() instanceof Map<?, ?> lm) {
+                    Map<String, String> loc = new LinkedHashMap<>();
+                    Object desc = lm.get("description");
+                    Object cat = lm.get("category");
+                    if (desc != null) loc.put("description", desc.toString());
+                    if (cat != null) loc.put("category", cat.toString());
+                    out.put(entry.getKey(), loc);
+                }
+            }
+            return out;
+        } catch (Exception ex) {
+            return Map.of();
+        }
+    }
+
+    private static List<String> parseCompatLabels(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return MAPPER.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
+        } catch (Exception ex) {
+            return List.of();
+        }
     }
 
     @PostMapping("/plugins/market/sync")
     public ResponseEntity<?> syncMarket() {
         try {
-            String url = "https://platform.agentscope.io/openapi/v1/plugins?page_size=200";
-            String json = fetchUrl(url);
-            if (json == null) return syncError("Failed to fetch market");
-            json = json.replaceAll("[\\x00-\\x1F]", "");
-            var result = MAPPER.readValue(json, Map.class);
-            @SuppressWarnings("unchecked")
-            var items = (List<Map<String, Object>>) result.getOrDefault("items", List.of());
+            String base = "https://platform.agentscope.io/openapi/v1/plugins";
+            List<Map<String, Object>> all = new ArrayList<>();
+            int page = 1;
+            int total = -1;
+            do {
+                String json = fetchUrl(base + "?page_number=" + page + "&page_size=100");
+                if (json == null) return syncError("Failed to fetch market");
+                json = json.replaceAll("[\\x00-\\x1F]", "");
+                @SuppressWarnings("unchecked")
+                Map<String, Object> result = MAPPER.readValue(json, Map.class);
+                if (!Boolean.TRUE.equals(result.get("success"))) {
+                    return syncError("Market API error: " + result.get("message"));
+                }
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) result.getOrDefault("data", Map.of());
+                total = ((Number) data.getOrDefault("total", 0)).intValue();
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> items = (List<Map<String, Object>>) data.getOrDefault("plugins", List.of());
+                if (items.isEmpty()) break;
+                all.addAll(items);
+                page++;
+            } while (all.size() < total && page <= 10);
+
             pluginCacheRepo.deleteBySource("market");
-            for (var entry : items) {
+            int rank = 0;
+            for (var entry : all) {
                 var e = new PluginCacheEntity();
-                e.setId(Objects.toString(entry.get("id"), Objects.toString(entry.get("plugin_id"), "") + "-" + entry.get("version")));
+                String id = Objects.toString(entry.get("id"), "");
+                e.setId(id);
                 e.setSource("market");
-                e.setPluginId(Objects.toString(entry.get("plugin_id"), ""));
-                e.setName(Objects.toString(entry.get("name"), ""));
-                e.setDescription(Objects.toString(entry.get("description"), ""));
+                e.setPluginId(id.startsWith("@") ? id.substring(1) : id);
+                String displayName = Objects.toString(entry.get("display_name"), "");
+                e.setName(displayName);
+                e.setDisplayName(displayName);
                 e.setVersion(Objects.toString(entry.get("version"), ""));
-                e.setAuthor(Objects.toString(entry.get("author"), ""));
-                e.setKind(Objects.toString(entry.get("kind"), ""));
-                e.setDisplaySize(Objects.toString(entry.get("size"), ""));
-                e.setInstallUrl(Objects.toString(entry.get("install_url"), ""));
-                e.setCategory(Objects.toString(entry.get("category"), ""));
+                e.setDeveloper(Objects.toString(entry.get("developer"), ""));
+                e.setOwner(Objects.toString(entry.get("owner"), ""));
+                e.setLogoUrl(null);
+                e.setDownloads(toLong(entry.get("downloads")));
+                e.setViewCount(toLong(entry.get("view_count")));
+                e.setDetailsUrl(Objects.toString(entry.get("details_url"), ""));
+                e.setFeatured(Boolean.TRUE.equals(entry.get("is_featured")));
+                Object labels = entry.get("qwenpaw_compat_labels");
+                e.setCompatLabels(labels != null ? MAPPER.writeValueAsString(labels) : "[]");
+                Object locales = entry.get("locales");
+                e.setLocales(locales != null ? MAPPER.writeValueAsString(locales) : "{}");
+                e.setCategory(extractLocaleValue(locales, "category"));
+                e.setDescription(extractLocaleValue(locales, "description"));
+                e.setSortRank(rank++);
                 pluginCacheRepo.save(e);
             }
-            var sConfig = new SyncConfigEntity("market", url);
-            sConfig.setSyncedCount(items.size());
+            var sConfig = new SyncConfigEntity("market", base);
+            sConfig.setSyncedCount(all.size());
             sConfig.setSyncStatus("success");
             syncConfigRepo.save(sConfig);
-            return ResponseEntity.ok(Map.of("synced", items.size()));
+            return ResponseEntity.ok(Map.of("synced", all.size()));
         } catch (Exception e) {
             log.warn("Market sync failed: {}", e.getMessage());
             markSyncFailed("market");
             return syncError(e.getMessage());
         }
+    }
+
+    private static Long toLong(Object v) {
+        if (v instanceof Number n) return n.longValue();
+        return null;
+    }
+
+    private static String extractLocaleValue(Object locales, String key) {
+        if (!(locales instanceof Map<?, ?> lm)) return "";
+        for (Object lang : new Object[]{"en", "zh"}) {
+            Object v = lm.get(lang);
+            if (v instanceof Map<?, ?> m && m.get(key) != null) {
+                return Objects.toString(m.get(key), "");
+            }
+        }
+        for (Object v : lm.values()) {
+            if (v instanceof Map<?, ?> m && m.get(key) != null) {
+                return Objects.toString(m.get(key), "");
+            }
+        }
+        return "";
     }
 
     private void markSyncFailed(String key) {
@@ -436,7 +630,7 @@ public class PluginsController {
 
     private static final List<Map<String, Object>> DEFAULT_SYNC_CONFIGS = List.of(
         buildDefaultConfig("catalog", "https://download.qwenpaw.agentscope.io/metadata/index.json"),
-        buildDefaultConfig("market", "https://platform.agentscope.io/openapi/v1/plugins?page_size=200")
+        buildDefaultConfig("market", "https://platform.agentscope.io/openapi/v1/plugins")
     );
 
     private static Map<String, Object> buildDefaultConfig(String key, String url) {

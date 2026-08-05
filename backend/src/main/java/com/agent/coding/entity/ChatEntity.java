@@ -26,6 +26,9 @@ public class ChatEntity {
     @Column(length = 64, nullable = false)
     private String channel = "console";
 
+    @Column(name = "agent_id", length = 64)
+    private String agentId = "default";
+
     @Column(nullable = false)
     private Boolean pinned = false;
 
@@ -58,6 +61,8 @@ public class ChatEntity {
     public void setArchivedAt(LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getAgentId() { return agentId; }
+    public void setAgentId(String agentId) { this.agentId = agentId; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

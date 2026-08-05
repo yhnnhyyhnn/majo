@@ -179,8 +179,6 @@ public class FullCompatController {
     public Map<String, String> agentMcpToolsUpdate(@PathVariable String agentId, @PathVariable String client_key) { return Map.of("status", "ok"); }
 
     // ===== AGENT MEMORY =====
-    @PostMapping("/agents/{agentId}/memory/reindex")
-    public Map<String, String> agentMemoryReindex(@PathVariable String agentId) { return Map.of("status", "ok"); }
 
     // ===== AGENT PLUGINS =====
     @DeleteMapping("/agents/{agentId}/plugins/{plugin_id}")
@@ -522,13 +520,6 @@ public class FullCompatController {
 
     // ===== WORKSPACE =====
     // === PRECISE METHOD GAPS ===
-
-    @PostMapping("/agents")
-    public Map<String, String> agentsCreate() { return Map.of("id", "default"); }
-    @DeleteMapping("/agents/{agentId}")
-    public Map<String, String> agentsDelete(@PathVariable String agentId) { return Map.of("status", "ok"); }
-    @PutMapping("/agents/{agentId}")
-    public Map<String, String> agentsUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
 
     @PutMapping("/agents/{agentId}/config/agents/llm-routing")
     public Map<String, String> agentLlmRoutingUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }

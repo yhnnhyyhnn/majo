@@ -2,6 +2,7 @@ package com.agent.coding.controller;
 
 import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
+import com.agent.coding.agent.AgentStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
@@ -55,9 +56,22 @@ public class RootCompatController {
         String sessionId = Objects.toString(body.getOrDefault("session_id", UUID.randomUUID().toString()), UUID.randomUUID().toString());
         String workspace = Objects.toString(body.getOrDefault("workspace", ""), "");
         WorkspaceContext.set(workspace);
-        HarnessAgent agent = HarnessAgent.builder().name("majo").sysPrompt(SYS_PROMPT)
+
+        Path wsPath = DEFAULT_WORKSPACE;
+        String agentName = "majo";
+        try {
+            wsPath = AgentStore.workspaceDirForAgent(agentId);
+            var profile = AgentStore.getProfile(agentId);
+            if (profile != null && profile.get("name") != null) {
+                agentName = profile.get("name").toString();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to resolve agent '{}', using defaults: {}", agentId, e.getMessage());
+        }
+
+        HarnessAgent agent = HarnessAgent.builder().name(agentName).sysPrompt(SYS_PROMPT)
             .model(OpenAIChatModel.builder().apiKey(settingsService.getApiKey()).baseUrl(settingsService.getBaseUrl()).modelName(settingsService.getModelName()).build())
-            .toolkit(toolkit).workspace(DEFAULT_WORKSPACE).build();
+            .toolkit(toolkit).workspace(wsPath).build();
         var ctx = RuntimeContext.builder().sessionId(sessionId).userId("web-user").build();
         return agent.streamEvents(new UserMessage(prompt), ctx)
             .map(evt -> { try { var n = mapper.createObjectNode(); n.put("type", evt.getClass().getSimpleName()); n.put("timestamp", System.currentTimeMillis()); n.set("data", mapper.valueToTree(evt)); return mapper.writeValueAsString(n); } catch (Exception e) { return event("error", e.getMessage()); } })

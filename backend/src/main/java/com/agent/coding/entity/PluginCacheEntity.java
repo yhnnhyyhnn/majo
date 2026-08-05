@@ -46,6 +46,39 @@ public class PluginCacheEntity {
     @Column(length = 64)
     private String category;
 
+    @Column(name = "display_name", length = 255)
+    private String displayName;
+
+    @Column(length = 255)
+    private String developer;
+
+    @Column(length = 128)
+    private String owner;
+
+    @Column(name = "logo_url", length = 512)
+    private String logoUrl;
+
+    @Column
+    private Long downloads;
+
+    @Column(name = "view_count")
+    private Long viewCount;
+
+    @Column(name = "details_url", length = 512)
+    private String detailsUrl;
+
+    @Column(name = "is_featured")
+    private Boolean featured;
+
+    @Column(name = "compat_labels", columnDefinition = "CLOB")
+    private String compatLabels;
+
+    @Column(columnDefinition = "CLOB")
+    private String locales;
+
+    @Column(name = "sort_rank")
+    private Integer sortRank;
+
     @Column(name = "cached_at", nullable = false)
     private LocalDateTime cachedAt = LocalDateTime.now();
 
@@ -77,6 +110,28 @@ public class PluginCacheEntity {
     public void setSha256(String v) { this.sha256 = v; }
     public String getCategory() { return category; }
     public void setCategory(String v) { this.category = v; }
+    public String getDisplayName() { return displayName; }
+    public void setDisplayName(String v) { this.displayName = v; }
+    public String getDeveloper() { return developer; }
+    public void setDeveloper(String v) { this.developer = v; }
+    public String getOwner() { return owner; }
+    public void setOwner(String v) { this.owner = v; }
+    public String getLogoUrl() { return logoUrl; }
+    public void setLogoUrl(String v) { this.logoUrl = v; }
+    public Long getDownloads() { return downloads; }
+    public void setDownloads(Long v) { this.downloads = v; }
+    public Long getViewCount() { return viewCount; }
+    public void setViewCount(Long v) { this.viewCount = v; }
+    public String getDetailsUrl() { return detailsUrl; }
+    public void setDetailsUrl(String v) { this.detailsUrl = v; }
+    public Boolean getFeatured() { return featured; }
+    public void setFeatured(Boolean v) { this.featured = v; }
+    public String getCompatLabels() { return compatLabels; }
+    public void setCompatLabels(String v) { this.compatLabels = v; }
+    public String getLocales() { return locales; }
+    public void setLocales(String v) { this.locales = v; }
+    public Integer getSortRank() { return sortRank; }
+    public void setSortRank(Integer v) { this.sortRank = v; }
     public LocalDateTime getCachedAt() { return cachedAt; }
     public void setCachedAt(LocalDateTime v) { this.cachedAt = v; }
 }

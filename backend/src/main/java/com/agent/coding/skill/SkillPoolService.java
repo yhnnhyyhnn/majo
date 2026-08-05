@@ -640,7 +640,8 @@ public class SkillPoolService {
         Map<String, Object> existing = SkillService.asMap(SkillService.asMap(wsManifest.get("skills")).get(finalName));
         if (!overwrite) {
             Map<String, String> identity = SkillStore.getWorkspaceIdentity(workspaceDir);
-            return checkDownloadConflict(entry, existing, finalName, identity, workspaceDir);
+            Map<String, Object> conflict = checkDownloadConflict(entry, existing, finalName, identity, workspaceDir);
+            if (conflict != null) return conflict;
         }
         return SkillService.result(true, null);
     }

@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.*;
 
 @RestController
@@ -26,8 +28,12 @@ public class ChatsController {
     public List<ChatSpecDto> list(
             @RequestParam(required = false) String user_id,
             @RequestParam(required = false) String channel,
-            @RequestParam(required = false) Boolean archived) {
-        return service.list(user_id, channel, archived).stream()
+            @RequestParam(required = false) Boolean archived,
+            HttpServletRequest request) {
+        String agentId = request.getHeader("X-Agent-Id");
+        return (agentId != null && !agentId.isBlank()
+            ? service.listByAgent(agentId, archived)
+            : service.list(user_id, channel, archived)).stream()
             .map(ChatSpecDto::from).toList();
     }
 

@@ -1,0 +1,1 @@
+ALTER TABLE chats ADD COLUMN agent_id VARCHAR(64) DEFAULT 'default';
