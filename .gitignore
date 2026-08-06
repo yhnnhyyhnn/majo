@@ -67,3 +67,4 @@ hs_err_pid*
 /.playwright-mcp/
 /workspaces/
 /backend/default/
+/builtin-skills/

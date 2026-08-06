@@ -454,34 +454,6 @@ public class FullCompatController {
     @PostMapping("/market/search")
     public List<Map<String, String>> marketSearch() { return List.of(); }
 
-    // ===== MCP (global) =====
-    @GetMapping("/mcp/{client_key}")
-    public Map<String, String> mcpDetail(@PathVariable String client_key) { return Map.of(); }
-    @DeleteMapping("/mcp/{client_key}")
-    public Map<String, String> mcpDelete(@PathVariable String client_key) { return Map.of("status", "ok"); }
-    @PutMapping("/mcp/{client_key}")
-    public Map<String, String> mcpUpdate(@PathVariable String client_key) { return Map.of("status", "ok"); }
-    @GetMapping("/mcp/access-principals")
-    public List<Map<String, String>> mcpPrincipals() { return List.of(); }
-    @GetMapping("/mcp/oauth/callback")
-    public Map<String, String> mcpOauthCallback() { return Map.of("status", "ok"); }
-    @PostMapping("/mcp/oauth/start/{client_key}")
-    public Map<String, String> mcpOauthStart(@PathVariable String client_key) { return Map.of("auth_url", ""); }
-    @GetMapping("/mcp/oauth/status/{client_key}")
-    public Map<String, String> mcpOauthStatus(@PathVariable String client_key) { return Map.of("status", "pending"); }
-    @DeleteMapping("/mcp/oauth/{client_key}")
-    public Map<String, String> mcpOauthDelete(@PathVariable String client_key) { return Map.of("status", "ok"); }
-    @GetMapping("/mcp/policy/{client_key}")
-    public Map<String, String> mcpPolicy(@PathVariable String client_key) { return Map.of(); }
-    @PutMapping("/mcp/policy/{client_key}")
-    public Map<String, String> mcpPolicyUpdate(@PathVariable String client_key) { return Map.of("status", "ok"); }
-    @PatchMapping("/mcp/toggle/{client_key}")
-    public Map<String, String> mcpToggle(@PathVariable String client_key) { return Map.of("status", "ok"); }
-    @GetMapping("/mcp/tools/{client_key}")
-    public List<Map<String, String>> mcpTools(@PathVariable String client_key) { return List.of(); }
-    @PutMapping("/mcp/tools/{client_key}")
-    public Map<String, String> mcpToolsUpdate(@PathVariable String client_key) { return Map.of("status", "ok"); }
-
     // OpenRouter endpoints (non-conflicting)
     @PostMapping("/models/openrouter/discover-extended")
     public List<Map<String, String>> openrouterDiscover() { return List.of(); }
@@ -542,9 +514,6 @@ public class FullCompatController {
 
     @PostMapping("/loops/custom")
     public Map<String, String> loopsCustomCreate() { return Map.of("id", UUID.randomUUID().toString()); }
-
-    @PostMapping("/mcp")
-    public Map<String, String> mcpCreate() { return Map.of("status", "ok"); }
 
     @PostMapping("/providers/{provider_id}/oauth/start")
     public Map<String, Object> providerOauthStart(@PathVariable String provider_id) { return Map.of("auth_url", ""); }
