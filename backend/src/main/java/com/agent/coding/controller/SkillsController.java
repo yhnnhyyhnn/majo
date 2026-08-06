@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * {@code X-Agent-Id} header, else {@code ?agent=}, else default.
  */
 @RestController
-@RequestMapping("/api/skills")
+@RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class SkillsController {
 
@@ -82,19 +82,19 @@ public class SkillsController {
     // List / refresh / workspaces
     // ------------------------------------------------------------------
 
-    @GetMapping("")
+    @GetMapping("/skills")
     public List<SkillSpec> listSkills(HttpServletRequest request) {
         return new SkillService(resolveWorkspace(request)).buildSkillSpecs();
     }
 
-    @PostMapping("/refresh")
+    @PostMapping("/skills/refresh")
     public List<SkillSpec> refreshSkills(HttpServletRequest request) {
         Path workspaceDir = resolveWorkspace(request);
         SkillRegistry.reconcileWorkspaceManifest(workspaceDir);
         return new SkillService(workspaceDir).buildSkillSpecs();
     }
 
-    @GetMapping("/workspaces")
+    @GetMapping("/skills/workspaces")
     public List<WorkspaceSkillSummary> listWorkspaces() {
         List<WorkspaceSkillSummary> summaries = new ArrayList<>();
         for (Map<String, String> ws : SkillRegistry.listWorkspaces()) {
@@ -113,13 +113,13 @@ public class SkillsController {
     // Hub search + install tasks
     // ------------------------------------------------------------------
 
-    @GetMapping("/hub/search")
+    @GetMapping("/skills/hub/search")
     public List<HubSkillSpec> searchHub(@RequestParam(defaultValue = "") String q,
                                         @RequestParam(defaultValue = "20") int limit) {
         return hubService.searchHubSkills(q, limit);
     }
 
-    @PostMapping("/hub/install/start")
+    @PostMapping("/skills/hub/install/start")
     public HubInstallTask startHubInstall(@RequestBody Map<String, Object> body,
                                           HttpServletRequest request) {
         Path workspaceDir = resolveWorkspace(request);
@@ -142,14 +142,14 @@ public class SkillsController {
         return task;
     }
 
-    @GetMapping("/hub/install/status/{task_id}")
+    @GetMapping("/skills/hub/install/status/{task_id}")
     public HubInstallTask getHubInstallStatus(@PathVariable("task_id") String taskId) {
         HubInstallTask task = taskManager.get(taskId);
         if (task == null) throw new SkillNotFoundException("install task not found");
         return task;
     }
 
-    @PostMapping("/hub/install/cancel/{task_id}")
+    @PostMapping("/skills/hub/install/cancel/{task_id}")
     public Map<String, Object> cancelHubInstall(@PathVariable("task_id") String taskId) {
         String status = taskManager.cancel(taskId);
         Map<String, Object> r = new LinkedHashMap<>();
@@ -216,29 +216,29 @@ public class SkillsController {
     // Pool list / builtins
     // ------------------------------------------------------------------
 
-    @GetMapping("/pool")
+    @GetMapping("/skills/pool")
     public List<PoolSkillSpec> listPoolSkills() {
         return new SkillPoolService().buildPoolSkillSpecs();
     }
 
-    @PostMapping("/pool/refresh")
+    @PostMapping("/skills/pool/refresh")
     public List<PoolSkillSpec> refreshPoolSkills() {
         SkillRegistry.reconcilePoolManifest();
         followAutoUpdate(null);
         return new SkillPoolService().buildPoolSkillSpecs();
     }
 
-    @GetMapping("/pool/builtin-sources")
+    @GetMapping("/skills/pool/builtin-sources")
     public List<Map<String, Object>> listPoolBuiltinSources() {
         return SkillRegistry.listBuiltinImportCandidates();
     }
 
-    @GetMapping("/pool/builtin-notice")
+    @GetMapping("/skills/pool/builtin-notice")
     public Map<String, Object> getPoolBuiltinNotice() {
         return SkillRegistry.getPoolBuiltinUpdateNotice();
     }
 
-    @PostMapping("/pool/import-builtin")
+    @PostMapping("/skills/pool/import-builtin")
     public Map<String, Object> importPoolBuiltins(@RequestBody Map<String, Object> body) {
         List<Map<String, Object>> imports = new ArrayList<>();
         Object rawImports = body.get("imports");
@@ -270,7 +270,7 @@ public class SkillsController {
         return result;
     }
 
-    @PostMapping("/pool/{skill_name}/update-builtin")
+    @PostMapping("/skills/pool/{skill_name}/update-builtin")
     public Map<String, Object> updatePoolBuiltin(@PathVariable("skill_name") String skillName,
                                                  @RequestBody(required = false) Map<String, Object> body) {
         String language = body == null ? "" : SkillService.str(body.get("language"));
@@ -287,7 +287,7 @@ public class SkillsController {
     // Create / save / upload (workspace + pool)
     // ------------------------------------------------------------------
 
-    @PostMapping("")
+    @PostMapping("/skills")
     public Map<String, Object> createSkill(@RequestBody Map<String, Object> body,
                                            HttpServletRequest request) {
         Path workspaceDir = resolveWorkspace(request);
@@ -317,7 +317,7 @@ public class SkillsController {
         }
     }
 
-    @PostMapping("/upload")
+    @PostMapping("/skills/upload")
     public Map<String, Object> uploadSkillZip(@RequestParam("file") MultipartFile file,
                                               @RequestParam(defaultValue = "true") boolean enable,
                                               @RequestParam(defaultValue = "") String target_name,
@@ -337,7 +337,7 @@ public class SkillsController {
         }
     }
 
-    @PostMapping("/pool/create")
+    @PostMapping("/skills/pool/create")
     public Map<String, Object> createPoolSkill(@RequestBody Map<String, Object> body) {
         try {
             String created = new SkillPoolService().createSkill(
@@ -363,7 +363,7 @@ public class SkillsController {
         }
     }
 
-    @PutMapping("/pool/save")
+    @PutMapping("/skills/pool/save")
     public Map<String, Object> savePoolSkill(@RequestBody Map<String, Object> body) {
         try {
             Map<String, Object> result = new SkillPoolService().savePoolSkill(
@@ -384,7 +384,7 @@ public class SkillsController {
         }
     }
 
-    @PostMapping("/pool/upload-zip")
+    @PostMapping("/skills/pool/upload-zip")
     public Map<String, Object> uploadSkillPoolZip(@RequestParam("file") MultipartFile file,
                                                   @RequestParam(defaultValue = "") String target_name,
                                                   @RequestParam(defaultValue = "") String rename_map) {
@@ -402,7 +402,7 @@ public class SkillsController {
         }
     }
 
-    @PostMapping("/pool/import")
+    @PostMapping("/skills/pool/import")
     public Map<String, Object> importPoolSkillFromHub(@RequestBody Map<String, Object> body) {
         try {
             HubInstallResult result = hubService.importPoolSkillFromHub(
@@ -423,7 +423,7 @@ public class SkillsController {
         }
     }
 
-    @PostMapping("/pool/upload")
+    @PostMapping("/skills/pool/upload")
     public Map<String, Object> uploadWorkspaceSkillToPool(@RequestBody Map<String, Object> body) {
         Path workspaceDir = resolveWorkspace(body);
         try {
@@ -444,7 +444,7 @@ public class SkillsController {
         }
     }
 
-    @PostMapping("/pool/download")
+    @PostMapping("/skills/pool/download")
     public Map<String, Object> downloadPoolSkillToWorkspaces(@RequestBody Map<String, Object> body) {
         String skillName = SkillService.str(body.get("skill_name"));
         boolean overwrite = SkillService.bool(body.get("overwrite"), false);
@@ -523,7 +523,7 @@ public class SkillsController {
     // Pool skill config / tags / auto-update / delete
     // ------------------------------------------------------------------
 
-    @DeleteMapping("/pool/{skill_name}")
+    @DeleteMapping("/skills/pool/{skill_name}")
     public Map<String, Object> deletePoolSkill(@PathVariable("skill_name") String skillName) {
         boolean deleted = new SkillPoolService().deleteSkill(skillName);
         if (!deleted) throw new SkillConflictError("Skill pool entry cannot be deleted");
@@ -532,7 +532,7 @@ public class SkillsController {
         return r;
     }
 
-    @GetMapping("/pool/{skill_name}/config")
+    @GetMapping("/skills/pool/{skill_name}/config")
     public Map<String, Object> getPoolSkillConfig(@PathVariable("skill_name") String skillName) {
         Map<String, Object> manifest = SkillStore.readPoolManifest();
         Map<String, Object> entry = SkillService.asMap(SkillService.asMap(manifest.get("skills")).get(skillName));
@@ -542,7 +542,7 @@ public class SkillsController {
         return r;
     }
 
-    @PutMapping("/pool/{skill_name}/config")
+    @PutMapping("/skills/pool/{skill_name}/config")
     public Map<String, Object> updatePoolSkillConfig(@PathVariable("skill_name") String skillName,
                                                      @RequestBody Map<String, Object> body) {
         Map<String, Object> config = asMapOrNull(body.get("config"));
@@ -559,7 +559,7 @@ public class SkillsController {
         return r;
     }
 
-    @DeleteMapping("/pool/{skill_name}/config")
+    @DeleteMapping("/skills/pool/{skill_name}/config")
     public Map<String, Object> deletePoolSkillConfig(@PathVariable("skill_name") String skillName) {
         Boolean updated = SkillStore.mutateJson(SkillStore.getPoolSkillManifestPath(),
                 SkillService.defaultPoolManifest(), payload -> {
@@ -574,7 +574,7 @@ public class SkillsController {
         return r;
     }
 
-    @PutMapping("/pool/{skill_name}/tags")
+    @PutMapping("/skills/pool/{skill_name}/tags")
     public Map<String, Object> updatePoolSkillTags(@PathVariable("skill_name") String skillName,
                                                    @RequestBody List<String> tags) {
         List<String> cleaned = validateTags(tags);
@@ -586,7 +586,7 @@ public class SkillsController {
         return r;
     }
 
-    @PutMapping("/pool/{skill_name}/auto-update")
+    @PutMapping("/skills/pool/{skill_name}/auto-update")
     public Map<String, Object> updatePoolSkillAutoUpdate(@PathVariable("skill_name") String skillName,
                                                          @RequestBody Map<String, Object> body) {
         boolean enabled = SkillService.bool(body.get("enabled"), false);
@@ -604,7 +604,7 @@ public class SkillsController {
     // Batch operations
     // ------------------------------------------------------------------
 
-    @PostMapping("/batch-delete")
+    @PostMapping("/skills/batch-delete")
     public Map<String, Object> batchDeleteSkills(@RequestBody List<String> skills,
                                                  HttpServletRequest request) {
         Path workspaceDir = resolveWorkspace(request);
@@ -630,7 +630,7 @@ public class SkillsController {
         return r;
     }
 
-    @PostMapping("/pool/batch-delete")
+    @PostMapping("/skills/pool/batch-delete")
     public Map<String, Object> batchDeletePoolSkills(@RequestBody List<String> skills) {
         SkillPoolService pool = new SkillPoolService();
         Map<String, Object> results = new LinkedHashMap<>();
@@ -653,7 +653,7 @@ public class SkillsController {
         return r;
     }
 
-    @PostMapping("/batch-disable")
+    @PostMapping("/skills/batch-disable")
     public Map<String, Object> batchDisableSkills(@RequestBody List<String> skills,
                                                   HttpServletRequest request) {
         Path workspaceDir = resolveWorkspace(request);
@@ -667,7 +667,7 @@ public class SkillsController {
         return r;
     }
 
-    @PostMapping("/batch-enable")
+    @PostMapping("/skills/batch-enable")
     public Map<String, Object> batchEnableSkills(@RequestBody List<String> skills,
                                                  HttpServletRequest request) {
         Path workspaceDir = resolveWorkspace(request);
@@ -693,7 +693,7 @@ public class SkillsController {
     // Workspace skill operations
     // ------------------------------------------------------------------
 
-    @PostMapping("/{skill_name}/disable")
+    @PostMapping("/skills/{skill_name}/disable")
     public Map<String, Object> disableSkill(@PathVariable("skill_name") String skillName,
                                             HttpServletRequest request) {
         Map<String, Object> result = new SkillService(resolveWorkspace(request)).disableSkill(skillName);
@@ -706,7 +706,7 @@ public class SkillsController {
         return r;
     }
 
-    @PostMapping("/{skill_name}/enable")
+    @PostMapping("/skills/{skill_name}/enable")
     public Map<String, Object> enableSkill(@PathVariable("skill_name") String skillName,
                                            HttpServletRequest request) {
         try {
@@ -725,7 +725,7 @@ public class SkillsController {
         }
     }
 
-    @DeleteMapping("/{skill_name}")
+    @DeleteMapping("/skills/{skill_name}")
     public Map<String, Object> deleteSkill(@PathVariable("skill_name") String skillName,
                                            HttpServletRequest request) {
         SkillService svc = new SkillService(resolveWorkspace(request));
@@ -737,7 +737,7 @@ public class SkillsController {
         return r;
     }
 
-    @GetMapping("/{skill_name}/files/{file_path:.*}")
+    @GetMapping("/skills/{skill_name}/files/{file_path:.*}")
     public Map<String, Object> loadSkillFile(@PathVariable("skill_name") String skillName,
                                              @PathVariable("file_path") String filePath,
                                              HttpServletRequest request) {
@@ -748,7 +748,7 @@ public class SkillsController {
         return r;
     }
 
-    @PutMapping("/save")
+    @PutMapping("/skills/save")
     public Map<String, Object> saveWorkspaceSkill(@RequestBody Map<String, Object> body,
                                                   HttpServletRequest request) {
         Path workspaceDir = resolveWorkspace(request);
@@ -771,7 +771,7 @@ public class SkillsController {
         }
     }
 
-    @PutMapping("/{skill_name}/channels")
+    @PutMapping("/skills/{skill_name}/channels")
     public Map<String, Object> updateSkillChannels(@PathVariable("skill_name") String skillName,
                                                    @RequestBody List<String> channels,
                                                    HttpServletRequest request) {
@@ -783,7 +783,7 @@ public class SkillsController {
         return r;
     }
 
-    @PutMapping("/{skill_name}/tags")
+    @PutMapping("/skills/{skill_name}/tags")
     public Map<String, Object> updateSkillTags(@PathVariable("skill_name") String skillName,
                                                @RequestBody List<String> tags,
                                                HttpServletRequest request) {
@@ -796,7 +796,7 @@ public class SkillsController {
         return r;
     }
 
-    @GetMapping("/{skill_name}/config")
+    @GetMapping("/skills/{skill_name}/config")
     public Map<String, Object> getSkillConfig(@PathVariable("skill_name") String skillName,
                                               HttpServletRequest request) {
         Map<String, Object> manifest = new SkillService(resolveWorkspace(request)).readManifest();
@@ -807,7 +807,7 @@ public class SkillsController {
         return r;
     }
 
-    @PutMapping("/{skill_name}/config")
+    @PutMapping("/skills/{skill_name}/config")
     public Map<String, Object> updateSkillConfig(@PathVariable("skill_name") String skillName,
                                                  @RequestBody Map<String, Object> body,
                                                  HttpServletRequest request) {
@@ -826,7 +826,7 @@ public class SkillsController {
         return r;
     }
 
-    @DeleteMapping("/{skill_name}/config")
+    @DeleteMapping("/skills/{skill_name}/config")
     public Map<String, Object> deleteSkillConfig(@PathVariable("skill_name") String skillName,
                                                  HttpServletRequest request) {
         Path workspaceDir = resolveWorkspace(request);
@@ -858,29 +858,29 @@ public class SkillsController {
                     + "4. Body content: use Markdown format, well-structured\n"
                     + "5. Total length: keep within 500 characters\n"
                     + "\n---\nPlease optimize this skill:",
-            "zh", "你是AI技能优化专家。请优化以下技能内容。\n"
-                    + "\n## 输出格式要求\n"
-                    + "直接输出技能内容，禁止使用代码块标记（如 ```yaml 或 ```），禁止添加任何解释说明。\n"
-                    + "\n## 优化规则\n"
-                    + "1. 保持frontmatter结构（--- 包围的头部区域）\n"
-                    + "2. name字段：英文小写下划线命名\n"
-                    + "3. description字段：简洁清晰，不超过80字\n"
-                    + "4. 正文用Markdown格式，结构清晰\n"
-                    + "5. 总长度控制在500字以内\n"
-                    + "\n---\n请优化此技能:",
-            "ru", "Вы эксперт по оптимизации AI-навыков. Пожалуйста, оптимизируйте навык.\n"
-                    + "\n## Требования к формату вывода\n"
-                    + "Выводите содержимое навыка напрямую. НЕ используйте маркеры блока кода.\n"
-                    + "\n## Правила оптимизации\n"
-                    + "1. Сохраните структуру frontmatter (раздел заголовка, заключённый в ---)\n"
-                    + "2. Поле name: строчные буквы с подчёркиванием\n"
-                    + "3. Поле description: чёткое и краткое, не более 80 символов\n"
-                    + "4. Основное содержимое: используйте формат Markdown\n"
-                    + "5. Общая длина: не более 500 символов\n"
-                    + "\n---\nПожалуйста, оптимизируйте этот навык:"
+            "zh", "浣犳槸AI鎶€鑳戒紭鍖栦笓瀹躲€傝浼樺寲浠ヤ笅鎶€鑳藉唴瀹广€俓n"
+                    + "\n## 杈撳嚭鏍煎紡瑕佹眰\n"
+                    + "鐩存帴杈撳嚭鎶€鑳藉唴瀹癸紝绂佹浣跨敤浠ｇ爜鍧楁爣璁帮紙濡?```yaml 鎴?```锛夛紝绂佹娣诲姞浠讳綍瑙ｉ噴璇存槑銆俓n"
+                    + "\n## 浼樺寲瑙勫垯\n"
+                    + "1. 淇濇寔frontmatter缁撴瀯锛?-- 鍖呭洿鐨勫ご閮ㄥ尯鍩燂級\n"
+                    + "2. name瀛楁锛氳嫳鏂囧皬鍐欎笅鍒掔嚎鍛藉悕\n"
+                    + "3. description瀛楁锛氱畝娲佹竻鏅帮紝涓嶈秴杩?0瀛梊n"
+                    + "4. 姝ｆ枃鐢∕arkdown鏍煎紡锛岀粨鏋勬竻鏅癨n"
+                    + "5. 鎬婚暱搴︽帶鍒跺湪500瀛椾互鍐匼n"
+                    + "\n---\n璇蜂紭鍖栨鎶€鑳?",
+            "ru", "袙褘 褝泻褋锌械褉褌 锌芯 芯锌褌懈屑懈蟹邪褑懈懈 AI-薪邪胁褘泻芯胁. 袩芯卸邪谢褍泄褋褌邪, 芯锌褌懈屑懈蟹懈褉褍泄褌械 薪邪胁褘泻.\n"
+                    + "\n## 孝褉械斜芯胁邪薪懈褟 泻 褎芯褉屑邪褌褍 胁褘胁芯写邪\n"
+                    + "袙褘胁芯写懈褌械 褋芯写械褉卸懈屑芯械 薪邪胁褘泻邪 薪邪锌褉褟屑褍褞. 袧袝 懈褋锌芯谢褜蟹褍泄褌械 屑邪褉泻械褉褘 斜谢芯泻邪 泻芯写邪.\n"
+                    + "\n## 袩褉邪胁懈谢邪 芯锌褌懈屑懈蟹邪褑懈懈\n"
+                    + "1. 小芯褏褉邪薪懈褌械 褋褌褉褍泻褌褍褉褍 frontmatter (褉邪蟹写械谢 蟹邪谐芯谢芯胁泻邪, 蟹邪泻谢褞褔褢薪薪褘泄 胁 ---)\n"
+                    + "2. 袩芯谢械 name: 褋褌褉芯褔薪褘械 斜褍泻胁褘 褋 锌芯写褔褢褉泻懈胁邪薪懈械屑\n"
+                    + "3. 袩芯谢械 description: 褔褢褌泻芯械 懈 泻褉邪褌泻芯械, 薪械 斜芯谢械械 80 褋懈屑胁芯谢芯胁\n"
+                    + "4. 袨褋薪芯胁薪芯械 褋芯写械褉卸懈屑芯械: 懈褋锌芯谢褜蟹褍泄褌械 褎芯褉屑邪褌 Markdown\n"
+                    + "5. 袨斜褖邪褟 写谢懈薪邪: 薪械 斜芯谢械械 500 褋懈屑胁芯谢芯胁\n"
+                    + "\n---\n袩芯卸邪谢褍泄褋褌邪, 芯锌褌懈屑懈蟹懈褉褍泄褌械 褝褌芯褌 薪邪胁褘泻:"
     );
 
-    @PostMapping(value = "/ai/optimize/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/skills/ai/optimize/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> aiOptimizeSkillStream(@RequestBody Map<String, Object> body) {
         String content = SkillService.str(body.get("content"));
         String language = SkillService.str(body.get("language"), "en");
@@ -1021,5 +1021,221 @@ public class SkillsController {
             if ("CRITICAL".equalsIgnoreCase(SkillService.str(f.get("severity")))) return "critical";
         }
         return "high";
+    }
+
+    // ── Agent-scoped skills (port of qwenpaw agent_scoped /agents/{agentId}/skills) ──
+    @GetMapping("/agents/{agentId}/skills")
+    public Object agentSkillList(@PathVariable String agentId, HttpServletRequest request) {
+        return listSkills(withAgent(request, agentId));
+    }
+
+    @PostMapping("/agents/{agentId}/skills/refresh")
+    public Object agentSkillRefresh(@PathVariable String agentId, HttpServletRequest request) {
+        return refreshSkills(withAgent(request, agentId));
+    }
+
+    @PostMapping("/agents/{agentId}/skills/save")
+    public Object agentSkillSave(@PathVariable String agentId,
+                                 @RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return saveWorkspaceSkill(body, withAgent(request, agentId));
+    }
+
+    @PostMapping("/agents/{agentId}/skills/upload")
+    public Object agentSkillUpload(@PathVariable String agentId,
+                                   @RequestParam("file") MultipartFile file,
+                                   @RequestParam(defaultValue = "true") boolean enable,
+                                   @RequestParam(defaultValue = "") String target_name,
+                                   @RequestParam(defaultValue = "") String rename_map,
+                                   HttpServletRequest request) {
+        return uploadSkillZip(file, enable, target_name, rename_map, withAgent(request, agentId));
+    }
+
+    @DeleteMapping("/agents/{agentId}/skills/{skill_name}")
+    public Object agentSkillDelete(@PathVariable String agentId, @PathVariable String skill_name,
+                                   HttpServletRequest request) {
+        return deleteSkill(skill_name, withAgent(request, agentId));
+    }
+
+    @PutMapping("/agents/{agentId}/skills/{skill_name}/channels")
+    public Object agentSkillChannels(@PathVariable String agentId, @PathVariable String skill_name,
+                                     @RequestBody List<String> channels, HttpServletRequest request) {
+        return updateSkillChannels(skill_name, channels, withAgent(request, agentId));
+    }
+
+    @PutMapping("/agents/{agentId}/skills/{skill_name}/tags")
+    public Object agentSkillTags(@PathVariable String agentId, @PathVariable String skill_name,
+                                 @RequestBody List<String> tags, HttpServletRequest request) {
+        return updateSkillTags(skill_name, tags, withAgent(request, agentId));
+    }
+
+    @GetMapping("/agents/{agentId}/skills/{skill_name}/config")
+    public Object agentSkillConfig(@PathVariable String agentId, @PathVariable String skill_name,
+                                   HttpServletRequest request) {
+        return getSkillConfig(skill_name, withAgent(request, agentId));
+    }
+
+    @PutMapping("/agents/{agentId}/skills/{skill_name}/config")
+    public Object agentSkillConfigUpdate(@PathVariable String agentId, @PathVariable String skill_name,
+                                         @RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return updateSkillConfig(skill_name, body, withAgent(request, agentId));
+    }
+
+    @DeleteMapping("/agents/{agentId}/skills/{skill_name}/config")
+    public Object agentSkillConfigDelete(@PathVariable String agentId, @PathVariable String skill_name,
+                                         HttpServletRequest request) {
+        return deleteSkillConfig(skill_name, withAgent(request, agentId));
+    }
+
+    @PostMapping("/agents/{agentId}/skills/{skill_name}/disable")
+    public Object agentSkillDisable(@PathVariable String agentId, @PathVariable String skill_name,
+                                    HttpServletRequest request) {
+        return disableSkill(skill_name, withAgent(request, agentId));
+    }
+
+    @PostMapping("/agents/{agentId}/skills/{skill_name}/enable")
+    public Object agentSkillEnable(@PathVariable String agentId, @PathVariable String skill_name,
+                                   HttpServletRequest request) {
+        return enableSkill(skill_name, withAgent(request, agentId));
+    }
+
+    @GetMapping("/agents/{agentId}/skills/{skill_name}/files/{file_path}")
+    public Object agentSkillFile(@PathVariable String agentId, @PathVariable String skill_name,
+                                 @PathVariable String file_path, HttpServletRequest request) {
+        return loadSkillFile(skill_name, file_path, withAgent(request, agentId));
+    }
+
+    @PostMapping("/agents/{agentId}/skills/batch-delete")
+    public Object agentBatchDeleteSkills(@PathVariable String agentId,
+                                         @RequestBody List<String> skills, HttpServletRequest request) {
+        return batchDeleteSkills(skills, withAgent(request, agentId));
+    }
+
+    @PostMapping("/agents/{agentId}/skills/batch-disable")
+    public Object agentBatchDisableSkills(@PathVariable String agentId,
+                                          @RequestBody List<String> skills, HttpServletRequest request) {
+        return batchDisableSkills(skills, withAgent(request, agentId));
+    }
+
+    @PostMapping("/agents/{agentId}/skills/batch-enable")
+    public Object agentBatchEnableSkills(@PathVariable String agentId,
+                                         @RequestBody List<String> skills, HttpServletRequest request) {
+        return batchEnableSkills(skills, withAgent(request, agentId));
+    }
+
+    @GetMapping("/agents/{agentId}/skills/hub/search")
+    public Object agentSkillHubSearch(@PathVariable String agentId,
+                                      @RequestParam(defaultValue = "") String q,
+                                      @RequestParam(defaultValue = "20") int limit) {
+        return searchHub(q, limit);
+    }
+
+    @PostMapping("/agents/{agentId}/skills/hub/install/start")
+    public Object agentSkillHubInstall(@PathVariable String agentId,
+                                       @RequestBody Map<String, Object> body, HttpServletRequest request) {
+        return startHubInstall(body, withAgent(request, agentId));
+    }
+
+    @GetMapping("/agents/{agentId}/skills/hub/install/status/{task_id}")
+    public Object agentSkillHubStatus(@PathVariable String agentId, @PathVariable String task_id) {
+        return getHubInstallStatus(task_id);
+    }
+
+    @PostMapping("/agents/{agentId}/skills/hub/install/cancel/{task_id}")
+    public Object agentSkillHubCancel(@PathVariable String agentId, @PathVariable String task_id) {
+        return cancelHubInstall(task_id);
+    }
+
+    @GetMapping("/agents/{agentId}/skills/pool")
+    public Object agentSkillPool(@PathVariable String agentId) { return listPoolSkills(); }
+
+    @PostMapping("/agents/{agentId}/skills/pool/refresh")
+    public Object agentSkillPoolRefresh(@PathVariable String agentId) { return refreshPoolSkills(); }
+
+    @GetMapping("/agents/{agentId}/skills/pool/builtin-sources")
+    public Object agentSkillPoolBuiltinSources(@PathVariable String agentId) { return listPoolBuiltinSources(); }
+
+    @GetMapping("/agents/{agentId}/skills/pool/builtin-notice")
+    public Object agentSkillPoolBuiltinNotice(@PathVariable String agentId) { return getPoolBuiltinNotice(); }
+
+    @PostMapping("/agents/{agentId}/skills/pool/import-builtin")
+    public Object agentSkillPoolImportBuiltin(@PathVariable String agentId,
+                                              @RequestBody Map<String, Object> body) { return importPoolBuiltins(body); }
+
+    @PostMapping("/agents/{agentId}/skills/pool/{skill_name}/update-builtin")
+    public Object agentSkillPoolUpdateBuiltin(@PathVariable String agentId, @PathVariable String skill_name,
+                                              @RequestBody(required = false) Map<String, Object> body) {
+        return updatePoolBuiltin(skill_name, body);
+    }
+
+    @PostMapping("/agents/{agentId}/skills/pool/create")
+    public Object agentSkillPoolCreate(@PathVariable String agentId,
+                                       @RequestBody Map<String, Object> body) { return createPoolSkill(body); }
+
+    @PutMapping("/agents/{agentId}/skills/pool/save")
+    public Object agentSkillPoolSave(@PathVariable String agentId,
+                                     @RequestBody Map<String, Object> body) { return savePoolSkill(body); }
+
+    @PostMapping("/agents/{agentId}/skills/pool/upload-zip")
+    public Object agentSkillPoolUploadZip(@PathVariable String agentId,
+                                          @RequestParam("file") MultipartFile file,
+                                          @RequestParam(defaultValue = "") String target_name,
+                                          @RequestParam(defaultValue = "") String rename_map) {
+        return uploadSkillPoolZip(file, target_name, rename_map);
+    }
+
+    @PostMapping("/agents/{agentId}/skills/pool/import")
+    public Object agentSkillPoolImport(@PathVariable String agentId,
+                                       @RequestBody Map<String, Object> body) { return importPoolSkillFromHub(body); }
+
+    @PostMapping("/agents/{agentId}/skills/pool/upload")
+    public Object agentSkillPoolUpload(@PathVariable String agentId,
+                                       @RequestBody Map<String, Object> body) { return uploadWorkspaceSkillToPool(body); }
+
+    @PostMapping("/agents/{agentId}/skills/pool/download")
+    public Object agentSkillPoolDownload(@PathVariable String agentId,
+                                         @RequestBody Map<String, Object> body) { return downloadPoolSkillToWorkspaces(body); }
+
+    @DeleteMapping("/agents/{agentId}/skills/pool/{skill_name}")
+    public Object agentSkillPoolDelete(@PathVariable String agentId, @PathVariable String skill_name) {
+        return deletePoolSkill(skill_name);
+    }
+
+    @GetMapping("/agents/{agentId}/skills/pool/{skill_name}/config")
+    public Object agentSkillPoolConfig(@PathVariable String agentId, @PathVariable String skill_name) {
+        return getPoolSkillConfig(skill_name);
+    }
+
+    @PutMapping("/agents/{agentId}/skills/pool/{skill_name}/config")
+    public Object agentSkillPoolConfigUpdate(@PathVariable String agentId, @PathVariable String skill_name,
+                                             @RequestBody Map<String, Object> body) {
+        return updatePoolSkillConfig(skill_name, body);
+    }
+
+    @DeleteMapping("/agents/{agentId}/skills/pool/{skill_name}/config")
+    public Object agentSkillPoolConfigDelete(@PathVariable String agentId, @PathVariable String skill_name) {
+        return deletePoolSkillConfig(skill_name);
+    }
+
+    @PutMapping("/agents/{agentId}/skills/pool/{skill_name}/tags")
+    public Object agentSkillPoolTags(@PathVariable String agentId, @PathVariable String skill_name,
+                                     @RequestBody List<String> tags) { return updatePoolSkillTags(skill_name, tags); }
+
+    @PutMapping("/agents/{agentId}/skills/pool/{skill_name}/auto-update")
+    public Object agentSkillPoolAutoUpdate(@PathVariable String agentId, @PathVariable String skill_name,
+                                           @RequestBody Map<String, Object> body) {
+        return updatePoolSkillAutoUpdate(skill_name, body);
+    }
+
+    @PostMapping("/agents/{agentId}/skills/pool/batch-delete")
+    public Object agentSkillPoolBatchDelete(@PathVariable String agentId,
+                                            @RequestBody List<String> skills) { return batchDeletePoolSkills(skills); }
+
+    private HttpServletRequest withAgent(HttpServletRequest request, String agentId) {
+        return new jakarta.servlet.http.HttpServletRequestWrapper(request) {
+            @Override
+            public String getHeader(String name) {
+                return "X-Agent-Id".equalsIgnoreCase(name) ? agentId : super.getHeader(name);
+            }
+        };
     }
 }

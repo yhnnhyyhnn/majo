@@ -25,7 +25,7 @@ import java.util.Map;
  * the MCP management page.</p>
  */
 @RestController
-@RequestMapping("/api/mcp")
+@RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class McpController {
 
@@ -41,12 +41,12 @@ public class McpController {
 
     // ===== Clients =====
 
-    @GetMapping
+    @GetMapping("/mcp")
     public List<McpModels.McpClientInfo> listClients() {
         return mcpService.listClients();
     }
 
-    @GetMapping("/{clientKey}")
+    @GetMapping("/mcp/{clientKey}")
     public McpModels.McpClientInfo getClient(@PathVariable String clientKey) {
         Map<String, Object> card = mcpService.loadCardOrNull(clientKey);
         if (card == null) {
@@ -55,7 +55,7 @@ public class McpController {
         return mcpService.buildInfoFromCard(card);
     }
 
-    @PostMapping
+    @PostMapping("/mcp")
     public McpModels.McpClientInfo createClient(
             @RequestBody McpModels.McpClientCreateRequest request) {
         if (request == null || request.clientKey() == null || request.clientKey().isBlank()) {
@@ -67,31 +67,31 @@ public class McpController {
         return mcpService.createClient(request.clientKey().strip(), request.client());
     }
 
-    @PutMapping("/{clientKey}")
+    @PutMapping("/mcp/{clientKey}")
     public McpModels.McpClientInfo updateClient(
             @PathVariable String clientKey,
             @RequestBody McpModels.McpClientUpdateRequest updates) {
         return mcpService.updateClient(clientKey, updates);
     }
 
-    @PatchMapping("/toggle/{clientKey}")
+    @PatchMapping("/mcp/toggle/{clientKey}")
     public McpModels.McpClientInfo toggleClient(@PathVariable String clientKey) {
         return mcpService.toggleClient(clientKey);
     }
 
-    @DeleteMapping("/{clientKey}")
+    @DeleteMapping("/mcp/{clientKey}")
     public McpModels.McpMessageResponse deleteClient(@PathVariable String clientKey) {
         return mcpService.deleteClient(clientKey);
     }
 
     // ===== Tools =====
 
-    @GetMapping("/tools/{clientKey}")
+    @GetMapping("/mcp/tools/{clientKey}")
     public List<McpModels.McpToolInfo> listTools(@PathVariable String clientKey) {
         return mcpService.listTools(clientKey);
     }
 
-    @PutMapping("/tools/{clientKey}")
+    @PutMapping("/mcp/tools/{clientKey}")
     public List<McpModels.McpToolInfo> updateToolWhitelist(
             @PathVariable String clientKey,
             @RequestBody(required = false) McpModels.McpToolWhitelistRequest request) {
@@ -101,19 +101,19 @@ public class McpController {
 
     // ===== Access principals =====
 
-    @GetMapping("/access-principals")
+    @GetMapping("/mcp/access-principals")
     public List<McpModels.McpAccessPrincipalOption> listAccessPrincipals() {
         return mcpService.listAccessPrincipals(DEFAULT_PRINCIPALS_LIMIT);
     }
 
     // ===== Policy =====
 
-    @GetMapping("/policy/{clientKey}")
+    @GetMapping("/mcp/policy/{clientKey}")
     public McpModels.McpAccessPolicy getPolicy(@PathVariable String clientKey) {
         return mcpService.getPolicy(clientKey);
     }
 
-    @PutMapping("/policy/{clientKey}")
+    @PutMapping("/mcp/policy/{clientKey}")
     public McpModels.McpAccessPolicy updatePolicy(
             @PathVariable String clientKey,
             @RequestBody McpModels.McpAccessPolicy access) {
@@ -122,7 +122,7 @@ public class McpController {
 
     // ===== OAuth =====
 
-    @PostMapping("/oauth/start/{clientKey}")
+    @PostMapping("/mcp/oauth/start/{clientKey}")
     public McpModels.McpOAuthStartResponse startOAuth(
             @PathVariable String clientKey,
             @RequestBody(required = false) McpModels.McpOAuthStartRequest body,
@@ -132,22 +132,96 @@ public class McpController {
         return oauthService.startOAuth(clientKey, body, redirectUri);
     }
 
-    @GetMapping("/oauth/status/{clientKey}")
+    @GetMapping("/mcp/oauth/status/{clientKey}")
     public McpModels.McpOAuthStatusResponse oauthStatus(@PathVariable String clientKey) {
         return oauthService.oauthStatus(clientKey);
     }
 
-    @DeleteMapping("/oauth/{clientKey}")
+    @DeleteMapping("/mcp/oauth/{clientKey}")
     public McpModels.McpMessageResponse revokeOAuth(@PathVariable String clientKey) {
         return oauthService.oauthRevoke(clientKey);
     }
 
-    @GetMapping(value = "/oauth/callback", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = "/mcp/oauth/callback", produces = MediaType.TEXT_HTML_VALUE)
     public String oauthCallback(
             @RequestParam(value = "code", required = false) String code,
             @RequestParam(value = "state", required = false) String state,
             @RequestParam(value = "error", required = false) String error,
             @RequestParam(value = "error_description", required = false) String errorDescription) {
         return oauthService.oauthCallback(code, state, error, errorDescription);
+    }
+
+    // ── Agent-scoped MCP (port of qwenpaw agent_scoped /agents/{agentId}/mcp) ──
+    @GetMapping("/agents/{agentId}/mcp")
+    public Object agentMcpList(@PathVariable String agentId) { return listClients(); }
+
+    @PostMapping("/agents/{agentId}/mcp")
+    public Object agentMcpCreate(@PathVariable String agentId,
+                                 @RequestBody McpModels.McpClientCreateRequest body) { return createClient(body); }
+
+    @GetMapping("/agents/{agentId}/mcp/{clientKey}")
+    public Object agentMcpDetail(@PathVariable String agentId, @PathVariable String clientKey) {
+        return getClient(clientKey);
+    }
+
+    @PutMapping("/agents/{agentId}/mcp/{clientKey}")
+    public Object agentMcpUpdate(@PathVariable String agentId, @PathVariable String clientKey,
+                                 @RequestBody McpModels.McpClientUpdateRequest body) { return updateClient(clientKey, body); }
+
+    @PatchMapping("/agents/{agentId}/mcp/toggle/{clientKey}")
+    public Object agentMcpToggle(@PathVariable String agentId, @PathVariable String clientKey) {
+        return toggleClient(clientKey);
+    }
+
+    @DeleteMapping("/agents/{agentId}/mcp/{clientKey}")
+    public Object agentMcpDelete(@PathVariable String agentId, @PathVariable String clientKey) {
+        return deleteClient(clientKey);
+    }
+
+    @GetMapping("/agents/{agentId}/mcp/tools/{clientKey}")
+    public Object agentMcpTools(@PathVariable String agentId, @PathVariable String clientKey) {
+        return listTools(clientKey);
+    }
+
+    @PutMapping("/agents/{agentId}/mcp/tools/{clientKey}")
+    public Object agentMcpToolsUpdate(@PathVariable String agentId, @PathVariable String clientKey,
+                                      @RequestBody(required = false) McpModels.McpToolWhitelistRequest body) {
+        return updateToolWhitelist(clientKey, body);
+    }
+
+    @GetMapping("/agents/{agentId}/mcp/access-principals")
+    public Object agentMcpPrincipals(@PathVariable String agentId) { return listAccessPrincipals(); }
+
+    @GetMapping("/agents/{agentId}/mcp/policy/{clientKey}")
+    public Object agentMcpPolicy(@PathVariable String agentId, @PathVariable String clientKey) {
+        return getPolicy(clientKey);
+    }
+
+    @PutMapping("/agents/{agentId}/mcp/policy/{clientKey}")
+    public Object agentMcpPolicyUpdate(@PathVariable String agentId, @PathVariable String clientKey,
+                                       @RequestBody McpModels.McpAccessPolicy body) { return updatePolicy(clientKey, body); }
+
+    @PostMapping("/agents/{agentId}/mcp/oauth/start/{clientKey}")
+    public Object agentMcpOauthStart(@PathVariable String agentId, @PathVariable String clientKey,
+                                     @RequestBody(required = false) McpModels.McpOAuthStartRequest body,
+                                     HttpServletRequest request) { return startOAuth(clientKey, body, request); }
+
+    @GetMapping("/agents/{agentId}/mcp/oauth/status/{clientKey}")
+    public Object agentMcpOauthStatus(@PathVariable String agentId, @PathVariable String clientKey) {
+        return oauthStatus(clientKey);
+    }
+
+    @DeleteMapping("/agents/{agentId}/mcp/oauth/{clientKey}")
+    public Object agentMcpOauthDelete(@PathVariable String agentId, @PathVariable String clientKey) {
+        return revokeOAuth(clientKey);
+    }
+
+    @GetMapping("/agents/{agentId}/mcp/oauth/callback")
+    public Object agentMcpOauthCallback(@PathVariable String agentId,
+                                        @RequestParam(value = "code", required = false) String code,
+                                        @RequestParam(value = "state", required = false) String state,
+                                        @RequestParam(value = "error", required = false) String error,
+                                        @RequestParam(value = "error_description", required = false) String errorDescription) {
+        return oauthCallback(code, state, error, errorDescription);
     }
 }

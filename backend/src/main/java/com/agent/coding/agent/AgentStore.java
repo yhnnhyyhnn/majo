@@ -318,6 +318,14 @@ public class AgentStore {
                 profile.put("acp", acp);
             }
         }
+        if (updates.containsKey("tools")) {
+            Object tools = updates.get("tools");
+            if (tools == null) {
+                profile.remove("tools");
+            } else {
+                profile.put("tools", tools);
+            }
+        }
         profiles.put(agentId, profile);
         config.put("profiles", profiles);
         SkillStore.writeJsonAtomic(AGENTS_FILE, config);
@@ -422,6 +430,27 @@ public class AgentStore {
         acp.put("node_path", nodePath == null ? "" : nodePath);
         config.put("acp", acp);
         SkillStore.writeJsonAtomic(AGENTS_FILE, config);
+    }
+
+    /** Return the per-agent tools config map (never null; may be empty). */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> getToolsConfig(String agentId) {
+        Map<String, Object> profile = getProfile(agentId);
+        if (profile == null) {
+            return new LinkedHashMap<>();
+        }
+        Object tools = profile.get("tools");
+        if (tools instanceof Map<?, ?> map) {
+            return new LinkedHashMap<>((Map<String, Object>) map);
+        }
+        return new LinkedHashMap<>();
+    }
+
+    /** Persist the per-agent tools config. */
+    public static void saveToolsConfig(String agentId, Map<String, Object> toolsConfig) {
+        Map<String, Object> updates = new LinkedHashMap<>();
+        updates.put("tools", toolsConfig);
+        updateAgent(agentId, updates);
     }
 
     /** Delete an agent profile (default agent cannot be deleted). */

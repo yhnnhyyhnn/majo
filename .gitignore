@@ -68,3 +68,4 @@ hs_err_pid*
 /workspaces/
 /backend/default/
 /builtin-skills/
+/backend/builtin-skills/

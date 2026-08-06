@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -575,4 +576,124 @@ public class WorkspaceController {
     public Map<String, Object> runHeartbeat() {
         return Map.of("started", true);
     }
+
+    // ── User timezone (per-agent, ported from qwenpaw config.py /user-timezone) ──
+    private static final Map<String, String> NON_STANDARD_TZ_ALIASES = Map.ofEntries(
+        Map.entry("Asia/Beijing", "Asia/Shanghai"),
+        Map.entry("Asia/Calcutta", "Asia/Kolkata"),
+        Map.entry("Asia/Saigon", "Asia/Ho_Chi_Minh"),
+        Map.entry("Asia/Katmandu", "Asia/Kathmandu"),
+        Map.entry("Asia/Rangoon", "Asia/Yangon"),
+        Map.entry("Asia/Thimbu", "Asia/Thimphu"),
+        Map.entry("Asia/Ujung_Pandang", "Asia/Makassar"),
+        Map.entry("Asia/Ulan_Bator", "Asia/Ulaanbaatar"),
+        Map.entry("Pacific/Samoa", "Pacific/Pago_Pago"),
+        Map.entry("Pacific/Ponape", "Pacific/Pohnpei"),
+        Map.entry("Pacific/Truk", "Pacific/Chuuk"),
+        Map.entry("Atlantic/Faeroe", "Atlantic/Faroe"),
+        Map.entry("Europe/Kiev", "Europe/Kyiv"),
+        Map.entry("PRC", "Asia/Shanghai")
+    );
+
+    @GetMapping("/config/user-timezone")
+    public Map<String, String> configUserTimezone(HttpServletRequest request) {
+        return Map.of("timezone", resolveUserTimezone(resolveAgentId(request)));
+    }
+
+    @PutMapping("/config/user-timezone")
+    public ResponseEntity<?> configUserTimezoneUpdate(@RequestBody Map<String, Object> body,
+                                                      HttpServletRequest request) {
+        return updateUserTimezone(resolveAgentId(request), body);
+    }
+
+    @GetMapping("/agents/{agentId}/config/user-timezone")
+    public Map<String, String> agentTimezoneGet(@PathVariable String agentId) {
+        return Map.of("timezone", resolveUserTimezone(agentId));
+    }
+
+    @PutMapping("/agents/{agentId}/config/user-timezone")
+    public ResponseEntity<?> agentTimezoneUpdate(@PathVariable String agentId,
+                                                 @RequestBody Map<String, Object> body) {
+        return updateUserTimezone(agentId, body);
+    }
+
+    private String resolveUserTimezone(String agentId) {
+        return com.agent.coding.agent.AgentStore.getUserTimezone(
+            agentId, settingsService.getUserTimezone());
+    }
+
+    private ResponseEntity<?> updateUserTimezone(String agentId, Map<String, Object> body) {
+        String tz = Objects.toString(body.get("timezone"), "").trim();
+        if (tz.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "timezone is required"));
+        }
+        String resolved = normalizeTimezone(tz);
+        if (resolved == null) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "Invalid IANA timezone: '" + tz + "'"));
+        }
+        com.agent.coding.agent.AgentStore.setUserTimezone(agentId, resolved);
+        return ResponseEntity.ok(Map.of("timezone", resolved));
+    }
+
+    private String normalizeTimezone(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String alias = NON_STANDARD_TZ_ALIASES.get(name);
+        if (alias != null && isValidZoneId(alias)) {
+            return alias;
+        }
+        return isValidZoneId(name) ? name : null;
+    }
+
+    private boolean isValidZoneId(String name) {
+        try {
+            ZoneId.of(name);
+            return true;
+        } catch (DateTimeException e) {
+            return false;
+        }
+    }
+
+    // ── Agent-scoped channels config (port of qwenpaw agent_scoped /agents/{agentId}/config/channels) ──
+    @GetMapping("/agents/{agentId}/config/channels/{channel_name}")
+    public Object agentChannelDetail(@PathVariable String agentId, @PathVariable String channel_name) {
+        return getChannel(channel_name);
+    }
+    @PutMapping("/agents/{agentId}/config/channels/{channel_name}")
+    public Object agentChannelUpdate(@PathVariable String agentId, @PathVariable String channel_name,
+                                     @RequestBody Map<String, Object> body) {
+        return updateChannel(channel_name, body);
+    }
+    @GetMapping("/agents/{agentId}/config/channels/{channel_name}/health")
+    public Object agentChannelHealth(@PathVariable String agentId, @PathVariable String channel_name) {
+        return channelHealth(channel_name);
+    }
+    @PostMapping("/agents/{agentId}/config/channels/{channel_name}/restart")
+    public Object agentChannelRestart(@PathVariable String agentId, @PathVariable String channel_name) {
+        return channelRestart(channel_name);
+    }
+    @GetMapping("/agents/{agentId}/config/channels/{channel}/qrcode")
+    public Object agentChannelQrcode(@PathVariable String agentId, @PathVariable String channel) {
+        return channelQrcode(channel);
+    }
+    @GetMapping("/agents/{agentId}/config/channels/{channel}/qrcode/status")
+    public Object agentChannelQrcodeStatus(@PathVariable String agentId, @PathVariable String channel,
+                                           @RequestParam String token) {
+        return channelQrcodeStatus(channel, token);
+    }
+    @GetMapping("/agents/{agentId}/config/channels/schemas")
+    public Object agentChannelSchemas(@PathVariable String agentId) { return channelSchemas(); }
+    @GetMapping("/agents/{agentId}/config/channels/types")
+    public Object agentChannelTypes(@PathVariable String agentId) { return channelTypes(); }
+    @PutMapping("/agents/{agentId}/config/channels")
+    public Object agentChannelsUpdate(@PathVariable String agentId,
+                                      @RequestBody Map<String, Object> body) { return updateChannels(body); }
+
+    // ── Agent-scoped heartbeat (port of qwenpaw agent_scoped /agents/{agentId}/config/heartbeat) ──
+    @PostMapping("/agents/{agentId}/config/heartbeat/run")
+    public Object agentHeartbeatRun(@PathVariable String agentId) { return runHeartbeat(); }
+    @PutMapping("/agents/{agentId}/config/heartbeat")
+    public Object agentHeartbeatUpdate(@PathVariable String agentId,
+                                       @RequestBody Map<String, Object> body) { return putHeartbeat(body); }
 }

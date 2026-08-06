@@ -689,4 +689,41 @@ public class PluginsController {
 
     @GetMapping("/frontend_plugin/{plugin_id}/files/{file_path}")
     public Map<String, String> frontendPluginFile(@PathVariable String plugin_id, @PathVariable String file_path) { return Map.of("content", ""); }
+
+    // ── Agent-scoped plugins (port of qwenpaw agent_scoped /agents/{agentId}/plugins) ──
+    @GetMapping("/agents/{agentId}/plugins")
+    public Object agentPlugins(@PathVariable String agentId) { return listPlugins(); }
+
+    @PostMapping("/agents/{agentId}/plugins/install")
+    public Object agentPluginInstall(@PathVariable String agentId,
+                                     @RequestBody Map<String, Object> body) { return installPlugin(body); }
+
+    @PostMapping("/agents/{agentId}/plugins/upload")
+    public Object agentPluginUpload(@PathVariable String agentId) { return uploadPlugin(); }
+
+    @GetMapping("/agents/{agentId}/plugins/catalog")
+    public Object agentPluginCatalog(@PathVariable String agentId) { return pluginsCatalog(); }
+
+    @DeleteMapping("/agents/{agentId}/plugins/{plugin_id}")
+    public Object agentPluginDelete(@PathVariable String agentId,
+                                    @PathVariable String plugin_id) { return pluginDelete(plugin_id); }
+
+    @GetMapping("/agents/{agentId}/plugins/{plugin_id}/files/{file_path}")
+    public Object agentPluginFile(@PathVariable String agentId,
+                                  @PathVariable String plugin_id,
+                                  @PathVariable String file_path) { return pluginFile(plugin_id, file_path); }
+
+    @GetMapping("/agents/{agentId}/plugins/{plugin_id}/status")
+    public Object agentPluginStatus(@PathVariable String agentId,
+                                    @PathVariable String plugin_id) { return pluginStatus(plugin_id); }
+
+    @GetMapping("/agents/{agentId}/plugins/market/search")
+    public Object agentPluginMarket(@PathVariable String agentId,
+                                    @RequestParam(defaultValue = "1") int page_number,
+                                    @RequestParam(defaultValue = "20") int page_size,
+                                    @RequestParam(required = false) String search,
+                                    @RequestParam(required = false) String category,
+                                    @RequestParam(required = false) String sort_by) {
+        return pluginMarketSearch(page_number, page_size, search, category, sort_by);
+    }
 }

@@ -12,6 +12,7 @@ import com.agent.coding.inbox.InboxTraceStore;
 import com.agent.coding.repository.TokenUsageRepository;
 import com.agent.coding.service.ModelRoutingService;
 import com.agent.coding.service.TaskTracker;
+import com.agent.coding.skill.SkillStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.agentscope.core.agent.RuntimeContext;
@@ -28,9 +29,13 @@ import reactor.core.publisher.Flux;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -373,40 +378,7 @@ public class ConsoleController {
         return new LanguageResponse("en");
     }
 
-    @GetMapping("/tools")
-    public List<ToolInfo> tools() {
-        return List.of(
-            tool("read_file", "Read file contents", "📄"),
-            tool("write_file", "Write content to file", "✍️"),
-            tool("edit_file", "Edit file using find-and-replace", "🖊️"),
-            tool("append_file", "Append content to a file", "📎"),
-            tool("grep_search", "Search file contents by pattern", "🔍"),
-            tool("glob_search", "Find files matching a glob pattern", "📁"),
-            tool("execute_shell_command", "Execute shell commands", "💻"),
-            tool("send_file_to_user", "Send files to user", "📤"),
-            tool("browser_use", "Browser automation and web interaction", "🌐"),
-            tool("web_search", "Search the web for real-time information", "🔎"),
-            tool("web_fetch", "Fetch and read content from a URL", "📥"),
-            tool("desktop_screenshot", "Capture desktop screenshots", "📸"),
-            tool("view_image", "Load an image into LLM context for visual analysis", "🖼️"),
-            tool("view_video", "Load a video into LLM context for visual analysis", "🎥"),
-            tool("get_current_time", "Get current date and time", "🕐"),
-            tool("set_user_timezone", "Set user timezone", "🌍"),
-            tool("get_token_usage", "Get llm token usage", "📊"),
-            tool("list_agents", "List configured agents from the local API", "🤖"),
-            tool("chat_with_agent", "Send a message to another configured agent and wait for the response", "💬"),
-            tool("submit_to_agent", "Submit a background task to another configured agent", "📨"),
-            tool("check_agent_task", "Check the status of a background agent task", "⏳"),
-            tool("spawn_subagent", "Spawn an ephemeral sub-task within the current workspace", "🔀"),
-            tool("delegate_external_agent", "Delegate work to an external ACP agent runner", "📡"),
-            tool("materialize_skill", "Materialize a skill definition into the workspace", "🧩"),
-            tool("ast_search", "Search code by AST pattern (coding mode)", "🌳")
-        );
-    }
-
-    private ToolInfo tool(String name, String desc, String icon) {
-        return new ToolInfo(name, implementedToolNames.contains(name), desc, icon);
-    }
+    // GET /tools and its tool() helper moved to ToolsController.
 
     @GetMapping("/token-usage")
     public TokenUsageSummary tokenUsage(
@@ -991,4 +963,109 @@ public class ConsoleController {
             });
         }
     }
+
+    // ===== Debug backend logs (ported from qwenpaw console.py /debug/backend-logs) =====
+    private static final int MAX_DEBUG_LOG_LINES = 1000;
+    private static final int DEBUG_LOG_MAX_TAIL_BYTES = 512 * 1024;
+
+    @GetMapping("/console/debug/backend-logs")
+    public Map<String, Object> consoleBackendLogs(@RequestParam(defaultValue = "200") int lines) {
+        int clamped = Math.max(20, Math.min(lines, MAX_DEBUG_LOG_LINES));
+        Path logPath = SkillStore.WORKING_DIR.resolve("majo.log").toAbsolutePath().normalize();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("path", logPath.toString());
+        result.put("lines", clamped);
+        try {
+            BasicFileAttributes attrs = Files.readAttributes(logPath, BasicFileAttributes.class);
+            if (!attrs.isRegularFile()) {
+                return missingLogFile(result);
+            }
+            result.put("exists", true);
+            result.put("updated_at", attrs.lastModifiedTime().toInstant().getEpochSecond());
+            result.put("size", attrs.size());
+            result.put("content", tailTextFile(logPath, clamped));
+        } catch (IOException e) {
+            return missingLogFile(result);
+        }
+        return result;
+    }
+
+    @GetMapping("/agents/{agentId}/console/debug/backend-logs")
+    public Map<String, Object> agentBackendLogs(@PathVariable String agentId,
+                                                @RequestParam(defaultValue = "200") int lines) {
+        return consoleBackendLogs(lines);
+    }
+
+    private Map<String, Object> missingLogFile(Map<String, Object> result) {
+        result.put("exists", false);
+        result.put("updated_at", null);
+        result.put("size", 0);
+        result.put("content", "");
+        return result;
+    }
+
+    private String tailTextFile(Path path, int lines) {
+        try {
+            long size = Files.size(path);
+            if (size == 0) {
+                return "";
+            }
+            long start = Math.max(size - DEBUG_LOG_MAX_TAIL_BYTES, 0);
+            int len = (int) (size - start);
+            byte[] data = new byte[len];
+            try (RandomAccessFile raf = new RandomAccessFile(path.toFile(), "r")) {
+                raf.seek(start);
+                raf.readFully(data);
+            }
+            String text = new String(data, StandardCharsets.UTF_8);
+            String[] split = text.split("\\R", -1);
+            int from = Math.max(0, split.length - lines);
+            return String.join("\n", Arrays.copyOfRange(split, from, split.length));
+        } catch (IOException e) {
+            log.warn("Failed to read backend debug log file {}", path, e);
+            return "";
+        }
+    }
+
+    // ── Agent-scoped console (port of qwenpaw agent_scoped /agents/{agentId}/console) ──
+    @PostMapping("/agents/{agentId}/console/chat/task")
+    public Object agentChatTask(@PathVariable String agentId) { return createChatTask(); }
+
+    @GetMapping("/agents/{agentId}/console/chat/task/{task_id}")
+    public Object agentChatTaskStatus(@PathVariable String agentId, @PathVariable String task_id) {
+        return getChatTask(task_id);
+    }
+
+    @GetMapping("/agents/{agentId}/console/inbox/events")
+    public Object agentInboxEvents(@PathVariable String agentId,
+                                   @RequestParam(defaultValue = "50") int limit,
+                                   @RequestParam(defaultValue = "0") int offset,
+                                   @RequestParam(required = false) String source_type,
+                                   @RequestParam(required = false) String status,
+                                   @RequestParam(required = false) String agent_id,
+                                   @RequestParam(defaultValue = "false") boolean unread_only) {
+        return inboxEvents(limit, offset, source_type, status, agent_id, unread_only);
+    }
+
+    @DeleteMapping("/agents/{agentId}/console/inbox/events/{event_id}")
+    public Object agentInboxEventDelete(@PathVariable String agentId, @PathVariable String event_id) {
+        return deleteInboxEvent(event_id);
+    }
+
+    @PostMapping("/agents/{agentId}/console/inbox/read")
+    public Object agentInboxRead(@PathVariable String agentId,
+                                 @RequestBody(required = false) MarkInboxReadRequest body) {
+        return markInboxRead(body);
+    }
+
+    @GetMapping("/agents/{agentId}/console/inbox/traces/{run_id}")
+    public Object agentInboxTrace(@PathVariable String agentId, @PathVariable String run_id) {
+        return getInboxTrace(run_id);
+    }
+
+    @GetMapping("/agents/{agentId}/console/push-messages")
+    public Object agentPushMessages(@PathVariable String agentId) { return pushMessages(); }
+
+    @PostMapping("/agents/{agentId}/console/upload")
+    public Object agentUpload(@PathVariable String agentId) { return consoleUpload(); }
 }
