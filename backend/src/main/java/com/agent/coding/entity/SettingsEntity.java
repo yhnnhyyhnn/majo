@@ -45,6 +45,9 @@ public class SettingsEntity {
     @Column(name = "heartbeat_timeout_seconds", nullable = false)
     private int heartbeatTimeoutSeconds = 120;
 
+    @Column(name = "user_timezone", length = 64, nullable = false)
+    private String userTimezone = "UTC";
+
     public SettingsEntity() {
     }
 
@@ -104,4 +107,7 @@ public class SettingsEntity {
     public void setHeartbeatTarget(String v) { this.heartbeatTarget = v; }
     public int getHeartbeatTimeoutSeconds() { return heartbeatTimeoutSeconds; }
     public void setHeartbeatTimeoutSeconds(int v) { this.heartbeatTimeoutSeconds = v; }
+
+    public String getUserTimezone() { return userTimezone; }
+    public void setUserTimezone(String v) { this.userTimezone = v; }
 }

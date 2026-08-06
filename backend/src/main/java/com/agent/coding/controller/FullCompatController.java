@@ -1,12 +1,37 @@
 package com.agent.coding.controller;
 
+import com.agent.coding.SettingsService;
+import com.agent.coding.skill.SkillStore;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class FullCompatController {
+
+    private static final Logger log = LoggerFactory.getLogger(FullCompatController.class);
+
+    private static final int MAX_DEBUG_LOG_LINES = 1000;
+    private static final int DEBUG_LOG_MAX_TAIL_BYTES = 512 * 1024;
+
+    private final SettingsService settingsService;
+
+    public FullCompatController(SettingsService settingsService) {
+        this.settingsService = settingsService;
+    }
 
     // ===== ACCESS CONTROL =====
     @GetMapping("/access-control")
@@ -38,17 +63,24 @@ public class FullCompatController {
 
     // ===== AGENT CONFIG: ACP =====
     @GetMapping("/agents/{agentId}/config/acp")
-    public Map<String, String> agentAcp(@PathVariable String agentId) { return Map.of("enabled", "false"); }
+    public Map<String, Object> agentAcp(@PathVariable String agentId) { return acpConfigFor(agentId); }
     @PutMapping("/agents/{agentId}/config/acp")
-    public Map<String, String> agentAcpUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
+    public ResponseEntity<?> agentAcpUpdate(@PathVariable String agentId,
+                                             @RequestBody Map<String, Object> body) { return saveAcpConfig(agentId, body); }
     @GetMapping("/agents/{agentId}/config/acp/{agent_name}")
-    public Map<String, String> agentAcpAgent(@PathVariable String agentId, @PathVariable String agent_name) { return Map.of(); }
+    public ResponseEntity<?> agentAcpAgent(@PathVariable String agentId, @PathVariable String agent_name) {
+        return acpAgentConfigFor(agentId, agent_name);
+    }
     @PutMapping("/agents/{agentId}/config/acp/{agent_name}")
-    public Map<String, String> agentAcpAgentUpdate(@PathVariable String agentId, @PathVariable String agent_name) { return Map.of("status", "ok"); }
+    public ResponseEntity<?> agentAcpAgentUpdate(@PathVariable String agentId, @PathVariable String agent_name,
+                                                  @RequestBody Map<String, Object> body) {
+        return saveAcpAgentConfig(agentId, agent_name, body);
+    }
     @GetMapping("/agents/{agentId}/config/acp/node-runtime")
-    public Map<String, String> agentAcpNode(@PathVariable String agentId) { return Map.of(); }
+    public Map<String, Object> agentAcpNode(@PathVariable String agentId) { return configAcpNode(); }
     @PutMapping("/agents/{agentId}/config/acp/node-runtime")
-    public Map<String, String> agentAcpNodeUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
+    public ResponseEntity<?> agentAcpNodeUpdate(@PathVariable String agentId,
+                                                 @RequestBody Map<String, Object> body) { return configAcpNodeUpdate(body); }
 
     // ===== AGENT CONFIG: CHANNELS =====
     @GetMapping("/agents/{agentId}/config/channels/{channel_name}")
@@ -116,7 +148,8 @@ public class FullCompatController {
     @GetMapping("/agents/{agentId}/console/chat/task/{task_id}")
     public Map<String, String> agentChatTaskStatus(@PathVariable String agentId, @PathVariable String task_id) { return Map.of("status", "completed"); }
     @GetMapping("/agents/{agentId}/console/debug/backend-logs")
-    public List<Map<String, String>> agentBackendLogs(@PathVariable String agentId) { return List.of(); }
+    public Map<String, Object> agentBackendLogs(@PathVariable String agentId,
+                                                @RequestParam(defaultValue = "200") int lines) { return consoleBackendLogs(lines); }
     @GetMapping("/agents/{agentId}/console/inbox/events")
     public List<Map<String, String>> agentInboxEvents(@PathVariable String agentId) { return List.of(); }
     @DeleteMapping("/agents/{agentId}/console/inbox/events/{event_id}")
@@ -323,17 +356,46 @@ public class FullCompatController {
     // ===== CHATS =====
     // ===== CONFIG (global) =====
     @GetMapping("/config/acp")
-    public Map<String, String> configAcp() { return Map.of("enabled", "false"); }
+    public Map<String, Object> configAcp(HttpServletRequest request) {
+        return acpConfigFor(resolveAgentId(request));
+    }
     @PutMapping("/config/acp")
-    public Map<String, String> configAcpUpdate() { return Map.of("status", "ok"); }
+    public ResponseEntity<?> configAcpUpdate(@RequestBody Map<String, Object> body,
+                                             HttpServletRequest request) {
+        return saveAcpConfig(resolveAgentId(request), body);
+    }
     @GetMapping("/config/acp/{agent_name}")
-    public Map<String, String> configAcpAgent(@PathVariable String agent_name) { return Map.of(); }
+    public ResponseEntity<?> configAcpAgent(@PathVariable String agent_name,
+                                            HttpServletRequest request) {
+        return acpAgentConfigFor(resolveAgentId(request), agent_name);
+    }
     @PutMapping("/config/acp/{agent_name}")
-    public Map<String, String> configAcpAgentUpdate(@PathVariable String agent_name) { return Map.of("status", "ok"); }
+    public ResponseEntity<?> configAcpAgentUpdate(@PathVariable String agent_name,
+                                                  @RequestBody Map<String, Object> body,
+                                                  HttpServletRequest request) {
+        return saveAcpAgentConfig(resolveAgentId(request), agent_name, body);
+    }
     @GetMapping("/config/acp/node-runtime")
-    public Map<String, String> configAcpNode() { return Map.of(); }
+    public Map<String, Object> configAcpNode() {
+        return com.agent.coding.acp.ACPNodeRuntime.getNodeRuntimeStatus(
+            com.agent.coding.agent.AgentStore.getGlobalACPNodePath());
+    }
     @PutMapping("/config/acp/node-runtime")
-    public Map<String, String> configAcpNodeUpdate() { return Map.of("status", "ok"); }
+    public ResponseEntity<?> configAcpNodeUpdate(@RequestBody Map<String, Object> body) {
+        String nodePath = Objects.toString(body.get("node_path"), "").trim();
+        if (!nodePath.isEmpty()) {
+            Map<String, Object> candidate =
+                com.agent.coding.acp.ACPNodeRuntime.resolveNodeRuntime(nodePath);
+            if (!Boolean.TRUE.equals(candidate.get("available"))) {
+                Map<String, Object> detail = new LinkedHashMap<>();
+                detail.put("reason_code", candidate.get("reason_code"));
+                detail.put("reason", candidate.get("reason"));
+                return ResponseEntity.badRequest().body(Map.of("detail", detail));
+            }
+        }
+        com.agent.coding.agent.AgentStore.setGlobalACPNodePath(nodePath);
+        return ResponseEntity.ok(com.agent.coding.acp.ACPNodeRuntime.getNodeRuntimeStatus(nodePath));
+    }
     @GetMapping("/config/agents/llm-routing")
     public Map<String, String> configLlmRouting() { return Map.of("mode", "default"); }
     @PutMapping("/config/agents/llm-routing")
@@ -371,13 +433,95 @@ public class FullCompatController {
     @GetMapping("/config/security/tool-guard/builtin-rules")
     public List<Map<String, String>> configToolGuardRules() { return List.of(); }
     @GetMapping("/config/user-timezone")
-    public Map<String, String> configUserTimezone() { return Map.of("timezone", "Asia/Shanghai"); }
+    public Map<String, String> configUserTimezone(HttpServletRequest request) {
+        return Map.of("timezone", resolveUserTimezone(resolveAgentId(request)));
+    }
     @PutMapping("/config/user-timezone")
-    public Map<String, String> configUserTimezoneUpdate() { return Map.of("status", "ok"); }
+    public ResponseEntity<?> configUserTimezoneUpdate(@RequestBody Map<String, Object> body,
+                                                      HttpServletRequest request) {
+        return updateUserTimezone(resolveAgentId(request), body);
+    }
+
+    private String resolveAgentId(HttpServletRequest request) {
+        String agentId = request.getHeader("X-Agent-Id");
+        if (agentId == null || agentId.isBlank()) {
+            agentId = request.getParameter("agent");
+        }
+        return (agentId == null || agentId.isBlank()) ? "default" : agentId;
+    }
+
+    private String resolveUserTimezone(String agentId) {
+        return com.agent.coding.agent.AgentStore.getUserTimezone(
+            agentId, settingsService.getUserTimezone());
+    }
+
+    private ResponseEntity<?> updateUserTimezone(String agentId, Map<String, Object> body) {
+        String tz = Objects.toString(body.get("timezone"), "").trim();
+        if (tz.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "timezone is required"));
+        }
+        String resolved = normalizeTimezone(tz);
+        if (resolved == null) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "Invalid IANA timezone: '" + tz + "'"));
+        }
+        com.agent.coding.agent.AgentStore.setUserTimezone(agentId, resolved);
+        return ResponseEntity.ok(Map.of("timezone", resolved));
+    }
 
     // ===== CONSOLE =====
     @GetMapping("/console/debug/backend-logs")
-    public List<Map<String, String>> consoleBackendLogs() { return List.of(); }
+    public Map<String, Object> consoleBackendLogs(@RequestParam(defaultValue = "200") int lines) {
+        int clamped = Math.max(20, Math.min(lines, MAX_DEBUG_LOG_LINES));
+        Path logPath = SkillStore.WORKING_DIR.resolve("majo.log").toAbsolutePath().normalize();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("path", logPath.toString());
+        result.put("lines", clamped);
+        try {
+            BasicFileAttributes attrs = Files.readAttributes(logPath, BasicFileAttributes.class);
+            if (!attrs.isRegularFile()) {
+                return missingLogFile(result);
+            }
+            result.put("exists", true);
+            result.put("updated_at", attrs.lastModifiedTime().toInstant().getEpochSecond());
+            result.put("size", attrs.size());
+            result.put("content", tailTextFile(logPath, clamped));
+        } catch (IOException e) {
+            return missingLogFile(result);
+        }
+        return result;
+    }
+
+    private Map<String, Object> missingLogFile(Map<String, Object> result) {
+        result.put("exists", false);
+        result.put("updated_at", null);
+        result.put("size", 0);
+        result.put("content", "");
+        return result;
+    }
+
+    /** Tail a text file: read at most 512 KB from the end, keep the last N lines. */
+    private String tailTextFile(Path path, int lines) {
+        try {
+            long size = Files.size(path);
+            if (size == 0) {
+                return "";
+            }
+            long start = Math.max(size - DEBUG_LOG_MAX_TAIL_BYTES, 0);
+            int len = (int) (size - start);
+            byte[] data = new byte[len];
+            try (RandomAccessFile raf = new RandomAccessFile(path.toFile(), "r")) {
+                raf.seek(start);
+                raf.readFully(data);
+            }
+            String text = new String(data, StandardCharsets.UTF_8);
+            String[] split = text.split("\\R", -1);
+            int from = Math.max(0, split.length - lines);
+            return String.join("\n", Arrays.copyOfRange(split, from, split.length));
+        } catch (IOException e) {
+            log.warn("Failed to read backend debug log file {}", path, e);
+            return "";
+        }
+    }
 
     // ==== CONSOLE ====
     // NOTE: /console/inbox/events, /console/inbox/read,
@@ -500,7 +644,12 @@ public class FullCompatController {
     @PutMapping("/agents/{agentId}/config/heartbeat")
     public Map<String, String> agentHeartbeatUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
     @PutMapping("/agents/{agentId}/config/user-timezone")
-    public Map<String, String> agentTimezoneUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
+    public ResponseEntity<?> agentTimezoneUpdate(@PathVariable String agentId,
+                                                  @RequestBody Map<String, Object> body) { return updateUserTimezone(agentId, body); }
+    @GetMapping("/agents/{agentId}/config/user-timezone")
+    public Map<String, String> agentTimezoneGet(@PathVariable String agentId) {
+        return Map.of("timezone", resolveUserTimezone(agentId));
+    }
 
     @PostMapping("/agents/{agentId}/cron/jobs")
     public Map<String, String> agentCronJobCreate(@PathVariable String agentId) { return Map.of("id", UUID.randomUUID().toString()); }
@@ -523,4 +672,131 @@ public class FullCompatController {
 
     @GetMapping("/loops")
     public List<Map<String, String>> loopsGet() { return List.of(); }
+
+    private static final Map<String, String> NON_STANDARD_TZ_ALIASES = Map.ofEntries(
+        Map.entry("Asia/Beijing", "Asia/Shanghai"),
+        Map.entry("Asia/Calcutta", "Asia/Kolkata"),
+        Map.entry("Asia/Saigon", "Asia/Ho_Chi_Minh"),
+        Map.entry("Asia/Katmandu", "Asia/Kathmandu"),
+        Map.entry("Asia/Rangoon", "Asia/Yangon"),
+        Map.entry("Asia/Thimbu", "Asia/Thimphu"),
+        Map.entry("Asia/Ujung_Pandang", "Asia/Makassar"),
+        Map.entry("Asia/Ulan_Bator", "Asia/Ulaanbaatar"),
+        Map.entry("Pacific/Samoa", "Pacific/Pago_Pago"),
+        Map.entry("Pacific/Ponape", "Pacific/Pohnpei"),
+        Map.entry("Pacific/Truk", "Pacific/Chuuk"),
+        Map.entry("Atlantic/Faeroe", "Atlantic/Faroe"),
+        Map.entry("Europe/Kiev", "Europe/Kyiv"),
+        Map.entry("PRC", "Asia/Shanghai")
+    );
+
+    private String normalizeTimezone(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String alias = NON_STANDARD_TZ_ALIASES.get(name);
+        if (alias != null && isValidZoneId(alias)) {
+            return alias;
+        }
+        return isValidZoneId(name) ? name : null;
+    }
+
+    private boolean isValidZoneId(String name) {
+        try {
+            ZoneId.of(name);
+            return true;
+        } catch (DateTimeException e) {
+            return false;
+        }
+    }
+
+    // ===== ACP config helpers (ported from qwenpaw config.py /config/acp) =====
+
+    private static final Set<String> ALLOWED_ACP_TOOL_PARSE_MODES = Set.of(
+        "call_title", "update_detail", "call_detail"
+    );
+
+    private Map<String, Object> acpConfigFor(String agentId) {
+        Map<String, Object> stored = com.agent.coding.agent.AgentStore.getACPConfig(agentId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> agents = stored.get("agents") instanceof Map<?, ?> map
+            ? new LinkedHashMap<>((Map<String, Object>) map) : new LinkedHashMap<>();
+        mergeDefaultAcpAgents(agents);
+        Map<String, Object> result = new LinkedHashMap<>(stored);
+        result.put("agents", agents);
+        return result;
+    }
+
+    private ResponseEntity<?> saveAcpConfig(String agentId, Map<String, Object> body) {
+        Map<String, Object> config = new LinkedHashMap<>(body);
+        Object rawAgents = body.get("agents");
+        if (rawAgents instanceof Map<?, ?> map) {
+            Map<String, Object> agents = new LinkedHashMap<>((Map<String, Object>) map);
+            mergeDefaultAcpAgents(agents);
+            config.put("agents", agents);
+        }
+        com.agent.coding.agent.AgentStore.saveACPConfig(agentId, config);
+        return ResponseEntity.ok(acpConfigFor(agentId));
+    }
+
+    private ResponseEntity<?> acpAgentConfigFor(String agentId, String agentName) {
+        Map<String, Object> acp = acpConfigFor(agentId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> agents = (Map<String, Object>) acp.get("agents");
+        Object agent = agents.get(agentName);
+        if (agent == null) {
+            return ResponseEntity.status(404).body(Map.of("detail", "ACP agent '" + agentName + "' not found"));
+        }
+        return ResponseEntity.ok(agent);
+    }
+
+    private ResponseEntity<?> saveAcpAgentConfig(String agentId, String agentName,
+                                                 Map<String, Object> body) {
+        String mode = Objects.toString(body.get("tool_parse_mode"), "");
+        if (!ALLOWED_ACP_TOOL_PARSE_MODES.contains(mode)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "detail", "Invalid tool_parse_mode. Allowed values: call_detail, call_title, update_detail"
+            ));
+        }
+        String name = agentName.trim();
+        if (name.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "ACP agent name cannot be empty"));
+        }
+        Map<String, Object> stored = com.agent.coding.agent.AgentStore.getACPConfig(agentId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> agents = stored.get("agents") instanceof Map<?, ?> map
+            ? new LinkedHashMap<>((Map<String, Object>) map) : new LinkedHashMap<>();
+        agents.put(name, new LinkedHashMap<>(body));
+        stored.put("agents", agents);
+        com.agent.coding.agent.AgentStore.saveACPConfig(agentId, stored);
+        return ResponseEntity.ok(agents.get(name));
+    }
+
+    private void mergeDefaultAcpAgents(Map<String, Object> agents) {
+        Map<String, Object> defaults = defaultAcpAgents();
+        for (Map.Entry<String, Object> entry : defaults.entrySet()) {
+            agents.putIfAbsent(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private Map<String, Object> defaultAcpAgents() {
+        Map<String, Object> agents = new LinkedHashMap<>();
+        agents.put("opencode", acpAgent(true, "opencode", List.of("acp"), "update_detail"));
+        agents.put("qwen_code", acpAgent(true, "qwen", List.of("--acp"), "call_detail"));
+        agents.put("claude_code", acpAgent(true, "npx", List.of("-y", "@zed-industries/claude-agent-acp"), "update_detail"));
+        agents.put("codex", acpAgent(true, "npx", List.of("-y", "@zed-industries/codex-acp"), "call_detail"));
+        return agents;
+    }
+
+    private Map<String, Object> acpAgent(boolean enabled, String command, List<String> args, String toolParseMode) {
+        Map<String, Object> agent = new LinkedHashMap<>();
+        agent.put("enabled", enabled);
+        agent.put("command", command);
+        agent.put("args", args);
+        agent.put("env", Map.of());
+        agent.put("trusted", true);
+        agent.put("tool_parse_mode", toolParseMode);
+        agent.put("stdio_buffer_limit_bytes", 50 * 1024 * 1024);
+        return agent;
+    }
 }

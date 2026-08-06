@@ -286,10 +286,142 @@ public class AgentStore {
                 profile.put("active_model", model);
             }
         }
+        if (updates.containsKey("running")) {
+            Object running = updates.get("running");
+            if (running == null) {
+                profile.remove("running");
+            } else {
+                profile.put("running", running);
+            }
+        }
+        if (updates.containsKey("approval_level")) {
+            Object level = updates.get("approval_level");
+            if (level == null) {
+                profile.remove("approval_level");
+            } else {
+                profile.put("approval_level", SkillService.str(level));
+            }
+        }
+        if (updates.containsKey("user_timezone")) {
+            Object tz = updates.get("user_timezone");
+            if (tz == null) {
+                profile.remove("user_timezone");
+            } else {
+                profile.put("user_timezone", SkillService.str(tz));
+            }
+        }
+        if (updates.containsKey("acp")) {
+            Object acp = updates.get("acp");
+            if (acp == null) {
+                profile.remove("acp");
+            } else {
+                profile.put("acp", acp);
+            }
+        }
         profiles.put(agentId, profile);
         config.put("profiles", profiles);
         SkillStore.writeJsonAtomic(AGENTS_FILE, config);
         return profile;
+    }
+
+    /** Return the persisted {@code running} config map for an agent (never null, may be empty). */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> getRunningConfig(String agentId) {
+        Map<String, Object> profile = getProfile(agentId);
+        if (profile == null) {
+            return new LinkedHashMap<>();
+        }
+        Object running = profile.get("running");
+        if (running instanceof Map<?, ?> map) {
+            return new LinkedHashMap<>((Map<String, Object>) map);
+        }
+        return new LinkedHashMap<>();
+    }
+
+    /** Return the persisted approval level for an agent, or "AUTO" when unset. */
+    public static String getApprovalLevel(String agentId) {
+        Map<String, Object> profile = getProfile(agentId);
+        if (profile == null) {
+            return "AUTO";
+        }
+        String level = SkillService.str(profile.get("approval_level"), "AUTO");
+        return level.isBlank() ? "AUTO" : level;
+    }
+
+    /**
+     * Persist the {@code running} config (and optionally the profile-level
+     * {@code approval_level}) for an agent. Mirrors qwenpaw's running-config
+     * PUT: approval_level lives on the profile, the rest under {@code running}.
+     */
+    public static void saveRunningConfig(String agentId,
+                                         Map<String, Object> running,
+                                         String approvalLevel) {
+        Map<String, Object> updates = new LinkedHashMap<>();
+        updates.put("running", running);
+        if (approvalLevel != null) {
+            updates.put("approval_level", approvalLevel);
+        }
+        updateAgent(agentId, updates);
+    }
+
+    /** Return the per-agent timezone, or {@code fallback} when the agent has none configured. */
+    public static String getUserTimezone(String agentId, String fallback) {
+        Map<String, Object> profile = getProfile(agentId);
+        if (profile == null) {
+            return fallback;
+        }
+        String tz = SkillService.str(profile.get("user_timezone"), "");
+        return tz.isBlank() ? fallback : tz;
+    }
+
+    /** Persist the per-agent timezone. */
+    public static void setUserTimezone(String agentId, String timezone) {
+        Map<String, Object> updates = new LinkedHashMap<>();
+        updates.put("user_timezone", timezone);
+        updateAgent(agentId, updates);
+    }
+
+    /** Return the per-agent ACP config map (never null; may be empty). */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> getACPConfig(String agentId) {
+        Map<String, Object> profile = getProfile(agentId);
+        if (profile == null) {
+            return new LinkedHashMap<>();
+        }
+        Object acp = profile.get("acp");
+        if (acp instanceof Map<?, ?> map) {
+            return new LinkedHashMap<>((Map<String, Object>) map);
+        }
+        return new LinkedHashMap<>();
+    }
+
+    /** Persist the per-agent ACP config. */
+    public static void saveACPConfig(String agentId, Map<String, Object> acpConfig) {
+        Map<String, Object> updates = new LinkedHashMap<>();
+        updates.put("acp", acpConfig);
+        updateAgent(agentId, updates);
+    }
+
+    /** Return the global ACP node_path stored in the agents.json root (never null). */
+    @SuppressWarnings("unchecked")
+    public static String getGlobalACPNodePath() {
+        Map<String, Object> config = loadConfig();
+        Object acp = config.get("acp");
+        if (acp instanceof Map<?, ?> map) {
+            return SkillService.str(((Map<String, Object>) map).get("node_path"), "");
+        }
+        return "";
+    }
+
+    /** Persist the global ACP node_path at the agents.json root. */
+    public static void setGlobalACPNodePath(String nodePath) {
+        ensureAgentsInitialized();
+        Map<String, Object> config = loadConfig();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> acp = SkillService.asMap(config.get("acp"));
+        acp.put("node_path", nodePath == null ? "" : nodePath);
+        config.put("acp", acp);
+        SkillStore.writeJsonAtomic(AGENTS_FILE, config);
     }
 
     /** Delete an agent profile (default agent cannot be deleted). */

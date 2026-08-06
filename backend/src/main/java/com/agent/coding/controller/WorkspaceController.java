@@ -294,14 +294,110 @@ public class WorkspaceController {
 
     // === Config ===
 
+    private static final Set<String> SUPPORTED_AGENT_LANGUAGES = Set.of(
+        "zh", "en", "id", "ru", "local", "qa"
+    );
+
+    private String resolveAgentId(HttpServletRequest request) {
+        String agentId = request.getHeader("X-Agent-Id");
+        if (agentId == null || agentId.isBlank()) {
+            agentId = request.getParameter("agent");
+        }
+        return (agentId == null || agentId.isBlank()) ? "default" : agentId;
+    }
+
     @GetMapping("/workspace/language")
-    public Map<String, String> language() { return Map.of("language", "en"); }
+    public Map<String, String> language(HttpServletRequest request) {
+        return language(resolveAgentId(request));
+    }
+
+    public Map<String, String> language(String agentId) {
+        Map<String, Object> profile = com.agent.coding.agent.AgentStore.getProfile(agentId);
+        if (profile == null) {
+            throw new com.agent.coding.skill.SkillNotFoundException("Agent '" + agentId + "' not found");
+        }
+        String lang = com.agent.coding.skill.SkillService.str(profile.get("language"), "zh");
+        Map<String, String> result = new LinkedHashMap<>();
+        result.put("language", lang);
+        result.put("agent_id", agentId);
+        return result;
+    }
+
     @PutMapping("/workspace/language")
-    public Map<String, String> languageUpdate() { return Map.of("status", "ok"); }
+    public ResponseEntity<?> languageUpdate(@RequestBody Map<String, Object> body,
+                                            HttpServletRequest request) {
+        return languageUpdate(resolveAgentId(request), body);
+    }
+
+    public ResponseEntity<?> languageUpdate(String agentId, Map<String, Object> body) {
+        String language = Objects.toString(body.get("language"), "").trim().toLowerCase();
+        if (!SUPPORTED_AGENT_LANGUAGES.contains(language)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "detail", "Invalid language '" + language + "'. Must be one of: "
+                    + String.join(", ", SUPPORTED_AGENT_LANGUAGES.stream().sorted().toList())
+            ));
+        }
+        Map<String, Object> profile = com.agent.coding.agent.AgentStore.getProfile(agentId);
+        if (profile == null) {
+            throw new com.agent.coding.skill.SkillNotFoundException("Agent '" + agentId + "' not found");
+        }
+        String oldLanguage = com.agent.coding.skill.SkillService.str(profile.get("language"), "zh");
+        com.agent.coding.agent.AgentStore.updateAgent(agentId, Map.of("language", language));
+        List<String> copiedFiles = new ArrayList<>();
+        if (!oldLanguage.equals(language)) {
+            copiedFiles = copyWorkspaceMdFiles(language, agentId);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("language", language);
+        result.put("copied_files", copiedFiles);
+        result.put("agent_id", agentId);
+        return ResponseEntity.ok(result);
+    }
+
+    private List<String> copyWorkspaceMdFiles(String language, String agentId) {
+        // qwenpaw copies bundled MD templates for the new language into the
+        // workspace. majo ships no per-language MD templates, so nothing to copy.
+        return new ArrayList<>();
+    }
+
     @GetMapping("/workspace/running-config")
-    public Map<String, Object> runningConfig() { return Map.of(); }
+    public Map<String, Object> runningConfig(HttpServletRequest request) {
+        return runningConfig(resolveAgentId(request));
+    }
+
+    public Map<String, Object> runningConfig(String agentId) {
+        Map<String, Object> profile = com.agent.coding.agent.AgentStore.getProfile(agentId);
+        if (profile == null) {
+            throw new com.agent.coding.skill.SkillNotFoundException("Agent '" + agentId + "' not found");
+        }
+        Map<String, Object> defaults = com.agent.coding.agent.RunningConfigDefaults.defaultConfig();
+        Map<String, Object> stored = com.agent.coding.agent.AgentStore.getRunningConfig(agentId);
+        Map<String, Object> merged = com.agent.coding.agent.RunningConfigDefaults.deepMerge(defaults, stored);
+        merged.put("approval_level", com.agent.coding.agent.AgentStore.getApprovalLevel(agentId));
+        return merged;
+    }
+
     @PutMapping("/workspace/running-config")
-    public Map<String, String> runningConfigUpdate() { return Map.of("status", "ok"); }
+    public Map<String, Object> runningConfigUpdate(@RequestBody Map<String, Object> body,
+                                                   HttpServletRequest request) {
+        return runningConfigUpdate(resolveAgentId(request), body);
+    }
+
+    public Map<String, Object> runningConfigUpdate(String agentId, Map<String, Object> body) {
+        Map<String, Object> profile = com.agent.coding.agent.AgentStore.getProfile(agentId);
+        if (profile == null) {
+            throw new com.agent.coding.skill.SkillNotFoundException("Agent '" + agentId + "' not found");
+        }
+        Object rawLevel = body.get("approval_level");
+        String approvalLevel = rawLevel == null ? null : Objects.toString(rawLevel).trim().toUpperCase();
+        Map<String, Object> running = new LinkedHashMap<>(body);
+        running.remove("approval_level");
+        com.agent.coding.agent.AgentStore.saveRunningConfig(agentId, running, approvalLevel);
+        Map<String, Object> merged = com.agent.coding.agent.RunningConfigDefaults.deepMerge(
+            com.agent.coding.agent.RunningConfigDefaults.defaultConfig(), running);
+        merged.put("approval_level", com.agent.coding.agent.AgentStore.getApprovalLevel(agentId));
+        return merged;
+    }
     @GetMapping("/workspace/system-prompt-files")
     public List<Map<String, String>> systemPromptFiles() { return List.of(); }
     @PutMapping("/workspace/system-prompt-files")
@@ -346,9 +442,15 @@ public class WorkspaceController {
         return writeMdFile(workspaceFor(agentId), name, body);
     }
     @GetMapping("/agents/{agentId}/workspace/running-config")
-    public Map<String, Object> agentRunningConfig(@PathVariable String agentId) { return runningConfig(); }
+    public Map<String, Object> agentRunningConfig(@PathVariable String agentId) { return runningConfig(agentId); }
+    @PutMapping("/agents/{agentId}/workspace/running-config")
+    public Map<String, Object> agentRunningConfigSave(@PathVariable String agentId,
+                                                       @RequestBody Map<String, Object> body) { return runningConfigUpdate(agentId, body); }
     @GetMapping("/agents/{agentId}/workspace/language")
-    public Map<String, String> agentLanguage(@PathVariable String agentId) { return language(); }
+    public Map<String, String> agentLanguage(@PathVariable String agentId) { return language(agentId); }
+    @PutMapping("/agents/{agentId}/workspace/language")
+    public ResponseEntity<?> agentLanguageSave(@PathVariable String agentId,
+                                                @RequestBody Map<String, Object> body) { return languageUpdate(agentId, body); }
     @GetMapping("/agents/{agentId}/workspace/system-prompt-files")
     public List<Map<String, String>> agentSysPromptFiles(@PathVariable String agentId) { return systemPromptFiles(); }
     @GetMapping("/agents/{agentId}/workspace/commands/available")

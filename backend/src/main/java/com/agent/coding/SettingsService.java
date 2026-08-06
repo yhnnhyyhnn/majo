@@ -26,6 +26,7 @@ public class SettingsService {
     private volatile String heartbeatEvery = "6h";
     private volatile String heartbeatTarget = "main";
     private volatile int heartbeatTimeoutSeconds = 120;
+    private volatile String userTimezone = "UTC";
 
     public SettingsService(SettingsRepository repository) {
         this.repository = repository;
@@ -45,6 +46,8 @@ public class SettingsService {
             this.heartbeatEvery = entity.getHeartbeatEvery() != null ? entity.getHeartbeatEvery() : "6h";
             this.heartbeatTarget = entity.getHeartbeatTarget() != null ? entity.getHeartbeatTarget() : "main";
             this.heartbeatTimeoutSeconds = entity.getHeartbeatTimeoutSeconds() > 0 ? entity.getHeartbeatTimeoutSeconds() : 120;
+            this.userTimezone = entity.getUserTimezone() != null && !entity.getUserTimezone().isBlank()
+                ? entity.getUserTimezone() : "UTC";
             log.info("Settings loaded — baseUrl: {}, modelName: {}, audioMode: {}",
                 baseUrl, modelName, audioMode);
         }, () -> {
@@ -89,6 +92,14 @@ public class SettingsService {
     public String getHeartbeatTarget() { return heartbeatTarget; }
     public int getHeartbeatTimeoutSeconds() { return heartbeatTimeoutSeconds; }
 
+    public String getUserTimezone() { return userTimezone; }
+
+    @Transactional
+    public void setUserTimezone(String timezone) {
+        this.userTimezone = (timezone == null || timezone.isBlank()) ? "UTC" : timezone;
+        persist();
+    }
+
     @Transactional
     public void setHeartbeatConfig(boolean enabled, String every, String target, int timeoutSec) {
         this.heartbeatEnabled = enabled;
@@ -112,6 +123,7 @@ public class SettingsService {
         entity.setHeartbeatEvery(heartbeatEvery);
         entity.setHeartbeatTarget(heartbeatTarget);
         entity.setHeartbeatTimeoutSeconds(heartbeatTimeoutSeconds);
+        entity.setUserTimezone(userTimezone);
         repository.save(entity);
         log.info("Settings persisted — baseUrl: {}, modelName: {}", baseUrl, modelName);
     }

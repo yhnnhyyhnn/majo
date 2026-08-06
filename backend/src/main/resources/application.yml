@@ -31,6 +31,8 @@ spring:
 logging:
   level:
     org.hibernate.orm.connections.pooling: WARN
+  file:
+    name: ./majo.log
 
 springdoc:
   api-docs:
