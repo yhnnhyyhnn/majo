@@ -22,12 +22,12 @@ RUN mvn -f backend/pom.xml package -DskipTests -B -q
 
 # ── Stage 3: Runtime ──
 FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
+WORKDIR /data
 
-COPY --from=backend-builder /src/backend/target/majo-backend.jar ./majo.jar
+COPY --from=backend-builder /src/backend/target/majo-backend.jar /opt/majo.jar
 
-RUN mkdir -p /app/data
+RUN mkdir -p /data
 
 EXPOSE 18789
 
-ENTRYPOINT ["java", "-jar", "/app/majo.jar"]
+ENTRYPOINT ["java", "-jar", "/opt/majo.jar"]

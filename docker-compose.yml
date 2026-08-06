@@ -7,10 +7,7 @@ services:
     ports:
       - "18789:18789"
     volumes:
-      - majo_data:/app
+      - ./data:/data
     restart: unless-stopped
     environment:
       - JAVA_OPTS=-Xmx2g -Xms512m
-
-volumes:
-  majo_data:

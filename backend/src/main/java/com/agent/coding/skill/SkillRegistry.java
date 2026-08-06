@@ -8,8 +8,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Builtin skill discovery, manifest reconciliation, import/update of packaged
@@ -27,6 +29,103 @@ public class SkillRegistry {
 
     private SkillRegistry() {}
 
+    private static final AtomicBoolean BUILTIN_EXTRACT_ATTEMPTED = new AtomicBoolean(false);
+
+    /**
+     * Materialize the packaged builtin skills from the classpath into a real
+     * filesystem directory next to the pool ({@link #getBuiltinSkillsDir()}).
+     *
+     * <p>When running from a JAR the classpath resource lives inside the archive;
+     * java.nio reads through the zip filesystem are unreliable there (some JDK
+     * builds throw {@code IndexOutOfBoundsException} on readAllBytes/copy).
+     * Extracting once to disk makes every later read plain file I/O, which is
+     * what {@link #iterPackagedBuiltinDirs()} prefers anyway.</p>
+     */
+    private static void ensureBuiltinSkillsMaterialized() {
+        if (BUILTIN_EXTRACT_ATTEMPTED.getAndSet(true)) return;
+        Path target = getBuiltinSkillsDir();
+        if (Files.isDirectory(target)) {
+            try (var stream = Files.list(target)) {
+                if (stream.findAny().isPresent()) return;
+            } catch (IOException ignored) {
+            }
+        }
+        try {
+            Files.createDirectories(target);
+            ClassLoader cl = SkillRegistry.class.getClassLoader();
+            var resources = cl.getResources("builtin-skills");
+            boolean copied = false;
+            while (resources.hasMoreElements()) {
+                copied |= extractClasspathDir(resources.nextElement(), target);
+            }
+            if (!copied) {
+                log.warn("No builtin-skills classpath resource found; pool builtins will be empty");
+            }
+        } catch (Exception e) {
+            log.warn("Failed to materialize builtin-skills to {}: {}", target, e.getMessage());
+        }
+    }
+
+    /** Copy one classpath resource directory (file: or jar: URL) into {@code targetDir}. */
+    private static boolean extractClasspathDir(java.net.URL url, Path targetDir) {
+        try {
+            if ("file".equals(url.getProtocol())) {
+                Path src = Paths.get(url.toURI());
+                if (!Files.isDirectory(src)) return false;
+                copyPathTree(src, targetDir);
+                return true;
+            }
+            if ("jar".equals(url.getProtocol())) {
+                // jar:file:/opt/majo.jar!/builtin-skills -> read the archive with a
+                // plain ZipInputStream (no zip filesystem provider involved).
+                String spec = url.getFile();
+                int bang = spec.indexOf("!/");
+                if (bang <= 0) return false;
+                String prefix = spec.substring(bang + 2).replace("\\", "/");
+                java.net.URL jarUrl = new java.net.URL(spec.substring(0, bang));
+                try (java.util.zip.ZipInputStream zis =
+                             new java.util.zip.ZipInputStream(jarUrl.openStream())) {
+                    java.util.zip.ZipEntry e;
+                    while ((e = zis.getNextEntry()) != null) {
+                        String name = e.getName().replace('\\', '/');
+                        if (name.equals(prefix) || !name.startsWith(prefix + "/")) continue;
+                        String rel = name.substring(prefix.length() + 1);
+                        if (rel.isEmpty()) continue;
+                        Path dst = targetDir.resolve(rel).normalize();
+                        if (!dst.startsWith(targetDir.normalize())) continue; // path safety
+                        if (e.isDirectory()) {
+                            Files.createDirectories(dst);
+                        } else {
+                            Files.createDirectories(dst.getParent());
+                            Files.copy(zis, dst, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    }
+                }
+                return true;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to extract classpath dir {}: {}", url, e.getMessage());
+        }
+        return false;
+    }
+
+    private static void copyPathTree(Path src, Path targetDir) throws IOException {
+        if (!Files.isDirectory(src)) return;
+        try (var stream = Files.walk(src)) {
+            for (Path s : stream.toList()) {
+                Path rel = src.relativize(s);
+                if (rel.getNameCount() == 0) continue;
+                Path dst = targetDir.resolve(rel.toString());
+                if (Files.isDirectory(s)) {
+                    Files.createDirectories(dst);
+                } else {
+                    Files.createDirectories(dst.getParent());
+                    Files.copy(s, dst, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------------
     // Packaged builtin discovery (resources/builtin-skills)
     // ------------------------------------------------------------------
@@ -39,6 +138,7 @@ public class SkillRegistry {
 
     public static List<Path> iterPackagedBuiltinDirs() {
         List<Path> dirs = new ArrayList<>();
+        ensureBuiltinSkillsMaterialized();
         Path fs = getBuiltinSkillsDir();
         if (Files.isDirectory(fs)) {
             try (var stream = Files.list(fs)) {

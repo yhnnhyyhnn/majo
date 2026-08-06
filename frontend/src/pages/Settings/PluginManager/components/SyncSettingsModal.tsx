@@ -104,9 +104,6 @@ export function SyncSettingsModal({
     }
   };
 
-  const isPending = (c: SyncConfig) =>
-    !c.last_synced_at && c.status === "pending";
-
   const statusTag = (status: string) => {
     if (status === "success")
       return <Tag color="green">{t("pluginManager.syncSuccess")}</Tag>;

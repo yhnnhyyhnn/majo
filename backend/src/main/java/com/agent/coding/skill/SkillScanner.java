@@ -145,7 +145,9 @@ public class SkillScanner {
                 "Command injection pattern",
                 "Detected shell command execution with user-controlled input.",
                 new String[]{"*.py", "*.sh", "*.bash", "*.zsh", "*.js", "*.ts"},
-                "os\\.system\\s*\\(", "subprocess\\.(call|run|Popen)\\s*\\(",
+                "os\\.system\\s*\\(", "os\\.popen\\s*\\(",
+                "subprocess\\.(?:call|run|Popen)\\s*\\([^)]*shell\\s*=\\s*True",
+                "subprocess\\.(?:call|run|Popen)\\s*\\([^)]*\\bf[\"'][^)]*\\{",
                 "eval\\s*\\(\\s*(input|request|body)", "exec\\s*\\(\\s*(input|request|body)"));
         rules.add(rule("SCAN-002", "data_exfiltration", Severity.HIGH,
                 "Data exfiltration pattern",
