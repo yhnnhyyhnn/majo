@@ -27,7 +27,7 @@ import java.util.zip.ZipInputStream;
 public class PluginsController {
 
     private static final Logger log = LoggerFactory.getLogger(PluginsController.class);
-    private static final Path PLUGINS_DIR = Paths.get(System.getProperty("user.dir"), "plugins");
+    private static final Path PLUGINS_DIR = com.agent.coding.skill.SkillStore.WORKING_DIR.resolve("plugins");
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final InboxStore inboxStore;
     private final PluginRegistry pluginRegistry;

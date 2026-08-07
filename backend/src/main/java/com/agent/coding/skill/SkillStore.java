@@ -26,7 +26,129 @@ public class SkillStore {
 
     private static final Logger log = LoggerFactory.getLogger(SkillStore.class);
 
-    public static final Path WORKING_DIR = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+    /**
+     * Data directory for agents.json, workspaces, skill_pool, plugins and
+     * backups. Resolution (like qwenpaw WORKING_DIR):
+     * 1. MAJO_WORKING_DIR env var, else
+     * 2. {user.dir}/data/majo (project-local, independent of source tree).
+     * Legacy data (agents.json / skill_pool under the old project root) is
+     * migrated into this directory on first use.
+     */
+    public static final Path WORKING_DIR = resolveWorkingDir();
+
+    private static Path resolveWorkingDir() {
+        String env = System.getenv("MAJO_WORKING_DIR");
+        Path dir;
+        if (env != null && !env.isBlank()) {
+            dir = Paths.get(env).toAbsolutePath().normalize();
+        } else {
+            dir = Paths.get(System.getProperty("user.dir"))
+                .resolve("data").resolve("majo")
+                .toAbsolutePath().normalize();
+        }
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException e) {
+            log.warn("Failed to create working dir {}", dir, e);
+        }
+        migrateLegacyData(dir);
+        return dir;
+    }
+
+    private static void migrateLegacyData(Path target) {
+        Path legacyRoot = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        if (target.equals(legacyRoot)) {
+            return;
+        }
+        Path workspacesBase = target.resolve("workspaces");
+        String[] items = {"agents.json", "skill_pool", "workspaces", "plugins", "inbox_traces"};
+        for (String name : items) {
+            Path src = legacyRoot.resolve(name);
+            Path dst = target.resolve(name);
+            if (!Files.exists(src)) {
+                continue;
+            }
+            if ("agents.json".equals(name)) {
+                // Always rewrite so previously-migrated copies get workspace_dir fixed.
+                try {
+                    migrateAgentsJson(src, dst, workspacesBase);
+                    log.info("Migrated legacy data: {} -> {}", src, dst);
+                } catch (IOException e) {
+                    log.warn("Failed to migrate {} to {}", src, dst, e);
+                }
+                continue;
+            }
+            if (Files.exists(dst)) {
+                continue;
+            }
+            try {
+                if (Files.isDirectory(src)) {
+                    copyTree(src, dst);
+                } else {
+                    Files.createDirectories(dst.getParent());
+                    Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
+                }
+                log.info("Migrated legacy data: {} -> {}", src, dst);
+            } catch (IOException e) {
+                log.warn("Failed to migrate {} to {}", src, dst, e);
+            }
+        }
+    }
+
+    /** Copy agents.json, rewriting profile workspace_dir entries that still
+     *  point at the legacy project root into the new working directory. */
+    @SuppressWarnings("unchecked")
+    private static void migrateAgentsJson(Path src, Path dst, Path workspacesBase) throws IOException {
+        Map<String, Object> config = readJson(src, Map.of());
+        Object profilesObj = config.get("profiles");
+        if (profilesObj instanceof Map<?, ?> profiles) {
+            // Legacy workspace_dir values may point at the old data root
+            // (user.dir) or the repository root above it (when the app was
+            // previously launched from the project directory).
+            String legacy = Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize().toString();
+            String legacyParent = Path.of(legacy).getParent() == null
+                ? legacy : Path.of(legacy).getParent().toString();
+            String base = workspacesBase.toString();
+            for (Object raw : profiles.values()) {
+                if (!(raw instanceof Map<?, ?> m)) {
+                    continue;
+                }
+                Map<String, Object> profile = (Map<String, Object>) m;
+                Object ws = profile.get("workspace_dir");
+                if (!(ws instanceof String s)) {
+                    continue;
+                }
+                String normalized = Path.of(s).toAbsolutePath().normalize().toString();
+                String id = String.valueOf(profile.get("id"));
+                if (normalized.equals(legacy) || normalized.equals(legacyParent)) {
+                    profile.put("workspace_dir", Path.of(base).resolve(id).toString());
+                } else if (normalized.startsWith(legacy + java.io.File.separator)) {
+                    String rel = normalized.substring(legacy.length() + 1);
+                    profile.put("workspace_dir", Path.of(base).resolve(rel).toString());
+                } else if (normalized.startsWith(legacyParent + java.io.File.separator)) {
+                    String rel = normalized.substring(legacyParent.length() + 1);
+                    profile.put("workspace_dir", Path.of(base).resolve(rel).toString());
+                }
+            }
+        }
+        Files.createDirectories(dst.getParent());
+        writeJsonAtomic(dst, config);
+    }
+
+    private static void copyTree(Path src, Path dst) throws IOException {
+        try (var stream = Files.walk(src)) {
+            for (Path p : stream.toList()) {
+                Path rel = src.relativize(p);
+                Path target = dst.resolve(rel);
+                if (Files.isDirectory(p)) {
+                    Files.createDirectories(target);
+                } else {
+                    Files.createDirectories(target.getParent());
+                    Files.copy(p, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
+    }
 
     /** Max uncompressed zip payload. */
     public static final long MAX_ZIP_BYTES = 200L * 1024 * 1024;

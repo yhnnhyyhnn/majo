@@ -26,7 +26,7 @@ public class RootCompatController {
 
     private static final Logger log = LoggerFactory.getLogger(RootCompatController.class);
     private static final String SYS_PROMPT = "你是一个专业的编码助手。回答简洁专业。";
-    private static final Path DEFAULT_WORKSPACE = Paths.get(System.getProperty("user.dir"));
+    private static final Path DEFAULT_WORKSPACE = com.agent.coding.skill.SkillStore.WORKING_DIR;
 
     private final SettingsService settingsService;
     private final Toolkit toolkit;

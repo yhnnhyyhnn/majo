@@ -16,7 +16,7 @@ import java.util.*;
 public class PluginRegistry {
 
     private static final Logger log = LoggerFactory.getLogger(PluginRegistry.class);
-    private static final Path PLUGINS_DIR = Paths.get(System.getProperty("user.dir"), "plugins");
+    private static final Path PLUGINS_DIR = com.agent.coding.skill.SkillStore.WORKING_DIR.resolve("plugins");
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private final Map<String, Map<String, Object>> registeredChannels = new LinkedHashMap<>();

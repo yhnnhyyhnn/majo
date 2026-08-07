@@ -24,9 +24,7 @@ public final class InboxTraceStore {
 
     private static final Logger log = LoggerFactory.getLogger(InboxTraceStore.class);
 
-    private static final Path WORKING_DIR =
-            Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize();
-    private static final Path TRACE_DIR = WORKING_DIR.resolve("inbox_traces");
+    private static final Path TRACE_DIR = com.agent.coding.skill.SkillStore.WORKING_DIR.resolve("inbox_traces");
 
     private InboxTraceStore() {}
 

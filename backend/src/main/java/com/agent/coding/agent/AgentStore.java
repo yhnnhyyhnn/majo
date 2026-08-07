@@ -80,7 +80,7 @@ public class AgentStore {
         profile.put("id", DEFAULT_AGENT_ID);
         profile.put("name", DEFAULT_AGENT_NAME);
         profile.put("description", DEFAULT_AGENT_DESC);
-        profile.put("workspace_dir", SkillStore.WORKING_DIR.toString());
+        profile.put("workspace_dir", defaultWorkspaceDir().toString());
         profile.put("enabled", true);
         profile.put("pinned", true);
         profile.put("backend", "majo");
@@ -177,10 +177,15 @@ public class AgentStore {
         return getProfile(agentId) != null;
     }
 
+    /** Default agent workspace lives in its own subdirectory, like other agents. */
+    public static Path defaultWorkspaceDir() {
+        return SkillStore.WORKING_DIR.resolve("workspaces").resolve(DEFAULT_AGENT_ID).normalize();
+    }
+
     /** Resolve an agent's workspace directory; unknown agents throw 404-style error. */
     public static Path workspaceDirForAgent(String agentId) {
         if (agentId == null || agentId.isBlank() || agentId.equals(DEFAULT_AGENT_ID)) {
-            return SkillStore.WORKING_DIR;
+            return defaultWorkspaceDir();
         }
         Map<String, Object> profile = getProfile(agentId);
         if (profile == null) {

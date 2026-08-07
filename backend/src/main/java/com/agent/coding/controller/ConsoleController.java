@@ -46,7 +46,7 @@ public class ConsoleController {
 
     private static final Logger log = LoggerFactory.getLogger(ConsoleController.class);
     private static final String SYS_PROMPT = "你是一个专业的编码助手。工具包括: read_file/write_file/edit_file(读写编辑), search_code/find_symbol/list_directory(搜索), execute_command(执行命令), git_status/git_diff/git_branch/git_commit/git_add/git_log(Git操作)。回答简洁专业。";
-    private static final Path DEFAULT_WORKSPACE = Paths.get(System.getProperty("user.dir"));
+    private static final Path DEFAULT_WORKSPACE = com.agent.coding.skill.SkillStore.WORKING_DIR;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

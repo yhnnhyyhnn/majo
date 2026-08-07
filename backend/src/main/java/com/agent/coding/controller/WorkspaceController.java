@@ -28,7 +28,7 @@ import java.util.*;
 public class WorkspaceController {
 
     private static final Logger log = LoggerFactory.getLogger(WorkspaceController.class);
-    private static final Path WORKSPACE = Paths.get(System.getProperty("user.dir"));
+    private static final Path WORKSPACE = com.agent.coding.skill.SkillStore.WORKING_DIR;
     private static final Set<String> SKIP_NAMES = Set.of(
         ".git", "__pycache__", ".venv", "node_modules", ".mypy_cache",
         ".pytest_cache", ".ruff_cache", ".hypothesis", "target", ".idea"

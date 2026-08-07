@@ -63,19 +63,7 @@ public class FullCompatController {
     @GetMapping("/auth/verify")
     public Map<String, Object> authVerify() { return Map.of("valid", true); }
 
-    // ===== BACKUPS =====
-    @GetMapping("/backups/{backup_id}")
-    public Map<String, String> backupDetail(@PathVariable String backup_id) { return Map.of("id", backup_id); }
-    @GetMapping("/backups/{backup_id}/export")
-    public Map<String, String> backupExport(@PathVariable String backup_id) { return Map.of("url", ""); }
-    @PostMapping("/backups/{backup_id}/restore")
-    public Map<String, String> backupRestore(@PathVariable String backup_id) { return Map.of("status", "ok"); }
-    @PostMapping("/backups/delete")
-    public Map<String, String> backupDelete() { return Map.of("status", "ok"); }
-    @PostMapping("/backups/import")
-    public Map<String, String> backupImport() { return Map.of("status", "ok"); }
-    @PostMapping("/backups/stream")
-    public Map<String, String> backupStream() { return Map.of("status", "ok"); }
+    // ===== BACKUPS (implemented in BackupController) =====
 
     // ===== CHATS =====
     // ===== CONFIG (global) =====

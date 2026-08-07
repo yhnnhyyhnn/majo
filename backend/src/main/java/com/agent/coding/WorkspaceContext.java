@@ -19,7 +19,7 @@ public class WorkspaceContext {
 
     public static Path get() {
         Path ws = WORKSPACE.get();
-        return ws != null ? ws : Paths.get(System.getProperty("user.dir")).toAbsolutePath();
+return ws != null ? ws : com.agent.coding.skill.SkillStore.WORKING_DIR;
     }
 
     public static void clear() {
