@@ -46,16 +46,6 @@ public class BackupStore {
     public static final String PREFIX_CONFIG = "data/config.json";
 
     private static final Pattern BACKUP_ID_RE = Pattern.compile("^[a-zA-Z0-9._-]{1,200}$");
-    private static final java.util.Set<String> BACKUP_SKIP_NAMES = java.util.Set.of(
-        ".git", "__pycache__", ".venv", "node_modules", ".mypy_cache",
-        ".pytest_cache", ".ruff_cache", ".hypothesis", "target", ".idea",
-        ".backups", ".agentscope", ".codegraph", ".omo", ".sisyphus",
-        ".github", ".agents.json.lock", ".skill.json.lock",
-        "skill_pool", "workspaces", ".backup", "data",
-        "backend", "frontend", "console", "qwenpaw", "electron",
-        "builtin-skills", "plugins", "agents", "default", "local-repo",
-        "dist", "majo.log", "signing.key"
-    );
     public static final ObjectMapper MAPPER = new ObjectMapper();
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
@@ -400,13 +390,12 @@ public class BackupStore {
 
     public static void zipDirectory(ZipOutputStream zos, Path root, Path base,
                                     String prefix, java.util.function.BiConsumer<String, Long> progress) throws IOException {
+        // Port of qwenpaw backup/_ops/create_helpers.py: every file under
+        // root is added (rglob("*") with no name filtering). No skip list —
+        // a blacklist here would silently drop content the reference
+        // implementation always includes.
         List<Path> paths = new ArrayList<>();
         Files.walk(root).forEach(p -> {
-            for (Path part : p) {
-                if (BACKUP_SKIP_NAMES.contains(part.getFileName().toString())) {
-                    return;
-                }
-            }
             if (Files.isRegularFile(p)) {
                 paths.add(p);
             }
