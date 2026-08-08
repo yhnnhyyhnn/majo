@@ -169,6 +169,25 @@ public class AgentsController {
         }
         Map<String, Object> updates = new LinkedHashMap<>();
         updates.put("backend_settings", body);
+
+        // The harness model picker saves backend_settings.model as
+        // "providerId/modelId". Route it into the agent's active_model so the
+        // model routing (resolveEffectiveModel -> resolveAgentModel) actually
+        // uses the chosen model for this agent's conversations.
+        Object model = body.get("model");
+        if (model != null && !String.valueOf(model).isBlank()) {
+            String modelStr = String.valueOf(model);
+            int slash = modelStr.indexOf('/');
+            if (slash > 0 && slash < modelStr.length() - 1) {
+                String providerId = modelStr.substring(0, slash);
+                String modelId = modelStr.substring(slash + 1);
+                Map<String, Object> activeModel = new LinkedHashMap<>();
+                activeModel.put("provider_id", providerId);
+                activeModel.put("model", modelId);
+                updates.put("active_model", activeModel);
+            }
+        }
+
         AgentStore.updateAgent(agentId, updates);
         return toAgentProfileConfig(AgentStore.getProfile(agentId));
     }
@@ -210,9 +229,8 @@ public class AgentsController {
         boolean enabled = Boolean.TRUE.equals(profile.get("enabled"));
         boolean pinned = id.equals(AgentStore.DEFAULT_AGENT_ID)
                 || Boolean.TRUE.equals(profile.get("pinned"));
-        Map<String, Object> caps = new LinkedHashMap<>();
-        caps.put("workspace_ui", true);
-        caps.put("code_files", true);
+        String backend = SkillServiceStr.of(profile.get("backend"), "majo");
+        Map<String, Object> caps = buildBackendCapabilities(backend);
         AgentInfo info = new AgentInfo(
                 id,
                 SkillServiceStr.of(profile.get("name"), id),
@@ -220,7 +238,7 @@ public class AgentsController {
                 SkillServiceStr.of(profile.get("workspace_dir"), ""),
                 enabled,
                 enabled ? "running" : "disabled",
-                SkillServiceStr.of(profile.get("backend"), "majo"),
+                backend,
                 caps);
         info.setPinned(pinned);
         info.setActiveModel(profile.get("active_model"));
@@ -232,6 +250,49 @@ public class AgentsController {
             info.setBackendReasoningEffort(effort != null ? String.valueOf(effort) : null);
         }
         return info;
+    }
+
+    /**
+     * Build backend capabilities for an agent, mirroring qwenpaw
+     * app/routers/agents.py:
+     * - backend "majo": the qwenpaw-style UI model selector is used
+     *   (requiresQwenPawModel(backend) == true), so only workspace_ui and
+     *   code_files are advertised.
+     * - any other backend (harness-style, e.g. "qwenpaw", "codex"): the full
+     *   harness capability set is advertised, including {@code model_selection}
+     *   and {@code reasoning_effort}, so the frontend renders the
+     *   HarnessModelSelector in the chat header for that agent.
+     */
+    private Map<String, Object> buildBackendCapabilities(String backend) {
+        Map<String, Object> caps = new LinkedHashMap<>();
+        caps.put("workspace_ui", true);
+        caps.put("code_files", true);
+        if ("majo".equals(backend)) {
+            return caps;
+        }
+        // Harness-style backend: advertise the full capability set so the
+        // per-agent model picker (HarnessModelSelector) is available.
+        caps.put("model_selection", true);
+        caps.put("reasoning_effort", true);
+        caps.put("authentication", false);
+        caps.put("reasoning_stream", true);
+        caps.put("tool_stream", true);
+        caps.put("session_resume", true);
+        caps.put("native_skills_ui", true);
+        caps.put("native_tools_ui", true);
+        caps.put("native_mcp_ui", false);
+        caps.put("loop_modes", false);
+        caps.put("attachments", false);
+        caps.put("context_usage", false);
+        caps.put("skills_commands", false);
+        caps.put("qwenpaw_skills_projection", false);
+        caps.put("qwenpaw_mcp_projection", false);
+        caps.put("provider_skills_discovery", false);
+        caps.put("provider_mcp_discovery", false);
+        caps.put("mcp_tool_allowlist", false);
+        caps.put("commands", List.of());
+        caps.put("approval_presets", List.of());
+        return caps;
     }
 
     private AgentProfileConfig toAgentProfileConfig(Map<String, Object> profile) {

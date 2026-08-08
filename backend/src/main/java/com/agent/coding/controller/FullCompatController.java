@@ -112,28 +112,9 @@ public class FullCompatController {
     // ambiguous-mapping errors.
 
     // ===== CRON =====
-    @GetMapping("/cron/dispatch-targets")
-    public List<Map<String, String>> cronTargets() { return List.of(); }
-    @GetMapping("/cron/jobs")
-    public List<Map<String, String>> cronJobs() { return List.of(); }
-    @PostMapping("/cron/jobs")
-    public Map<String, String> cronJobCreate() { return Map.of("id", UUID.randomUUID().toString()); }
-    @GetMapping("/cron/jobs/{job_id}")
-    public Map<String, String> cronJobDetail(@PathVariable String job_id) { return Map.of("id", job_id); }
-    @DeleteMapping("/cron/jobs/{job_id}")
-    public Map<String, String> cronJobDelete(@PathVariable String job_id) { return Map.of("status", "ok"); }
-    @PutMapping("/cron/jobs/{job_id}")
-    public Map<String, String> cronJobUpdate(@PathVariable String job_id) { return Map.of("status", "ok"); }
-    @GetMapping("/cron/jobs/{job_id}/history")
-    public List<Map<String, String>> cronJobHistory(@PathVariable String job_id) { return List.of(); }
-    @PostMapping("/cron/jobs/{job_id}/pause")
-    public Map<String, String> cronJobPause(@PathVariable String job_id) { return Map.of("status", "ok"); }
-    @PostMapping("/cron/jobs/{job_id}/resume")
-    public Map<String, String> cronJobResume(@PathVariable String job_id) { return Map.of("status", "ok"); }
-    @PostMapping("/cron/jobs/{job_id}/run")
-    public Map<String, String> cronJobRun(@PathVariable String job_id) { return Map.of("status", "ok"); }
-    @GetMapping("/cron/jobs/{job_id}/state")
-    public Map<String, String> cronJobState(@PathVariable String job_id) { return Map.of("state", "idle"); }
+    // NOTE: /cron/jobs and related endpoints are implemented in
+    // CronController. Duplicate routes are intentionally not declared here to
+    // avoid Spring ambiguous-mapping errors.
 
     // ===== ENVS =====
     // ===== LOCAL MODELS =====

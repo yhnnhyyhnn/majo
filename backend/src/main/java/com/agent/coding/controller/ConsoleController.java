@@ -562,6 +562,20 @@ public class ConsoleController {
         return StatusResponse.ok();
     }
 
+    /**
+     * Harness model catalog for the per-agent model picker
+     * (qwenpaw /harnesses/{provider_id}/models). Returns the models available
+     * to the given backend provider. For majo, the catalog is derived from
+     * all configured providers/models (the harness backend routes through the
+     * same model routing), so the picker has real options to choose from.
+     */
+    @GetMapping("/harnesses/{provider_id}/models")
+    public Map<String, Object> harnessModels(@PathVariable String provider_id) {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("models", modelRouting.listHarnessModels());
+        return resp;
+    }
+
     @PostMapping("/fork/agent")
     public Map<String, String> forkAgent() { return Map.of("id", UUID.randomUUID().toString()); }
 

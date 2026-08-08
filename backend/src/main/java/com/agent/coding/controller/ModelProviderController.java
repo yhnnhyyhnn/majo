@@ -192,6 +192,9 @@ public class ModelProviderController {
                     .body(Map.of("detail", "agent_id is required when scope is 'agent'"));
             }
             modelRouting.setAgentActiveModel(agentId, providerId, model);
+            // Sync the agent profile active_model so the harness model picker
+            // (backend_settings / agents.json) stays consistent with the DB.
+            syncProfileActiveModel(agentId, providerId, model);
             var slot = modelRouting.resolveAgentModel(agentId);
             return ResponseEntity.ok(buildActiveModelsInfo(slot));
         }
@@ -220,6 +223,24 @@ public class ModelProviderController {
             return mc != null && modelId.equals(mc.getModelName());
         } catch (NumberFormatException ignored) {}
         return false;
+    }
+
+    /** Mirror the DB active_model into the agent profile (agents.json) so the
+     *  harness model picker (reads backend_settings/active_model) and the
+     *  qwenpaw model picker (reads the DB) always agree. */
+    private void syncProfileActiveModel(String agentId, String providerId, String modelId) {
+        try {
+            var profile = com.agent.coding.agent.AgentStore.getProfile(agentId);
+            if (profile == null) return;
+            java.util.Map<String, Object> activeModel = new java.util.LinkedHashMap<>();
+            activeModel.put("provider_id", providerId);
+            activeModel.put("model", modelId);
+            java.util.Map<String, Object> updates = new java.util.LinkedHashMap<>();
+            updates.put("active_model", activeModel);
+            com.agent.coding.agent.AgentStore.updateAgent(agentId, updates);
+        } catch (Exception e) {
+            log.warn("Failed to sync active_model to profile for agent {}", agentId, e);
+        }
     }
 
     private Map<String, Object> buildActiveModelsInfo(ModelRoutingService.ModelSlot slot) {

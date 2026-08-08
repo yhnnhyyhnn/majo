@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** Java equivalent of qwenpaw's ProviderManager for model routing.
@@ -57,9 +58,32 @@ public class ModelRoutingService {
     /** Resolve an agent's own active model (qwenpaw: _load_agent_model). */
     public ModelSlot resolveAgentModel(String agentId) {
         if (agentId == null || agentId.isBlank()) return null;
-        return activeModelRepo.findByScopeAndAgentId("agent", agentId)
+        // 1) agent-scoped active_model row in the DB (set via PUT /models/active)
+        var fromDb = activeModelRepo.findByScopeAndAgentId("agent", agentId)
             .map(e -> new ModelSlot(e.getProviderId(), e.getModelId()))
+            .filter(ModelSlot::hasBoth)
             .orElse(null);
+        if (fromDb != null) return fromDb;
+        // 2) agent profile active_model (set via PATCH /agents/{id}/backend-settings,
+        //    the harness model picker path) — falls back when the DB has no
+        //    agent-scoped entry so both selectors drive the same routing.
+        try {
+            var profile = com.agent.coding.agent.AgentStore.getProfile(agentId);
+            if (profile != null) {
+                Object am = profile.get("active_model");
+                if (am instanceof Map<?, ?> m) {
+                    Object pid = m.get("provider_id");
+                    Object mid = m.get("model");
+                    if (pid != null && mid != null
+                            && !String.valueOf(pid).isBlank() && !String.valueOf(mid).isBlank()) {
+                        return new ModelSlot(String.valueOf(pid), String.valueOf(mid));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Failed to read agent({}) profile active_model: {}", agentId, e.getMessage());
+        }
+        return null;
     }
 
     /** Resolve the global active model (qwenpaw: manager.get_active_model()). */
@@ -210,4 +234,72 @@ public class ModelRoutingService {
 
     /** Resolved provider connection info. Mirrors what provider.get_chat_model_instance() reads. */
     public record ProviderConnection(String baseUrl, String apiKey, String chatModel) {}
+
+    // ── Harness model catalog (qwenpaw /harnesses/{id}/models) ─────────
+
+    /**
+     * Build the harness model catalog from all configured providers/models,
+     * mirroring the {@code HarnessModel} response shape the frontend
+     * HarnessModelSelector consumes:
+     * {@code {id, name, description, is_default, reasoning_efforts, default_reasoning_effort}}.
+     * Model ids are prefixed with the provider id ({@code providerId/modelId})
+     * so a selection round-trips into {@code setAgentActiveModel}.
+     */
+    public List<Map<String, Object>> listHarnessModels() {
+        java.util.LinkedHashMap<String, Map<String, Object>> byId = new java.util.LinkedHashMap<>();
+        for (ProviderEntity p : providerRepo.findAll()) {
+            String pid = p.getId();
+            String pname = p.getName();
+            var models = providerModelRepo.findByProviderId(pid);
+            if (models.isEmpty()) {
+                continue;
+            }
+            boolean first = true;
+            for (ProviderModelEntity m : models) {
+                String mid = m.getModelId();
+                String fullId = pid + "/" + mid;
+                Map<String, Object> entry = new java.util.LinkedHashMap<>();
+                entry.put("id", fullId);
+                entry.put("name", (m.getName() != null && !m.getName().isBlank())
+                        ? m.getName() : mid);
+                entry.put("description", pname);
+                entry.put("is_default", first && models.size() > 0);
+                entry.put("reasoning_efforts", parseEffortList(m.getReasoningEffortOptions()));
+                entry.put("default_reasoning_effort", m.getReasoningEffort());
+                byId.putIfAbsent(fullId, entry);
+                first = false;
+            }
+        }
+        // Custom single-model providers (ModelConfigEntity)
+        for (ModelConfigEntity e : modelConfigRepo.findAll()) {
+            String pid = "model-" + e.getId();
+            String mid = e.getModelName();
+            String fullId = pid + "/" + mid;
+            Map<String, Object> entry = new java.util.LinkedHashMap<>();
+            entry.put("id", fullId);
+            entry.put("name", mid);
+            entry.put("description", e.getName());
+            entry.put("is_default", false);
+            entry.put("reasoning_efforts", List.of());
+            entry.put("default_reasoning_effort", null);
+            byId.putIfAbsent(fullId, entry);
+        }
+        if (!byId.isEmpty() && byId.values().stream().noneMatch(e -> Boolean.TRUE.equals(e.get("is_default")))) {
+            Map<String, Object> first = byId.values().iterator().next();
+            first.put("is_default", true);
+        }
+        return new java.util.ArrayList<>(byId.values());
+    }
+
+    private static List<String> parseEffortList(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            var parsed = new com.fasterxml.jackson.databind.ObjectMapper().readValue(json, List.class);
+            List<String> out = new java.util.ArrayList<>();
+            for (Object o : parsed) out.add(String.valueOf(o));
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
 }
