@@ -58,13 +58,15 @@ public class ConsoleController {
     private final TokenUsageRepository tokenUsageRepo;
     private final SettingsService settingsService;
     private final InboxStore inboxStore;
+    private final com.agent.coding.approval.ApprovalStore approvalStore;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
                               ChatService chatService, Toolkit toolkit,
                               Set<String> implementedToolNames,
                               TokenUsageRepository tokenUsageRepo,
                               SettingsService settingsService,
-                              InboxStore inboxStore) {
+                              InboxStore inboxStore,
+                              com.agent.coding.approval.ApprovalStore approvalStore) {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
         this.chatService = chatService;
@@ -73,6 +75,7 @@ public class ConsoleController {
         this.tokenUsageRepo = tokenUsageRepo;
         this.settingsService = settingsService;
         this.inboxStore = inboxStore;
+        this.approvalStore = approvalStore;
     }
 
     @PostMapping(value = "/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -312,11 +315,6 @@ public class ConsoleController {
         return summary;
     }
 
-    @GetMapping("/auth/status")
-    public AuthStatusResponse authStatus() {
-        return new AuthStatusResponse(false);
-    }
-
     @GetMapping("/version")
     public VersionResponse version() {
         return new VersionResponse("0.1.0");
@@ -371,11 +369,6 @@ public class ConsoleController {
         m.put("state", "idle");
         m.put("mode", null);
         return m;
-    }
-
-    @GetMapping("/settings/language")
-    public LanguageResponse language() {
-        return new LanguageResponse("en");
     }
 
     // GET /tools and its tool() helper moved to ToolsController.
@@ -524,27 +517,30 @@ public class ConsoleController {
 
     @GetMapping("/console/push-messages")
     public Map<String, Object> pushMessages() {
-        return Map.of("messages", List.of(), "pending_approvals", List.of());
-    }
-
-    @GetMapping("/settings/upload-limit")
-    public Map<String, Object> uploadLimit() {
-        return Map.of("max_file_size_mb", 50, "allowed_types", List.of());
+        List<Map<String, Object>> approvals = new ArrayList<>();
+        for (com.agent.coding.approval.ApprovalStore.ApprovalRequest req : approvalStore.listPending()) {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("request_id", req.requestId);
+            a.put("session_id", req.sessionId);
+            a.put("root_session_id", req.rootSessionId);
+            a.put("owner_agent_id", req.agentId);
+            a.put("agent_id", req.agentId);
+            a.put("tool_name", req.toolName);
+            a.put("tool_display_name", req.toolDisplayName);
+            a.put("severity", req.severity);
+            a.put("created_at", req.createdAt);
+            a.put("timeout_seconds", req.timeoutSeconds);
+            approvals.add(a);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("messages", List.of());
+        result.put("pending_approvals", approvals);
+        return result;
     }
 
     @PostMapping("/console/upload")
     public Map<String, Object> consoleUpload() {
         return Map.of("url", "", "file_name", "");
-    }
-
-    @GetMapping("/providers/{provider_id}/oauth/start")
-    public Map<String, String> oauthStart(@PathVariable String provider_id) {
-        return Map.of("auth_url", "");
-    }
-
-    @GetMapping("/providers/{provider_id}/oauth/status")
-    public Map<String, String> oauthStatus(@PathVariable String provider_id) {
-        return Map.of("status", "pending");
     }
 
     @PostMapping("/harnesses/{provider_id}/login")

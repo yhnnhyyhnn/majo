@@ -1,216 +1,123 @@
 //! Backend command construction for development and packaged builds.
 
 use std::path::{Path, PathBuf};
-#[cfg(debug_assertions)]
-use std::process::{Command as StdCommand, Stdio};
 
 #[cfg(not(debug_assertions))]
 use tauri::Manager;
 use tauri_plugin_shell::{process::Command, ShellExt};
 
-/// Builds the command used to start the Python backend sidecar.
+/// Java runtime paths used for the sidecar command.
+///
+/// The desktop app ships a jlink-customized JRE (see
+/// `scripts/pack-tauri/build-desktop.ps1`) plus the backend fat jar under
+/// `binaries/`, so end-user machines do not need Java installed.
+const BUNDLED_JRE_DIR: &str = "binaries/jre";
+const BUNDLED_BACKEND_JAR: &str = "binaries/majo-backend.jar";
+
+/// Port the desktop sidecar runs on (browser deployments keep 18789; the
+/// desktop shell overrides it via env so it never collides with local apps).
+pub(crate) const DESKTOP_SERVER_PORT: &str = "1911";
+
+/// Builds the command used to start the Java backend sidecar in dev mode.
+///
+/// Dev expects a locally-built jar (`backend/target/majo-backend.jar`); if it
+/// is missing the backend fails fast with a clear message instead of spawning
+/// a broken process.
 #[cfg(debug_assertions)]
 pub(super) fn create(app: &tauri::AppHandle) -> Result<Command, String> {
     let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let source_path = repo_root.join("src");
-    let command = if command_exists("uv") {
-        log::info!(
-            "[backend] dev command: uv run python -m qwenpaw.tauri.entry cwd={}",
-            repo_root.display(),
-        );
-        app.shell()
-            .command("uv")
-            .args(["run", "python", "-m", "qwenpaw.tauri.entry"])
-            .current_dir(repo_root)
-            .env("PYTHONPATH", source_path.display().to_string())
-    } else {
-        let (python, prefix_args) = python_command(&repo_root);
-        let mut args = prefix_args;
-        args.extend(["-m", "qwenpaw.tauri.entry"]);
-        log::info!(
-            "[backend] dev command: {} {} cwd={}",
-            python,
-            args.join(" "),
-            repo_root.display(),
-        );
-        app.shell()
-            .command(python)
-            .args(args)
-            .current_dir(repo_root)
-            .env("PYTHONPATH", source_path.display().to_string())
-    };
-    Ok(command)
+    let backend_jar = repo_root.join("backend/target/majo-backend.jar");
+
+    if !backend_jar.is_file() {
+        return Err(format!(
+            "backend jar not found at {} — run `mvn -f backend/pom.xml package -DskipTests` first",
+            backend_jar.display()
+        ));
+    }
+
+    let java = local_java_command();
+    log::info!(
+        "[backend] dev command: {} -jar {} cwd={}",
+        java.display(),
+        backend_jar.display(),
+        repo_root.display(),
+    );
+    Ok(app
+        .shell()
+        .command(java)
+        .args(["-jar", backend_jar.to_str().unwrap_or_default()])
+        .current_dir(repo_root))
 }
 
-/// Builds the command used to start the packaged Python backend sidecar.
+/// Builds the command used to start the bundled Java backend sidecar.
+///
+/// The packaged app embeds a jlink JRE and the backend jar under
+/// `binaries/`; the backend runs from the resource directory so its relative
+/// data paths (e.g. `data/majo/`) stay inside the app's data area.
 #[cfg(not(debug_assertions))]
 pub(super) fn create(app: &tauri::AppHandle) -> Result<Command, String> {
-    let backend = packaged_backend_executable(app)?;
-    let backend_dir = backend
-        .parent()
-        .ok_or_else(|| format!("backend executable has no parent: {}", backend.display()))?
-        .to_path_buf();
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .map_err(|err| format!("failed to resolve resource directory: {err}"))?;
+
+    let java = bundled_java(&resource_dir)?;
+    let jar = resource_dir.join(BUNDLED_BACKEND_JAR);
+    if !jar.is_file() {
+        return Err(format!(
+            "backend jar not found at {} — the app bundle is incomplete",
+            jar.display()
+        ));
+    }
+
     log::info!(
-        "[backend] packaged command: {} cwd={}",
-        backend.display(),
-        backend_dir.display(),
+        "[backend] packaged command: {} -jar {} cwd={}",
+        java.display(),
+        jar.display(),
+        resource_dir.display(),
     );
-    let mut command = app
+    Ok(app
         .shell()
-        .command(backend)
-        .current_dir(&backend_dir)
-        .env(path_env_key(), path_with_backend_dir(&backend_dir)?);
-    // Bundled standalone Python used by the backend to install third-party
-    // plugin dependencies (sys.executable is the frozen backend, not Python).
-    if let Some(python) = packaged_python_runtime(app) {
-        log::info!("[backend] bundled python runtime: {}", python.display());
-        command = command.env(
-            "QWENPAW_DESKTOP_PY_RUNTIME",
-            python.to_string_lossy().to_string(),
-        );
-    } else {
-        log::warn!(
-            "[backend] bundled python runtime not found; plugin dependency \
-             installation will be unavailable"
-        );
-    }
-    if let Some(node_runtime) = packaged_node_runtime(app) {
-        log::info!("[backend] bundled node runtime: {}", node_runtime.display());
-        command = command.env(
-            "QWENPAW_DESKTOP_NODE_RUNTIME",
-            node_runtime.to_string_lossy().to_string(),
-        );
-    } else {
-        log::warn!("[backend] bundled node runtime not found");
-    }
-    Ok(command)
+        .command(java)
+        .args(["-jar", jar.to_str().unwrap_or_default()])
+        .current_dir(&resource_dir))
 }
 
+/// Path to the bundled JRE's java executable inside the resource dir.
 #[cfg(not(debug_assertions))]
-fn packaged_python_runtime(app: &tauri::AppHandle) -> Option<PathBuf> {
-    let base = app
-        .path()
-        .resource_dir()
-        .ok()?
-        .join("binaries")
-        .join("python-runtime")
-        .join("python");
-    let candidates = if cfg!(windows) {
-        vec![base.join("python.exe")]
+fn bundled_java(resource_dir: &Path) -> Result<PathBuf, String> {
+    let java = if cfg!(windows) {
+        resource_dir
+            .join(BUNDLED_JRE_DIR)
+            .join("bin/java.exe")
     } else {
-        vec![base.join("bin").join("python3"), base.join("bin").join("python")]
+        resource_dir
+            .join(BUNDLED_JRE_DIR)
+            .join("bin/java")
     };
-    candidates.into_iter().find(|path| path.is_file())
-}
-
-#[cfg(not(debug_assertions))]
-fn packaged_node_runtime(app: &tauri::AppHandle) -> Option<PathBuf> {
-    let root = app
-        .path()
-        .resource_dir()
-        .ok()?
-        .join("binaries")
-        .join("node-runtime");
-    let node = if cfg!(windows) {
-        root.join("node.exe")
-    } else {
-        root.join("bin").join("node")
-    };
-    node.is_file().then_some(root)
-}
-
-#[cfg(not(debug_assertions))]
-fn packaged_backend_executable(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let executable_name = if cfg!(windows) {
-        "qwenpaw-backend.exe"
-    } else {
-        "qwenpaw-backend"
-    };
-    let path = app
-        .path()
-        .resource_dir()
-        .map_err(|err| format!("failed to resolve resource directory: {err}"))?
-        .join("binaries")
-        .join("qwenpaw-backend")
-        .join(executable_name);
-
-    if path.is_file() {
-        Ok(path)
+    if java.is_file() {
+        Ok(java)
     } else {
         Err(format!(
-            "backend executable not found at {}",
-            path.display()
+            "bundled JRE not found at {} — the app bundle is incomplete",
+            java.display()
         ))
     }
 }
 
-#[cfg(not(debug_assertions))]
-fn path_with_backend_dir(backend_dir: &Path) -> Result<String, String> {
-    let mut paths = vec![backend_dir.to_path_buf()];
-    if let Some(existing) = std::env::var_os(path_env_key()) {
-        paths.extend(std::env::split_paths(&existing));
-    }
-
-    std::env::join_paths(paths)
-        .map_err(|err| format!("failed to join backend PATH entries: {err}"))?
-        .into_string()
-        .map_err(|_| "backend PATH contains non-Unicode data".to_string())
-}
-
-#[cfg(all(not(debug_assertions), windows))]
-fn path_env_key() -> &'static str {
-    "Path"
-}
-
-#[cfg(all(not(debug_assertions), not(windows)))]
-fn path_env_key() -> &'static str {
-    "PATH"
-}
-
+/// Pick the Java launcher to use in dev mode: `JAVA_HOME/bin/java` if set,
+/// otherwise `java` from PATH.
 #[cfg(debug_assertions)]
-fn command_exists(command: &str) -> bool {
-    StdCommand::new(command)
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .is_ok_and(|status| status.success())
-}
-
-#[cfg(debug_assertions)]
-fn local_python(repo_root: &Path) -> Option<String> {
-    let candidates = if cfg!(windows) {
-        vec![
-            repo_root.join(".venv/Scripts/python.exe"),
-            repo_root.join("venv/Scripts/python.exe"),
-        ]
-    } else {
-        vec![
-            repo_root.join(".venv/bin/python"),
-            repo_root.join("venv/bin/python"),
-        ]
-    };
-
-    candidates
-        .into_iter()
-        .find(|path| path.is_file())
-        .map(|path| path.display().to_string())
-}
-
-#[cfg(debug_assertions)]
-fn python_command(repo_root: &Path) -> (String, Vec<&'static str>) {
-    if let Some(local) = local_python(repo_root) {
-        return (local, vec![]);
-    }
-    #[cfg(windows)]
-    {
-        if command_exists("py") {
-            return ("py".to_string(), vec!["-3"]);
+fn local_java_command() -> PathBuf {
+    if let Some(java_home) = std::env::var_os("JAVA_HOME") {
+        let home_java = PathBuf::from(&java_home).join("bin/java.exe");
+        if cfg!(windows) && home_java.is_file() {
+            return home_java;
+        }
+        let home_java = PathBuf::from(&java_home).join("bin/java");
+        if home_java.is_file() {
+            return home_java;
         }
     }
-    if command_exists("python3") {
-        ("python3".to_string(), vec![])
-    } else {
-        ("python".to_string(), vec![])
-    }
+    PathBuf::from("java")
 }

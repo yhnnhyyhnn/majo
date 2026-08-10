@@ -12,7 +12,7 @@ import java.util.*;
 @CrossOrigin(origins = "*")
 public class FullCompatController {
 
-    // ===== ACCESS CONTROL =====
+    // ===== ACCESS CONTROL (depends on channel system, not yet ported) =====
     @GetMapping("/access-control")
     public List<Map<String, String>> acList() { return List.of(); }
     @GetMapping("/access-control/{channel}")
@@ -40,84 +40,7 @@ public class FullCompatController {
     @PostMapping("/access-control/whitelist/remove")
     public Map<String, String> acWhitelistRemove() { return Map.of("status", "ok"); }
 
-
-    // ===== AGENT TOOLS (implemented in ToolsController) =====
-
-    // ===== APPROVAL =====
-    @PostMapping("/approval/approve")
-    public Map<String, String> approvalApprove() { return Map.of("status", "ok"); }
-    @PostMapping("/approval/deny")
-    public Map<String, String> approvalDeny() { return Map.of("status", "ok"); }
-
-    // ===== AUTH =====
-    @PostMapping("/auth/login")
-    public Map<String, String> authLogin() { return Map.of("token", "stub-token"); }
-    @PostMapping("/auth/register")
-    public Map<String, String> authRegister() { return Map.of("token", "stub-token"); }
-    @PostMapping("/auth/revoke-all-tokens")
-    public Map<String, String> authRevokeAll() { return Map.of("status", "ok"); }
-    @PostMapping("/auth/revoke-token")
-    public Map<String, String> authRevoke() { return Map.of("status", "ok"); }
-    @PostMapping("/auth/update-profile")
-    public Map<String, String> authUpdateProfile() { return Map.of("status", "ok"); }
-    @GetMapping("/auth/verify")
-    public Map<String, Object> authVerify() { return Map.of("valid", true); }
-
-    // ===== BACKUPS (implemented in BackupController) =====
-
-    // ===== CHATS =====
-    // ===== CONFIG (global) =====
-    @GetMapping("/config/agents/llm-routing")
-    public Map<String, String> configLlmRouting() { return Map.of("mode", "default"); }
-    @PutMapping("/config/agents/llm-routing")
-    public Map<String, String> configLlmRoutingUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/config/security/allow-no-auth-hosts")
-    public Map<String, Object> configSecurityAuthHosts() { return Map.of("enabled", false, "hosts", List.of()); }
-    @PutMapping("/config/security/allow-no-auth-hosts")
-    public Map<String, String> configSecurityAuthHostsUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/config/security/file-guard")
-    public Map<String, Object> configSecurityFileGuard() { return Map.of("enabled", false); }
-    @PutMapping("/config/security/file-guard")
-    public Map<String, String> configSecurityFileGuardUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/config/security/sandbox")
-    public Map<String, Object> configSecuritySandbox() { return Map.of("enabled", false); }
-    @PutMapping("/config/security/sandbox")
-    public Map<String, String> configSecuritySandboxUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/config/security/skill-scanner")
-    public Map<String, Object> configSkillScanner() { return Map.of("enabled", false); }
-    @PutMapping("/config/security/skill-scanner")
-    public Map<String, String> configSkillScannerUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/config/security/skill-scanner/blocked-history")
-    public List<Map<String, String>> configSkillBlockedHistory() { return List.of(); }
-    @DeleteMapping("/config/security/skill-scanner/blocked-history")
-    public Map<String, String> configSkillBlockedHistoryClear() { return Map.of("status", "ok"); }
-    @DeleteMapping("/config/security/skill-scanner/blocked-history/{index}")
-    public Map<String, String> configSkillBlockedDelete(@PathVariable String index) { return Map.of("status", "ok"); }
-    @PostMapping("/config/security/skill-scanner/whitelist")
-    public Map<String, String> configSkillWhitelistAdd() { return Map.of("status", "ok"); }
-    @DeleteMapping("/config/security/skill-scanner/whitelist/{skill_name}")
-    public Map<String, String> configSkillWhitelistRemove(@PathVariable String skill_name) { return Map.of("status", "ok"); }
-    @GetMapping("/config/security/tool-guard")
-    public Map<String, Object> configToolGuard() { return Map.of("enabled", false); }
-    @PutMapping("/config/security/tool-guard")
-    public Map<String, String> configToolGuardUpdate() { return Map.of("status", "ok"); }
-    @GetMapping("/config/security/tool-guard/builtin-rules")
-    public List<Map<String, String>> configToolGuardRules() { return List.of(); }
-
-    // ==== CONSOLE ====
-    // NOTE: /console/inbox/events, /console/inbox/read,
-    // /console/inbox/events/{event_id}, /console/inbox/traces/{run_id},
-    // /console/debug/backend-logs are implemented in ConsoleController.
-    // Duplicate routes are intentionally not declared here to avoid Spring
-    // ambiguous-mapping errors.
-
-    // ===== CRON =====
-    // NOTE: /cron/jobs and related endpoints are implemented in
-    // CronController. Duplicate routes are intentionally not declared here to
-    // avoid Spring ambiguous-mapping errors.
-
-    // ===== ENVS =====
-    // ===== LOCAL MODELS =====
+    // ===== LOCAL MODELS (llama.cpp integration not yet ported) =====
     @GetMapping("/local-models/config")
     public Map<String, String> localModelConfig() { return Map.of("enabled", "false"); }
     @PutMapping("/local-models/config")
@@ -148,70 +71,4 @@ public class FullCompatController {
     public Map<String, String> localModelServerDownloadStart() { return Map.of("status", "ok"); }
     @GetMapping("/local-models/server/update")
     public Map<String, String> localModelServerUpdate() { return Map.of("available", "false"); }
-
-    // ===== LOOPS =====
-    @DeleteMapping("/loops/custom/{mode_id}")
-    public Map<String, String> loopDelete(@PathVariable String mode_id) { return Map.of("status", "ok"); }
-    @PutMapping("/loops/custom/{mode_id}")
-    public Map<String, String> loopUpdate(@PathVariable String mode_id) { return Map.of("status", "ok"); }
-    @PostMapping("/loops/custom/{mode_id}/duplicate")
-    public Map<String, String> loopDuplicate(@PathVariable String mode_id) { return Map.of("id", UUID.randomUUID().toString()); }
-
-    // ===== MARKET =====
-    @PostMapping("/market/search")
-    public List<Map<String, String>> marketSearch() { return List.of(); }
-
-    // OpenRouter endpoints (non-conflicting)
-    @PostMapping("/models/openrouter/discover-extended")
-    public List<Map<String, String>> openrouterDiscover() { return List.of(); }
-    @PostMapping("/models/openrouter/models/filter")
-    public List<Map<String, String>> openrouterFilter() { return List.of(); }
-    @GetMapping("/models/openrouter/series")
-    public List<Map<String, String>> openrouterSeries() { return List.of(); }
-
-    // ===== PROVIDERS =====
-    @GetMapping("/providers/{provider_id}/oauth/callback")
-    public Map<String, String> providerOauthCallback(@PathVariable String provider_id) { return Map.of("status", "ok"); }
-
-    // ===== TOOL CALLS =====
-    @GetMapping("/tool-calls/{session_id}/{tool_call_id}")
-    public Map<String, String> toolCallDetail(@PathVariable String session_id, @PathVariable String tool_call_id) { return Map.of(); }
-    @PostMapping("/tool-calls/{session_id}/{tool_call_id}/cancel")
-    public Map<String, String> toolCallCancel(@PathVariable String session_id, @PathVariable String tool_call_id) { return Map.of("status", "ok"); }
-    @PostMapping("/tool-calls/{session_id}/{tool_call_id}/extend-deadline")
-    public Map<String, String> toolCallExtend(@PathVariable String session_id, @PathVariable String tool_call_id) { return Map.of("status", "ok"); }
-    @PostMapping("/tool-calls/{session_id}/{tool_call_id}/offload")
-    public Map<String, String> toolCallOffload(@PathVariable String session_id, @PathVariable String tool_call_id) { return Map.of("status", "ok"); }
-    @GetMapping("/tool-calls/{session_id}/{tool_call_id}/output")
-    public Map<String, String> toolCallOutput(@PathVariable String session_id, @PathVariable String tool_call_id) { return Map.of("content", ""); }
-    @GetMapping("/tool-calls/{session_id}/{tool_call_id}/stream")
-    public Map<String, String> toolCallStream(@PathVariable String session_id, @PathVariable String tool_call_id) { return Map.of("status", "ok"); }
-
-    // ===== TOOLS (implemented in ToolsController) =====
-
-    // ===== WORKSPACE =====
-    // === PRECISE METHOD GAPS ===
-
-    @PutMapping("/agents/{agentId}/config/agents/llm-routing")
-    public Map<String, String> agentLlmRoutingUpdate(@PathVariable String agentId) { return Map.of("status", "ok"); }
-
-    @PostMapping("/agents/{agentId}/cron/jobs")
-    public Map<String, String> agentCronJobCreate(@PathVariable String agentId) { return Map.of("id", UUID.randomUUID().toString()); }
-
-    @PostMapping("/coding-mode")
-    public Map<String, String> codingModeSet() { return Map.of("status", "ok"); }
-    @GetMapping("/coding-mode")
-    public Map<String, Object> codingModeGet() { return Map.of("enabled", false, "mode", "chat"); }
-
-    @PostMapping("/loops/custom")
-    public Map<String, String> loopsCustomCreate() { return Map.of("id", UUID.randomUUID().toString()); }
-
-    @PostMapping("/providers/{provider_id}/oauth/start")
-    public Map<String, Object> providerOauthStart(@PathVariable String provider_id) { return Map.of("auth_url", ""); }
-
-    @PutMapping("/settings/language")
-    public Map<String, String> languageUpdate() { return Map.of("status", "ok"); }
-
-    @GetMapping("/loops")
-    public List<Map<String, String>> loopsGet() { return List.of(); }
 }

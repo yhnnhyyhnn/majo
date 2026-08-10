@@ -361,12 +361,12 @@ fn start(app: &tauri::AppHandle) {
             return;
         }
     }
-    .env("PYTHONUTF8", "1")
-    .env("PYTHONIOENCODING", "utf-8")
-    .env("PYTHONUNBUFFERED", "1")
-    .env("PYTHONFAULTHANDLER", "1")
     .env("QWENPAW_DESKTOP_APP", "1")
-    .env(DESKTOP_SHUTDOWN_TOKEN_ENV, &shutdown_token);
+    .env(DESKTOP_SHUTDOWN_TOKEN_ENV, &shutdown_token)
+    // Java sidecar: fix the server port so it never collides with local apps,
+    // and pin the data directory to a stable per-user location.
+    .env("SERVER_PORT", command::DESKTOP_SERVER_PORT)
+    .env("MAJO_WORKING_DIR", majo_working_dir());
 
     log::info!("[backend] starting generation={generation}");
 
@@ -388,4 +388,21 @@ fn start(app: &tauri::AppHandle) {
         inner.stopping = false;
     });
     events::watch(app.clone(), generation, rx, terminated_sender);
+}
+
+/// Resolve the Majo data directory for the sidecar.
+///
+/// Mirrors the Java backend's own resolution (MAJO_WORKING_DIR env wins,
+/// otherwise a per-user data dir) so the desktop sidecar and the Java
+/// `SkillStore` agree on where agents.json / workspaces live.
+fn majo_working_dir() -> String {
+    if let Ok(dir) = std::env::var("MAJO_WORKING_DIR") {
+        if !dir.trim().is_empty() {
+            return dir;
+        }
+    }
+    match dirs::data_dir() {
+        Some(dir) => dir.join("majo").to_string_lossy().to_string(),
+        None => "data/majo".to_string(),
+    }
 }

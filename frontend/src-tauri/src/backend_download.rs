@@ -145,23 +145,24 @@ mod tests {
     }
 
     #[test]
-    fn coding_directory_prefers_agent_json_project_dir() {
+    fn coding_directory_uses_profile_workspace_dir() {
         let _guard = ENV_LOCK.lock().unwrap();
         let temp = tempfile::tempdir().unwrap();
         let working_dir = temp.path();
 
-        // Root config.json only contains the profile reference.
+        let workspace_dir = working_dir.join("workspaces/test-agent");
+        std::fs::create_dir_all(&workspace_dir).unwrap();
+
+        // Majo agents.json layout: profiles hold workspace_dir directly.
         std::fs::write(
-            working_dir.join("config.json"),
+            working_dir.join("agents.json"),
             serde_json::json!({
-                "agents": {
-                    "active_agent": "test-agent",
-                    "profiles": {
-                        "test-agent": {
-                            "id": "test-agent",
-                            "workspace_dir": working_dir.join("workspaces/test-agent").to_str().unwrap(),
-                            "enabled": true,
-                        }
+                "schema_version": "agents.v1",
+                "profiles": {
+                    "test-agent": {
+                        "id": "test-agent",
+                        "workspace_dir": workspace_dir.to_str().unwrap(),
+                        "enabled": true,
                     }
                 }
             })
@@ -169,64 +170,29 @@ mod tests {
         )
         .unwrap();
 
-        // Full agent config with a custom coding project dir.
-        let workspace_dir = working_dir.join("workspaces/test-agent");
-        std::fs::create_dir_all(&workspace_dir).unwrap();
-        let project_dir = working_dir.join("custom-project");
-        std::fs::create_dir_all(&project_dir).unwrap();
-        std::fs::write(
-            workspace_dir.join("agent.json"),
-            serde_json::json!({
-                "id": "test-agent",
-                "workspace_dir": workspace_dir.to_str().unwrap(),
-                "coding_mode": {
-                    "enabled": true,
-                    "project_dir": project_dir.to_str().unwrap(),
-                }
-            })
-            .to_string(),
-        )
-        .unwrap();
-
-        std::env::set_var("QWENPAW_WORKING_DIR", working_dir);
+        std::env::set_var("MAJO_WORKING_DIR", working_dir);
         let result = get_coding_directory(Some("test-agent")).unwrap();
-        std::env::remove_var("QWENPAW_WORKING_DIR");
+        std::env::remove_var("MAJO_WORKING_DIR");
 
-        assert_eq!(result, project_dir);
+        assert_eq!(result, workspace_dir);
     }
 
     #[test]
-    fn coding_directory_falls_back_to_workspace_dir() {
+    fn coding_directory_falls_back_to_workspaces_dir() {
         let _guard = ENV_LOCK.lock().unwrap();
         let temp = tempfile::tempdir().unwrap();
         let working_dir = temp.path();
 
-        std::fs::write(
-            working_dir.join("config.json"),
-            serde_json::json!({
-                "agents": {
-                    "active_agent": "test-agent",
-                    "profiles": {
-                        "test-agent": {
-                            "id": "test-agent",
-                            "workspace_dir": working_dir.join("workspaces/test-agent").to_str().unwrap(),
-                            "enabled": true,
-                        }
-                    }
-                }
-            })
-            .to_string(),
-        )
-        .unwrap();
-
-        let workspace_dir = working_dir.join("workspaces/test-agent");
-        std::fs::create_dir_all(&workspace_dir).unwrap();
-
-        std::env::set_var("QWENPAW_WORKING_DIR", working_dir);
+        // No agents.json yet: fall back to {working_dir}/workspaces/{agent_id}.
+        std::env::set_var("MAJO_WORKING_DIR", working_dir);
         let result = get_coding_directory(Some("test-agent")).unwrap();
-        std::env::remove_var("QWENPAW_WORKING_DIR");
+        std::env::remove_var("MAJO_WORKING_DIR");
 
-        assert_eq!(result, workspace_dir);
+        assert_eq!(
+            result,
+            working_dir.join("workspaces/test-agent")
+        );
+    }
     }
 }
 
@@ -322,88 +288,51 @@ fn resolve_workspace_file_path(
     Ok(canonical_target)
 }
 
-/// Get the coding project directory from QwenPaw configuration.
+/// Get the coding project directory from Majo configuration.
 ///
 /// Resolution order:
-/// 1. `QWENPAW_WORKING_DIR` / `COPAW_WORKING_DIR` environment variable
-/// 2. `~/.copaw` (legacy installation)
-/// 3. `~/.qwenpaw` (default)
+/// 1. `MAJO_WORKING_DIR` environment variable (same as the Java backend)
+/// 2. Per-user data dir (`{data_dir}/majo`), matching the desktop sidecar
 ///
-/// Then reads the agent profile reference from root `config.json` to locate the
-/// agent's workspace directory, and loads the full agent configuration from
-/// `workspace/agent.json`:
-/// - If `coding_mode.project_dir` is set, use it
-/// - Otherwise fall back to `workspace_dir`
+/// Then reads the agent profile from root `agents.json`:
+/// - If the agent profile has `workspace_dir`, use it
+/// - Otherwise fall back to `{working_dir}/workspaces/{agent_id}`
 ///
-/// If `agent_id` is None, uses the active agent from config.json.
+/// If `agent_id` is None, uses "default" (Majo's default agent id).
 fn get_coding_directory(agent_id: Option<&str>) -> Result<PathBuf, String> {
-    let working_dir = if let Ok(dir) = std::env::var("QWENPAW_WORKING_DIR") {
-        PathBuf::from(dir)
-    } else if let Ok(dir) = std::env::var("COPAW_WORKING_DIR") {
-        PathBuf::from(dir)
-    } else {
-        let home = dirs::home_dir().ok_or("failed to get home directory")?;
-        let copaw_legacy = home.join(".copaw");
-        if copaw_legacy.exists() {
-            copaw_legacy
-        } else {
-            home.join(".qwenpaw")
+    let working_dir = if let Ok(dir) = std::env::var("MAJO_WORKING_DIR") {
+        if dir.trim().is_empty() {
+            return Err("MAJO_WORKING_DIR is set but empty".into());
         }
+        PathBuf::from(dir)
+    } else if let Some(data_dir) = dirs::data_dir() {
+        data_dir.join("majo")
+    } else {
+        return Err("failed to resolve data directory".into());
     };
 
-    let config_path = working_dir.join("config.json");
-    if !config_path.exists() {
-        return Ok(working_dir);
+    let agents_path = working_dir.join("agents.json");
+    if !agents_path.is_file() {
+        return Ok(working_dir.join("workspaces").join(
+            agent_id.unwrap_or("default"),
+        ));
     }
 
-    let config_content = std::fs::read_to_string(&config_path)
-        .map_err(|err| format!("failed to read config.json: {err}"))?;
+    let agents_content = std::fs::read_to_string(&agents_path)
+        .map_err(|err| format!("failed to read agents.json: {err}"))?;
 
-    let config: serde_json::Value = serde_json::from_str(&config_content)
-        .map_err(|err| format!("failed to parse config.json: {err}"))?;
+    let config: serde_json::Value = serde_json::from_str(&agents_content)
+        .map_err(|err| format!("failed to parse agents.json: {err}"))?;
 
-    // Determine which agent to use
-    let target_agent = agent_id.unwrap_or_else(|| {
-        config
-            .get("agents")
-            .and_then(|a| a.get("active_agent"))
-            .and_then(|a| a.as_str())
-            .unwrap_or("default")
-    });
+    let target_agent = agent_id.unwrap_or("default");
 
-    // Get agent profile reference from root config (contains workspace_dir only).
-    // The full agent configuration (including coding_mode.project_dir) is stored
-    // in workspace/agent.json.
-    let agent_profile = config
-        .get("agents")
-        .and_then(|a| a.get("profiles"))
+    let workspace_dir = config
+        .get("profiles")
         .and_then(|p| p.get(target_agent))
-        .ok_or_else(|| format!("agent '{}' not found in config", target_agent))?;
-
-    let workspace_dir = agent_profile
-        .get("workspace_dir")
+        .and_then(|profile| profile.get("workspace_dir"))
         .and_then(|d| d.as_str())
         .map(|d| expand_tilde(d))
         .unwrap_or_else(|| working_dir.join("workspaces").join(target_agent));
-
-    // Load the full agent config from workspace/agent.json to read
-    // coding_mode.project_dir. Fall back to workspace_dir if the file is
-    // missing or cannot be parsed, matching the Python backend behavior.
-    let agent_config_path = workspace_dir.join("agent.json");
-    if agent_config_path.is_file() {
-        if let Ok(agent_config_content) = std::fs::read_to_string(&agent_config_path) {
-            if let Ok(agent_config) = serde_json::from_str::<serde_json::Value>(&agent_config_content) {
-                if let Some(project_dir) = agent_config
-                    .get("coding_mode")
-                    .and_then(|cm| cm.get("project_dir"))
-                    .and_then(|d| d.as_str())
-                    .map(|d| expand_tilde(d))
-                {
-                    return Ok(project_dir);
-                }
-            }
-        }
-    }
 
     Ok(workspace_dir)
 }

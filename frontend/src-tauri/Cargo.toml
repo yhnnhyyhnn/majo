@@ -1,10 +1,9 @@
 [package]
-name = "qwenpaw-desktop"
+name = "majo-desktop"
 version = "0.1.0"
-description = "QwenPaw Desktop Tauri shell that wraps the QwenPaw Console frontend and runs the Python FastAPI backend as a local sidecar process."
-authors = ["QwenPaw Contributors"]
+description = "Majo Desktop Tauri shell that wraps the Majo console frontend and runs the Java Spring Boot backend as a local sidecar process."
+authors = ["Majo Contributors"]
 license = "Apache-2.0"
-repository = "https://github.com/agentscope-ai/QwenPaw"
 edition = "2021"
 rust-version = "1.77.2"
 

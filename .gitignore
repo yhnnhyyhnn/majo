@@ -55,6 +55,12 @@ application.properties
 data/
 backend/data/
 
+# Desktop build staging (frontend dist copied in by scripts/pack-tauri/build-desktop.ps1)
+backend/src/main/resources/static/
+
+# Desktop build scripts outputs
+frontend/src-tauri/binaries/
+
 # Logs & cache
 *.log
 *.tmp

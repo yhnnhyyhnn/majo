@@ -1,15 +1,16 @@
 # Majo — AI Coding Agent
 
-Spring Boot + AgentScope + React + H2 + Flyway
+Spring Boot + AgentScope + React + H2 + Flyway + Tauri（桌面可选）
 
 ## 架构
 
 ```
                     ┌─────────────────────────────────────┐
                     │          Spring Boot Backend         │
-                    │  port 18789                          │
+                    │  port 18789 (浏览器) / 1911 (桌面)    │
                     │                                      │
   Browser ──────────┤  /                ← static (前端 SPA) │
+  Tauri WebView ────┤  /console         ← SPA (桌面入口)    │
                     │  /api/chat        ← Chat SSE 流式    │
                     │  /api/console/chat← Console Chat     │
                     │  /api/agents      ← 多Agent 管理      │
@@ -18,6 +19,7 @@ Spring Boot + AgentScope + React + H2 + Flyway
                     │  /api/backups     ← 备份/恢复/导入     │
                     │  /api/settings    ← 大模型配置        │
                     │  /api/providers   ← 模型供应商        │
+                    │  /api/desktop/shutdown ← 桌面优雅停机  │
                     │                                      │
                     │  ┌──────────────────────────────┐    │
                     │  │ AgentScope 2.0 (Harness)      │    │
@@ -33,6 +35,47 @@ Spring Boot + AgentScope + React + H2 + Flyway
                     │  └──────────┘  └─────────────────┘   │
                     └─────────────────────────────────────┘
 ```
+
+## 桌面应用（Tauri，可选）
+
+Majo 可以打包成原生桌面应用：`frontend/src-tauri/` 是一套 Tauri 2 壳（源自 qwenpaw-desktop 参考实现），把 Spring Boot 后端作为 **sidecar 子进程** 拉起，WebView 加载后端托管的 SPA。壳与后端之间只有两个语言无关的协议约定：
+
+1. **就绪协议**：后端启动后向 stdout 打印一行 `QWENPAW_BACKEND_READY {"port":N}`，Rust 壳解析出端口后引导前端跳转
+2. **优雅停机协议**：退出时壳 POST `http://127.0.0.1:{port}/api/desktop/shutdown`，携带 `X-QwenPaw-Desktop-Shutdown-Token` header（token 由壳通过 `QWENPAW_DESKTOP_SHUTDOWN_TOKEN` env 注入），后端校验后走 Spring 正常关闭流程，避免被强杀
+
+桌面模式关键行为：
+
+- 后端以 **`SERVER_PORT=1911`** 启动（避免与用户本地服务冲突），数据目录固定为 `MAJO_WORKING_DIR`（默认 `{data_dir}/majo`，如 `%APPDATA%/majo`）
+- 前端 SPA 通过 `/console` 路径访问（`SpaFallbackController` 转发到 index.html），`App.tsx` 自动识别 `/console` basename
+- 打包时内置一个 **jlink 裁剪的 JRE**（约 76MB），最终用户无需安装 Java
+- 自动更新（updater）当前为占位禁用状态——发布前需在 `tauri.conf.json` 填入自己的 minisign 公钥和更新服务器
+
+### 桌面构建
+
+```powershell
+# 需要：Node.js、JDK 21、Rust 工具链 (cargo + rustc)、各平台 WebView 依赖
+.\scripts\pack-tauri\build-desktop.ps1
+```
+
+脚本一条龙完成：前端构建 → dist 拷入后端 `static/` → `mvn package` → jlink 裁剪 JRE → 拷贝 jar 到 `src-tauri/binaries/` → `tauri build`。
+
+常用参数：
+
+```powershell
+# 只准备产物（jre + jar + static），不跑 tauri build
+.\scripts\pack-tauri\build-desktop.ps1 -SkipTauriBuild
+```
+
+产物输出到 `frontend/src-tauri/target/release/bundle/`（Windows 下为 NSIS 安装器 + 免安装目录）。
+
+### 桌面开发（dev 模式）
+
+```powershell
+cd frontend
+npm run tauri dev   # 需先 mvn package 生成 backend/target/majo-backend.jar
+```
+
+dev 模式壳直接 `java -jar backend/target/majo-backend.jar` 启动后端（jar 不存在时启动页会给出明确报错提示）。
 
 ## 数据目录（WORKING_DIR）
 
@@ -157,6 +200,9 @@ majo/
 │   │   │   ├── ACPConfigController.java     # /api/config/acp ACP 配置
 │   │   │   ├── BackupController.java        # /api/backups 备份
 │   │   │   ├── PluginsController.java       # /api/plugins 插件
+│   │   │   ├── DesktopController.java       # /api/desktop/shutdown 桌面停机
+│   │   │   ├── DesktopReadyPrinter.java     # 打印 QWENPAW_BACKEND_READY 就绪行
+│   │   │   ├── SpaFallbackController.java   # /console → index.html SPA fallback
 │   │   │   └── SettingsController.java      # GET/POST /api/settings
 │   │   ├── skill/                           # 技能系统 (pool + workspace)
 │   │   ├── entity/                          # JPA Entity
@@ -167,11 +213,19 @@ majo/
 │   │   └── db/migration/                    # Flyway 迁移脚本 (V1-V22)
 │   └── local-repo/                          # AgentScope jar (本地 Maven 仓库)
 ├── frontend/
-│   └── src/
-│       ├── pages/Chat/                      # 聊天界面
-│       ├── pages/Settings/                  # 设置页面
-│       ├── stores/agentStore.ts             # 多Agent 前端状态
-│       └── api/modules/                     # API 客户端
+│   ├── src/
+│   │   ├── pages/Chat/                      # 聊天界面
+│   │   ├── pages/Settings/                  # 设置页面
+│   │   ├── stores/agentStore.ts             # 多Agent 前端状态
+│   │   ├── api/modules/                     # API 客户端
+│   │   └── tauri/                           # 桌面引导/轮询/更新 (仅桌面构建)
+│   └── src-tauri/                           # Tauri 2 桌面壳 (Rust)
+│       ├── src/backend*.rs                  # sidecar 生命周期/命令/下载
+│       ├── tauri.conf.json                  # 桌面应用配置
+│       └── binaries/                        # jlink JRE + majo-backend.jar (构建产物)
+├── scripts/pack-tauri/
+│   ├── build-desktop.ps1                    # 桌面打包一条龙 (前端+jlink+tauri)
+│   └── finalize_tauri_bootstrap.mjs         # bootstrap 构建收尾 (no-op)
 ├── data/majo/                               # 运行时数据目录 (自动创建)
 ├── Dockerfile
 ├── docker-compose.yml
@@ -184,6 +238,7 @@ majo/
 | 端点 | 方法 | 说明 |
 |---|---|---|
 | `/api/health` | GET | 健康检查 |
+| `/api/version` | GET | 版本信息（桌面引导页就绪轮询） |
 | `/api/chat` | POST | 聊天消息 (SSE 流式) |
 | `/api/console/chat` | POST | Console Chat (SSE，支持 `X-Agent-Id`) |
 | `/api/chats` | GET | 会话列表（支持 `X-Agent-Id` 按 Agent 过滤） |
@@ -206,6 +261,7 @@ majo/
 | `/api/backups/delete` | POST | 删除备份 |
 | `/api/settings` | GET/POST | 大模型配置 |
 | `/api/providers` | GET | 模型供应商管理 |
+| `/api/desktop/shutdown` | POST | 桌面优雅停机（需 token header，仅桌面模式） |
 
 ## 备份
 
@@ -280,5 +336,6 @@ Flyway 会自动在 PostgreSQL 上执行已有迁移脚本。
 | 迁移工具 | Flyway 10 |
 | ORM | Spring Data JPA + Hibernate 6 |
 | 前端 | React + Vite + @agentscope-ai/chat |
+| 桌面壳（可选） | Tauri 2 + Rust（sidecar 模式，内置 jlink JRE） |
 | 部署 | Docker + Docker Compose + GitHub Actions |
 | Java | 21 |

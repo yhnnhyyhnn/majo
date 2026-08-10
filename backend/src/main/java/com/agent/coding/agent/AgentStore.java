@@ -331,6 +331,22 @@ public class AgentStore {
                 profile.put("tools", tools);
             }
         }
+        if (updates.containsKey("coding_mode")) {
+            Object cm = updates.get("coding_mode");
+            if (cm == null) {
+                profile.remove("coding_mode");
+            } else {
+                profile.put("coding_mode", cm);
+            }
+        }
+        if (updates.containsKey("llm_routing")) {
+            Object routing = updates.get("llm_routing");
+            if (routing == null) {
+                profile.remove("llm_routing");
+            } else {
+                profile.put("llm_routing", routing);
+            }
+        }
         profiles.put(agentId, profile);
         config.put("profiles", profiles);
         SkillStore.writeJsonAtomic(AGENTS_FILE, config);
@@ -434,6 +450,22 @@ public class AgentStore {
         Map<String, Object> acp = SkillService.asMap(config.get("acp"));
         acp.put("node_path", nodePath == null ? "" : nodePath);
         config.put("acp", acp);
+        SkillStore.writeJsonAtomic(AGENTS_FILE, config);
+    }
+
+    /**
+     * Set (or remove, when value is null) a top-level key in agents.json.
+     * Used by global config sections (e.g. {@code security}) that live
+     * alongside the profile map.
+     */
+    public static void updateRoot(String key, Object value) {
+        ensureAgentsInitialized();
+        Map<String, Object> config = loadConfig();
+        if (value == null) {
+            config.remove(key);
+        } else {
+            config.put(key, value);
+        }
         SkillStore.writeJsonAtomic(AGENTS_FILE, config);
     }
 
