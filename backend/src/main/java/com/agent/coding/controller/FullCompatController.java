@@ -12,34 +12,6 @@ import java.util.*;
 @CrossOrigin(origins = "*")
 public class FullCompatController {
 
-    // ===== ACCESS CONTROL (depends on channel system, not yet ported) =====
-    @GetMapping("/access-control")
-    public List<Map<String, String>> acList() { return List.of(); }
-    @GetMapping("/access-control/{channel}")
-    public Map<String, String> acChannel(@PathVariable String channel) { return Map.of("mode", "allow_all"); }
-    @PostMapping("/access-control/blacklist/add")
-    public Map<String, String> acBlacklistAdd() { return Map.of("status", "ok"); }
-    @PostMapping("/access-control/blacklist/remove")
-    public Map<String, String> acBlacklistRemove() { return Map.of("status", "ok"); }
-    @GetMapping("/access-control/pending/all")
-    public List<Map<String, String>> acPending() { return List.of(); }
-    @PostMapping("/access-control/pending/approve")
-    public Map<String, String> acApprove() { return Map.of("status", "ok"); }
-    @PostMapping("/access-control/pending/deny")
-    public Map<String, String> acDeny() { return Map.of("status", "ok"); }
-    @PostMapping("/access-control/pending/dismiss")
-    public Map<String, String> acDismiss() { return Map.of("status", "ok"); }
-    @PostMapping("/access-control/pending/remark")
-    public Map<String, String> acRemark() { return Map.of("status", "ok"); }
-    @PostMapping("/access-control/remark")
-    public Map<String, String> acSetRemark() { return Map.of("status", "ok"); }
-    @PostMapping("/access-control/username")
-    public Map<String, String> acUsername() { return Map.of("status", "ok"); }
-    @PostMapping("/access-control/whitelist/add")
-    public Map<String, String> acWhitelistAdd() { return Map.of("status", "ok"); }
-    @PostMapping("/access-control/whitelist/remove")
-    public Map<String, String> acWhitelistRemove() { return Map.of("status", "ok"); }
-
     // ===== LOCAL MODELS (llama.cpp integration not yet ported) =====
     @GetMapping("/local-models/config")
     public Map<String, String> localModelConfig() { return Map.of("enabled", "false"); }
