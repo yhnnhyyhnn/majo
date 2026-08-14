@@ -4,8 +4,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
 /**
  * In-memory registry of pending tool-execution approvals, ported from qwenpaw
@@ -14,8 +16,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * {@code /api/console/push-messages} and resolves them via
  * {@code /api/approval/approve|deny}.
  *
- * <p>Thread-safe; entries are keyed by {@code request_id} and carry the root
- * {@code session_id} so cross-session resolution can be validated.
+ * <p>Each pending request carries a {@link CompletableFuture} that the tool
+ * executor blocks on; {@link #resolve} completes it so the tool call can
+ * proceed or abort. Thread-safe; entries are keyed by {@code request_id} and
+ * carry the root {@code session_id} so cross-session resolution is validated.
  */
 @Component
 public class ApprovalStore {
@@ -31,6 +35,7 @@ public class ApprovalStore {
         public final String severity;
         public final long createdAt;
         public final long timeoutSeconds;
+        public final CompletableFuture<String> future;
         public volatile boolean resolved;
         public volatile String decision; // "approved" | "denied"
         public volatile String reason;
@@ -47,9 +52,19 @@ public class ApprovalStore {
             this.severity = severity;
             this.createdAt = System.currentTimeMillis();
             this.timeoutSeconds = timeoutSeconds;
+            this.future = new CompletableFuture<>();
             this.resolved = false;
             this.decision = null;
             this.reason = null;
+        }
+
+        /** Block until resolved (or timeout), returning the decision. */
+        public String await(long timeoutMillis) {
+            try {
+                return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                return "denied";
+            }
         }
     }
 
@@ -92,6 +107,7 @@ public class ApprovalStore {
         req.decision = decision;
         req.reason = reason;
         pending.remove(requestId);
+        req.future.complete("approved".equals(decision) ? "approved" : "denied");
         return req;
     }
 
@@ -102,7 +118,14 @@ public class ApprovalStore {
             if (r.resolved) {
                 return true;
             }
-            return r.timeoutSeconds > 0 && now - r.createdAt > r.timeoutSeconds * 1000;
+            if (r.timeoutSeconds > 0 && now - r.createdAt > r.timeoutSeconds * 1000) {
+                r.resolved = true;
+                r.decision = "denied";
+                r.reason = "timeout";
+                r.future.complete("denied");
+                return true;
+            }
+            return false;
         });
     }
 }

@@ -59,6 +59,7 @@ public class ConsoleController {
     private final SettingsService settingsService;
     private final InboxStore inboxStore;
     private final com.agent.coding.approval.ApprovalStore approvalStore;
+    private final com.agent.coding.approval.ApprovalHook approvalHook;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
                               ChatService chatService, Toolkit toolkit,
@@ -66,7 +67,8 @@ public class ConsoleController {
                               TokenUsageRepository tokenUsageRepo,
                               SettingsService settingsService,
                               InboxStore inboxStore,
-                              com.agent.coding.approval.ApprovalStore approvalStore) {
+                              com.agent.coding.approval.ApprovalStore approvalStore,
+                              com.agent.coding.approval.ApprovalHook approvalHook) {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
         this.chatService = chatService;
@@ -76,6 +78,7 @@ public class ConsoleController {
         this.settingsService = settingsService;
         this.inboxStore = inboxStore;
         this.approvalStore = approvalStore;
+        this.approvalHook = approvalHook;
     }
 
     @PostMapping(value = "/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -594,6 +597,7 @@ public class ConsoleController {
             .model(createModel(agentId))
             .toolkit(toolkit)
             .workspace(wsPath)
+            .hook(approvalHook)
             .build();
     }
 

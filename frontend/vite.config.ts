@@ -58,6 +58,10 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: ["./src/test/setup.ts"],
       css: true,
+      // Cap workers to avoid resource exhaustion when running the full suite
+      // on Windows (152 test files with heavy jsdom deps).
+      maxWorkers: 4,
+      minWorkers: 2,
       // all @agentscope-ai/* packages excluded from inline — they are large / have CSS imports
       // aliases below redirect each to a stub or compiled entry
       deps: {
