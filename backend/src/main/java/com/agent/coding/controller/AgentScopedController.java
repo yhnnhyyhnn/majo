@@ -45,6 +45,16 @@ public class AgentScopedController {
         }
     }
 
+    @GetMapping("/config/agents/llm-routing")
+    public ResponseEntity<?> getLlmRouting(@PathVariable String agentId) {
+        ensureAgent(agentId);
+        Object routing = AgentStore.getProfile(agentId).get("llm_routing");
+        if (routing == null) {
+            return ResponseEntity.ok(new LinkedHashMap<>());
+        }
+        return ResponseEntity.ok(routing);
+    }
+
     @PutMapping("/config/agents/llm-routing")
     public ResponseEntity<?> updateLlmRouting(@PathVariable String agentId,
                                               @RequestBody Map<String, Object> body) {

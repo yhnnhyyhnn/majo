@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -27,6 +29,37 @@ public class ApprovalController {
 
     public ApprovalController(ApprovalStore store) {
         this.store = store;
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<Map<String, Object>> list(@RequestParam(required = false) String session_id) {
+        List<ApprovalStore.ApprovalRequest> pendingList = store.listPending();
+        if (session_id != null && !session_id.isBlank()) {
+            pendingList = pendingList.stream()
+                    .filter(r -> session_id.equals(r.rootSessionId) || session_id.equals(r.sessionId))
+                    .toList();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (ApprovalStore.ApprovalRequest p : pendingList) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("request_id", p.requestId);
+            item.put("session_id", p.sessionId);
+            item.put("root_session_id", p.rootSessionId);
+            item.put("owner_agent_id", p.agentId);
+            item.put("agent_id", p.agentId);
+            item.put("tool_name", p.toolName);
+            item.put("tool_display_name", p.toolDisplayName);
+            item.put("severity", p.severity);
+            item.put("findings_count", 0);
+            item.put("created_at", java.time.Instant.ofEpochMilli(p.createdAt).toString());
+            item.put("timeout_seconds", p.timeoutSeconds);
+            item.put("result_summary", null);
+            result.add(item);
+        }
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("pending_approvals", result);
+        response.put("count", result.size());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/approve")

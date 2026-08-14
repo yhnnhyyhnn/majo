@@ -88,6 +88,65 @@ public class LoopsController {
         return result;
     }
 
+    @GetMapping("/gates/catalog")
+    public List<Map<String, Object>> listGateCatalog() {
+        List<Map<String, Object>> catalog = new ArrayList<>();
+        catalog.add(gateEntry("iteration", "Iteration limit",
+                "Stop after a fixed number of loop iterations.", "limits",
+                Map.of("max_iterations", Map.of("type", "integer", "default", 40, "minimum", 1, "maximum", 500))));
+        catalog.add(gateEntry("doom_loop", "Repetition protection",
+                "Detect repeated tool calls and change strategy.", "safety",
+                Map.of("window_size", Map.of("type", "integer", "default", 3, "minimum", 2, "maximum", 20),
+                        "similarity_threshold", Map.of("type", "number", "default", 1.0, "minimum", 0.0, "maximum", 1.0))));
+        catalog.add(gateEntry("token_budget", "Token budget",
+                "Limit prompt and completion token usage.", "limits",
+                Map.of("max_total_tokens", Map.of("type", "integer", "default", 120000, "minimum", 1))));
+        catalog.add(gateEntry("timeout", "Loop time limit",
+                "Stop at the next loop boundary after elapsed time.", "limits",
+                Map.of("max_seconds", Map.of("type", "number", "default", 1800.0, "minimum", 1.0, "maximum", 86400.0))));
+        catalog.add(gateEntry("tool_call_budget", "Tool-call budget",
+                "Limit all calls and selected tools.", "limits",
+                Map.of("max_calls", Map.of("type", "integer", "default", 30, "minimum", 1, "maximum", 10000))));
+        catalog.add(gateEntry("qualitative_rubric", "Qualitative completion check",
+                "Check text responses without tool calls using natural-language criteria.", "quality",
+                Map.of("rubric", Map.of("type", "string", "default",
+                        "Verify the task before stopping. Continue if work remains.")),
+                "completion_rubric"));
+        catalog.add(gateEntry("completion_rubric", "Completion signal check",
+                "Check text responses without tool calls for a completion signal.", "quality",
+                Map.of("completion_signal", Map.of("type", "string", "default", "COMPLETED")),
+                "completion_rubric", "model_call"));
+        return catalog;
+    }
+
+    private static Map<String, Object> gateEntry(String type, String title, String description,
+                                                 String category, Map<String, Object> params,
+                                                 String exclusiveGroup, String cost) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("type", type);
+        entry.put("title", title);
+        entry.put("description", description);
+        entry.put("category", category);
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", params);
+        entry.put("schema", schema);
+        entry.put("cost", cost);
+        entry.put("exclusive_group", exclusiveGroup);
+        return entry;
+    }
+
+    private static Map<String, Object> gateEntry(String type, String title, String description,
+                                                 String category, Map<String, Object> params,
+                                                 String exclusiveGroup) {
+        return gateEntry(type, title, description, category, params, exclusiveGroup, "none");
+    }
+
+    private static Map<String, Object> gateEntry(String type, String title, String description,
+                                                 String category, Map<String, Object> params) {
+        return gateEntry(type, title, description, category, params, null, "none");
+    }
+
     @GetMapping("/custom")
     public List<Map<String, Object>> listCustomModes(HttpServletRequest request) {
         return customModes(resolveAgentId(request));

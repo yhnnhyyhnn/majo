@@ -251,6 +251,27 @@ public class GitService {
         }
     }
 
+    // ── revert ─────────────────────────────────────────────────────────
+
+    public Map<String, Object> revert(Path dir, String commitHash) throws IOException, GitAPIException {
+        if (commitHash == null || commitHash.isBlank()) {
+            throw new IllegalArgumentException("commit_hash is required");
+        }
+        try (Git git = new Git(openRepo(dir))) {
+            org.eclipse.jgit.lib.ObjectId id = git.getRepository().resolve(commitHash);
+            if (id == null) {
+                throw new IllegalArgumentException("Unknown commit: " + commitHash);
+            }
+            org.eclipse.jgit.revwalk.RevCommit rev = git.revert().include(id).call();
+            if (rev == null) {
+                throw new IllegalArgumentException("Revert failed (conflict?): " + commitHash);
+            }
+            String shortName = rev.name().substring(0, Math.min(7, rev.name().length()));
+            String output = "[master " + shortName + "] Revert \"" + commitHash + "\"";
+            return Map.of("reverted", commitHash, "output", output);
+        }
+    }
+
     // ── discard ─────────────────────────────────────────────────────────
 
     public Map<String, Object> discard(Path dir, List<String> paths) throws IOException, GitAPIException {

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -683,12 +684,63 @@ public class PluginsController {
         return m;
     }
 
-    // ── Frontend plugin stubs ──────────────────────────────────────────
+    // ── Frontend plugin endpoints (public; frontend bundle loading) ─────
     @GetMapping("/frontend_plugin")
-    public List<Map<String, String>> frontendPlugins() { return List.of(); }
+    public List<Map<String, Object>> frontendPlugins() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        File[] items = PLUGINS_DIR.toFile().listFiles(File::isDirectory);
+        if (items == null) return result;
+        for (File item : items) {
+            File mf = new File(item, "plugin.json");
+            if (!mf.exists()) continue;
+            try {
+                Map<String, Object> m = MAPPER.readValue(mf, Map.class);
+                Object entry = m.get("entry");
+                Object frontendEntry = entry instanceof Map<?, ?> em ? em.get("frontend") : null;
+                if (frontendEntry == null) continue; // only plugins with a frontend entry
+                Map<String, Object> info = new LinkedHashMap<>();
+                info.put("id", m.getOrDefault("id", item.getName()));
+                info.put("name", m.getOrDefault("name", item.getName()));
+                info.put("version", m.getOrDefault("version", "0.0.0"));
+                info.put("description", m.getOrDefault("description", ""));
+                info.put("author", m.getOrDefault("author", ""));
+                info.put("enabled", true);
+                info.put("loaded", true);
+                info.put("plugin_type", m.getOrDefault("plugin_type", "unknown"));
+                info.put("frontend_entry", frontendEntry);
+                result.add(info);
+            } catch (Exception e) {
+                log.warn("Skip broken plugin {}: {}", item.getName(), e.getMessage());
+            }
+        }
+        return result;
+    }
 
-    @GetMapping("/frontend_plugin/{plugin_id}/files/{file_path}")
-    public Map<String, String> frontendPluginFile(@PathVariable String plugin_id, @PathVariable String file_path) { return Map.of("content", ""); }
+    @GetMapping("/frontend_plugin/{plugin_id}/files/{file_path:.*}")
+    public ResponseEntity<?> frontendPluginFile(@PathVariable String plugin_id,
+                                                @PathVariable String file_path) {
+        Path dir = findPluginDir(plugin_id);
+        if (dir == null) {
+            return ResponseEntity.status(404).body(Map.of("detail", "Plugin not found: " + plugin_id));
+        }
+        Path target = dir.resolve(file_path).normalize();
+        if (!target.startsWith(dir.normalize()) || !Files.isRegularFile(target)) {
+            return ResponseEntity.status(404).body(Map.of("detail", "File not found"));
+        }
+        try {
+            byte[] bytes = Files.readAllBytes(target);
+            String lower = file_path.toLowerCase();
+            MediaType mediaType = lower.endsWith(".js") ? MediaType.valueOf("application/javascript")
+                    : lower.endsWith(".css") ? MediaType.valueOf("text/css")
+                    : lower.endsWith(".json") ? MediaType.APPLICATION_JSON
+                    : lower.endsWith(".png") ? MediaType.IMAGE_PNG
+                    : lower.endsWith(".svg") ? MediaType.valueOf("image/svg+xml")
+                    : MediaType.APPLICATION_OCTET_STREAM;
+            return ResponseEntity.ok().contentType(mediaType).body(bytes);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body(Map.of("detail", e.getMessage()));
+        }
+    }
 
     // ── Agent-scoped plugins (port of qwenpaw agent_scoped /agents/{agentId}/plugins) ──
     @GetMapping("/agents/{agentId}/plugins")

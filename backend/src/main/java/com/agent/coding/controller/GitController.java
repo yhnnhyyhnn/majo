@@ -136,6 +136,19 @@ public class GitController {
         }
     }
 
+    @PostMapping("/revert")
+    public ResponseEntity<?> revert(@RequestBody Map<String, Object> body,
+                                    HttpServletRequest request) {
+        try {
+            String commitHash = String.valueOf(body.getOrDefault("commit_hash", ""));
+            return ResponseEntity.ok(gitService.revert(resolveDir(request), commitHash));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("detail", e.getMessage()));
+        } catch (Exception e) {
+            return handle(e);
+        }
+    }
+
     @GetMapping("/commit-diff")
     public ResponseEntity<?> commitDiff(@RequestParam String commit_hash,
                                         HttpServletRequest request) {
