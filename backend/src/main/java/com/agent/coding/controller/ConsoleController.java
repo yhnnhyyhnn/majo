@@ -13,6 +13,7 @@ import com.agent.coding.loop.*;
 import com.agent.coding.repository.TokenUsageRepository;
 import com.agent.coding.service.ModelRoutingService;
 import com.agent.coding.service.TaskTracker;
+import com.agent.coding.skill.SkillService;
 import com.agent.coding.skill.SkillStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -99,7 +100,7 @@ public class ConsoleController {
         final String agentId = (rawAgentId != null && !rawAgentId.isBlank())
             ? rawAgentId : Objects.toString(body.get("agent_id"), "default");
 
-        LoopCommand loopCmd = parseLoopCommand(prompt);
+        LoopCommand loopCmd = parseLoopCommand(prompt, agentId);
         if (loopCmd != null) {
             return consoleChatLoop(loopCmd, sessionId, workspace, agentId, body, prompt);
         }
@@ -248,28 +249,68 @@ public class ConsoleController {
         });
     }
 
-    /** Parsed slash command activating a loop mode (/goal or /mission). */
-    private record LoopCommand(String modeId, String goal) {
-        static LoopCommand parse(String prompt) {
-            String trimmed = prompt.stripLeading();
-            if (trimmed.startsWith("/goal")) {
-                return new LoopCommand("goal", trimmed.substring(5).trim());
-            }
-            if (trimmed.startsWith("/mission")) {
-                return new LoopCommand("mission", trimmed.substring(8).trim());
-            }
-            return null;
+    /** Parsed slash command activating a loop mode (built-in or custom). */
+    private record LoopCommand(String modeId, String goal, String slashCommand) {
+        static LoopCommand builtin(String modeId, String args) {
+            return new LoopCommand(modeId, args, modeId);
         }
     }
 
-    private static LoopCommand parseLoopCommand(String prompt) {
-        return LoopCommand.parse(prompt == null ? "" : prompt);
+    /** Resolve the slash command in a prompt against built-in (/goal, /mission)
+     *  and the agent's custom loop modes (running.loop.custom_modes). */
+    private static LoopCommand parseLoopCommand(String prompt, String agentId) {
+        String trimmed = (prompt == null ? "" : prompt).stripLeading();
+        if (trimmed.startsWith("/goal")) {
+            return LoopCommand.builtin("goal", trimmed.substring(5).trim());
+        }
+        if (trimmed.startsWith("/mission")) {
+            return LoopCommand.builtin("mission", trimmed.substring(8).trim());
+        }
+        if (trimmed.startsWith("/")) {
+            int end = trimmed.indexOf(' ');
+            String cmd = end < 0 ? trimmed : trimmed.substring(0, end);
+            for (Map<String, Object> custom : customLoopModes(agentId)) {
+                String slash = SkillService.str(custom.get("slash_command"));
+                if (!slash.isBlank() && ("/" + slash).equalsIgnoreCase(cmd)) {
+                    String args = end < 0 ? "" : trimmed.substring(end + 1).trim();
+                    return new LoopCommand("custom:" + SkillService.str(custom.get("id")),
+                            args, slash);
+                }
+            }
+        }
+        return null;
     }
 
-    /** Build the gate handler for a built-in loop mode, mirroring qwenpaw
-     *  goal/mission mode setup. goal: doom-loop + iteration + token budget +
-     *  completion check; mission: doom-loop + iteration + timeout. */
-    private StopHandler buildLoopHandler(String modeId) {
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> customLoopModes(String agentId) {
+        Map<String, Object> running = AgentStore.getRunningConfig(agentId);
+        Map<String, Object> loop = SkillService.asMap(running.get("loop"));
+        Object cm = loop.get("custom_modes");
+        if (cm instanceof List<?> list) {
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> m) {
+                    result.add(new LinkedHashMap<>((Map<String, Object>) m));
+                }
+            }
+            return result;
+        }
+        return new ArrayList<>();
+    }
+
+    /** Build the gate handler for a loop mode. Built-in goal/mission use the
+     *  fixed pipelines (doom-loop + iteration + budget/completion gates);
+     *  custom modes compile their user-configured gates via LoopCompiler. */
+    private StopHandler buildLoopHandler(String modeId, String agentId) {
+        if (modeId != null && modeId.startsWith("custom:")) {
+            String customId = modeId.substring("custom:".length());
+            for (Map<String, Object> custom : customLoopModes(agentId)) {
+                if (customId.equals(SkillService.str(custom.get("id")))) {
+                    return LoopCompiler.defaultCompiler().compile(custom);
+                }
+            }
+            throw new IllegalArgumentException("Custom loop mode not found: " + customId);
+        }
         StopHandler handler = new StopHandler();
         handler.register(DoomLoopGate.defaultConfig());
         handler.register(new IterationGate(20));
@@ -307,9 +348,11 @@ public class ConsoleController {
         var usageHolder = new Object() { int inputTokens, outputTokens; double timeSec; };
         List<Map<String, Object>> completedMessages = new ArrayList<>();
 
-        StopHandler handler = buildLoopHandler(cmd.modeId());
+        StopHandler handler = buildLoopHandler(cmd.modeId(), agentId);
+        String modeName = cmd.modeId().startsWith("custom:")
+                ? cmd.slashCommand() : cmd.modeId();
         LoopSessionManager.LoopSession session = loopSessionManager.start(
-                sessionId, cmd.modeId(), cmd.modeId(), cmd.goal(), handler);
+                sessionId, cmd.modeId(), modeName, cmd.goal(), handler);
 
         return Flux.concat(
             Flux.just(

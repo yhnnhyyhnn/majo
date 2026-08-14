@@ -91,7 +91,7 @@ public class LoopSessionManager {
         Map<String, Object> mode = new LinkedHashMap<>();
         mode.put("id", session.modeId);
         mode.put("name", session.modeName);
-        mode.put("slash_command", session.modeId);
+        mode.put("slash_command", session.modeName);
         mode.put("description", "Active " + session.modeName + " loop.");
         mode.put("source", "builtin");
         Map<String, Object> result = new LinkedHashMap<>();
