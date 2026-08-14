@@ -9,6 +9,7 @@ import com.agent.coding.entity.ChatEntity;
 import com.agent.coding.entity.TokenUsageEntity;
 import com.agent.coding.inbox.InboxStore;
 import com.agent.coding.inbox.InboxTraceStore;
+import com.agent.coding.loop.*;
 import com.agent.coding.repository.TokenUsageRepository;
 import com.agent.coding.service.ModelRoutingService;
 import com.agent.coding.service.TaskTracker;
@@ -60,6 +61,7 @@ public class ConsoleController {
     private final InboxStore inboxStore;
     private final com.agent.coding.approval.ApprovalStore approvalStore;
     private final com.agent.coding.approval.ApprovalHook approvalHook;
+    private final LoopSessionManager loopSessionManager;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
                               ChatService chatService, Toolkit toolkit,
@@ -68,7 +70,8 @@ public class ConsoleController {
                               SettingsService settingsService,
                               InboxStore inboxStore,
                               com.agent.coding.approval.ApprovalStore approvalStore,
-                              com.agent.coding.approval.ApprovalHook approvalHook) {
+                              com.agent.coding.approval.ApprovalHook approvalHook,
+                              LoopSessionManager loopSessionManager) {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
         this.chatService = chatService;
@@ -79,6 +82,7 @@ public class ConsoleController {
         this.inboxStore = inboxStore;
         this.approvalStore = approvalStore;
         this.approvalHook = approvalHook;
+        this.loopSessionManager = loopSessionManager;
     }
 
     @PostMapping(value = "/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -94,6 +98,11 @@ public class ConsoleController {
         String rawAgentId = request.getHeader("X-Agent-Id");
         final String agentId = (rawAgentId != null && !rawAgentId.isBlank())
             ? rawAgentId : Objects.toString(body.get("agent_id"), "default");
+
+        LoopCommand loopCmd = parseLoopCommand(prompt);
+        if (loopCmd != null) {
+            return consoleChatLoop(loopCmd, sessionId, workspace, agentId, body, prompt);
+        }
 
         WorkspaceContext.set(workspace);
 
@@ -239,7 +248,275 @@ public class ConsoleController {
         });
     }
 
-    @GetMapping("/agent-stats")
+    /** Parsed slash command activating a loop mode (/goal or /mission). */
+    private record LoopCommand(String modeId, String goal) {
+        static LoopCommand parse(String prompt) {
+            String trimmed = prompt.stripLeading();
+            if (trimmed.startsWith("/goal")) {
+                return new LoopCommand("goal", trimmed.substring(5).trim());
+            }
+            if (trimmed.startsWith("/mission")) {
+                return new LoopCommand("mission", trimmed.substring(8).trim());
+            }
+            return null;
+        }
+    }
+
+    private static LoopCommand parseLoopCommand(String prompt) {
+        return LoopCommand.parse(prompt == null ? "" : prompt);
+    }
+
+    /** Build the gate handler for a built-in loop mode, mirroring qwenpaw
+     *  goal/mission mode setup. goal: doom-loop + iteration + token budget +
+     *  completion check; mission: doom-loop + iteration + timeout. */
+    private StopHandler buildLoopHandler(String modeId) {
+        StopHandler handler = new StopHandler();
+        handler.register(DoomLoopGate.defaultConfig());
+        handler.register(new IterationGate(20));
+        if ("mission".equals(modeId)) {
+            handler.register(new TimeoutGate(1800));
+        } else {
+            handler.register(new TokenBudgetGate(300_000));
+            handler.register(new CompletionGate(null, 10));
+        }
+        return handler;
+    }
+
+    /** Multi-turn loop execution for /goal and /mission commands. Each turn
+     *  streams the agent events (reusing the single-turn event conversion via
+     *  streamTurn), then runs the stop-handler gates: TERMINATE ends the loop,
+     *  INTERRUPT_AND_CONTINUE injects the continuation as the next turn. */
+    private Flux<String> consoleChatLoop(LoopCommand cmd, String sessionId, String workspace,
+                                         String agentId, Map<String, Object> body, String rawPrompt) {
+        WorkspaceContext.set(workspace);
+        var chatEntity = chatService.getOrCreateBySession(agentId, sessionId, rawPrompt);
+        final String chatId = chatEntity.getId();
+        final String placeholderTitle = chatEntity.getTitle();
+        final String firstUserText = rawPrompt;
+        chatService.setStatus(chatId, "running");
+        taskTracker.setRunning(chatId);
+
+        HarnessAgent agent = resolveAgent(workspace, agentId);
+        var ctx = RuntimeContext.builder()
+            .sessionId(sessionId)
+            .userId(Objects.toString(body.getOrDefault("user_id", "web-user"), "web-user"))
+            .build();
+
+        String responseId = "response_" + UUID.randomUUID().toString().replace("-", "");
+        var seq = new java.util.concurrent.atomic.AtomicLong(1);
+        var usageHolder = new Object() { int inputTokens, outputTokens; double timeSec; };
+        List<Map<String, Object>> completedMessages = new ArrayList<>();
+
+        StopHandler handler = buildLoopHandler(cmd.modeId());
+        LoopSessionManager.LoopSession session = loopSessionManager.start(
+                sessionId, cmd.modeId(), cmd.modeId(), cmd.goal(), handler);
+
+        return Flux.concat(
+            Flux.just(
+                sseEvent(qwenResponseCreated(responseId, sessionId, seq)),
+                sseEvent(qwenResponseInProgress(responseId, sessionId, seq))
+            ),
+            runLoopTurns(agent, cmd.goal().isBlank() ? rawPrompt : cmd.goal(),
+                    ctx, sessionId, seq, usageHolder, completedMessages, session, responseId, cmd.modeId())
+        ).doFinally(sig -> {
+            loopSessionManager.end(sessionId);
+            taskTracker.setDone(chatId);
+            saveConsoleMessages(chatId, firstUserText, completedMessages);
+            chatService.setStatus(chatId, "idle");
+            if (usageHolder.inputTokens > 0 || usageHolder.outputTokens > 0) {
+                var slot = modelRouting.resolveEffectiveModel(agentId);
+                String today = LocalDate.now().toString();
+                tokenUsageRepo.save(new TokenUsageEntity(today,
+                    slot.providerId() != null ? slot.providerId() : "",
+                    slot.modelId() != null ? slot.modelId() : "",
+                    usageHolder.inputTokens, usageHolder.outputTokens));
+            }
+            if (firstUserText != null && !firstUserText.isBlank()
+                    && !"New Chat".equals(placeholderTitle)) {
+                new Thread(() -> generateTitle(chatId, placeholderTitle, firstUserText, agentId)).start();
+            }
+            WorkspaceContext.clear();
+        });
+    }
+
+    /** Recursively chain agent turns until a gate terminates the loop. */
+    private Flux<String> runLoopTurns(HarnessAgent agent, String prompt, RuntimeContext ctx,
+                                      String sessionId, java.util.concurrent.atomic.AtomicLong seq,
+                                      Object usageHolder, List<Map<String, Object>> completedMessages,
+                                      LoopSessionManager.LoopSession session, String responseId,
+                                      String modeId) {
+        int iteration = session.iteration;
+        session.iteration = iteration + 1;
+        final String[] turnText = { "" };
+        final LoopContext.ToolCallRecord[] lastTool = { null };
+        return streamTurn(agent, prompt, ctx, sessionId, seq, usageHolder,
+                        completedMessages, turnText, lastTool)
+            .concatWith(Flux.defer(() -> {
+                LoopContext loopCtx = new LoopContext(session.iteration,
+                        lastTool[0] != null, turnText[0], lastTool[0], 0);
+                StopHandlerResult result = session.handler.run(loopCtx);
+                if (result.isContinue() && loopSessionManager.isActive(sessionId)) {
+                    return Flux.concat(
+                        Flux.just(sseEvent(QwenEvents.contentFinal(
+                            "msg_" + UUID.randomUUID().toString().replace("-", ""),
+                            turnText[0], seq))),
+                        runLoopTurns(agent, result.continuationMessage, ctx, sessionId,
+                                seq, usageHolder, completedMessages, session, responseId, modeId)
+                    );
+                }
+                if (result.isTerminate()) {
+                    session.lastResult = result.reason;
+                }
+                return Flux.just(sseEvent(QwenEvents.responseCompleted(responseId, sessionId, seq,
+                        inputTokens(usageHolder), outputTokens(usageHolder), completedMessages)),
+                        sseEvent(QwenEvents.turnUsage(sessionId, seq,
+                                inputTokens(usageHolder), outputTokens(usageHolder))));
+            }));
+    }
+
+    private static int inputTokens(Object usageHolder) {
+        try {
+            var f = usageHolder.getClass().getDeclaredField("inputTokens");
+            f.setAccessible(true);
+            return f.getInt(usageHolder);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static int outputTokens(Object usageHolder) {
+        try {
+            var f = usageHolder.getClass().getDeclaredField("outputTokens");
+            f.setAccessible(true);
+            return f.getInt(usageHolder);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** Stream one agent turn, converting AgentScope events to qwen SSE
+     *  events. Mirrors the single-turn handling in consoleChat. Returns the
+     *  turn's final text and last tool call via out-params for gate
+     *  evaluation. */
+    private Flux<String> streamTurn(HarnessAgent agent, String prompt, RuntimeContext ctx,
+                                    String sessionId, java.util.concurrent.atomic.AtomicLong seq,
+                                    Object usageHolder, List<Map<String, Object>> completedMessages,
+                                    String[] turnText, LoopContext.ToolCallRecord[] lastTool) {
+        var thinker = new StringBuilder();
+        var texter = new StringBuilder();
+        var thinkingMsgId = new String[] { null };
+        var textMsgId = new String[] { null };
+        return agent.streamEvents(new UserMessage(prompt), ctx)
+            .handle((event, sink) -> {
+                String type = event.getClass().getSimpleName();
+                try {
+                    switch (type) {
+                        case "ThinkingBlockStartEvent": {
+                            thinkingMsgId[0] = "msg_" + UUID.randomUUID().toString().replace("-", "");
+                            thinker.setLength(0);
+                            sink.next(sseEvent(QwenEvents.reasoningInProgress(thinkingMsgId[0], seq)));
+                            return;
+                        }
+                        case "ThinkingBlockDeltaEvent": {
+                            String delta = event.getClass().getMethod("getDelta").invoke(event).toString();
+                            thinker.append(delta);
+                            sink.next(sseEvent(QwenEvents.contentDelta(thinkingMsgId[0], delta, seq, thinker.toString())));
+                            return;
+                        }
+                        case "ThinkingBlockEndEvent": {
+                            String full = thinker.toString();
+                            var msg = new LinkedHashMap<String, Object>();
+                            msg.put("id", thinkingMsgId[0]);
+                            msg.put("type", "reasoning");
+                            msg.put("role", "assistant");
+                            msg.put("content", List.of(Map.of("type", "text", "text", full)));
+                            msg.put("status", "completed");
+                            completedMessages.add(msg);
+                            sink.next(sseEvent(QwenEvents.contentFinal(thinkingMsgId[0], full, seq)));
+                            sink.next(sseEvent(QwenEvents.reasoningCompleted(thinkingMsgId[0], full, seq)));
+                            return;
+                        }
+                        case "TextBlockStartEvent": {
+                            textMsgId[0] = "msg_" + UUID.randomUUID().toString().replace("-", "");
+                            texter.setLength(0);
+                            sink.next(sseEvent(QwenEvents.textMessageInProgress(textMsgId[0], seq)));
+                            return;
+                        }
+                        case "TextBlockDeltaEvent": {
+                            String delta = event.getClass().getMethod("getDelta").invoke(event).toString();
+                            texter.append(delta);
+                            sink.next(sseEvent(QwenEvents.contentDelta(textMsgId[0], delta, seq, texter.toString())));
+                            return;
+                        }
+                        case "TextBlockEndEvent": {
+                            String full = texter.toString();
+                            turnText[0] = full;
+                            var msg = new LinkedHashMap<String, Object>();
+                            msg.put("id", textMsgId[0]);
+                            msg.put("type", "message");
+                            msg.put("role", "assistant");
+                            msg.put("content", List.of(Map.of("type", "text", "text", full)));
+                            msg.put("status", "completed");
+                            completedMessages.add(msg);
+                            sink.next(sseEvent(QwenEvents.contentFinal(textMsgId[0], full, seq)));
+                            sink.next(sseEvent(QwenEvents.textMessageCompleted(textMsgId[0], full, seq)));
+                            return;
+                        }
+                        case "ToolCallEndEvent": {
+                            try {
+                                String name = String.valueOf(event.getClass().getMethod("getName").invoke(event));
+                                String input = String.valueOf(event.getClass().getMethod("getInput").invoke(event));
+                                lastTool[0] = new LoopContext.ToolCallRecord(name, DoomLoopGate.hashArgs(input));
+                            } catch (Exception ignored) {
+                            }
+                            return;
+                        }
+                        case "ModelCallEndEvent": {
+                            try {
+                                var usageMethod = event.getClass().getMethod("getUsage");
+                                var usage = usageMethod.invoke(event);
+                                if (usage != null) {
+                                    var u = (Map<?, ?>) usage;
+                                    setUsageField(usageHolder, "inputTokens", intVal(u, "inputTokens"));
+                                    setUsageField(usageHolder, "outputTokens", intVal(u, "outputTokens"));
+                                    setUsageField(usageHolder, "timeSec", doubleVal(u, "time"));
+                                }
+                            } catch (Exception e) {
+                                try {
+                                    var tree = MAPPER.valueToTree(event);
+                                    var usage = tree.get("usage");
+                                    if (usage != null) {
+                                        setUsageField(usageHolder, "inputTokens", usage.get("inputTokens").asInt());
+                                        setUsageField(usageHolder, "outputTokens", usage.get("outputTokens").asInt());
+                                        if (usage.has("time")) setUsageField(usageHolder, "timeSec", usage.get("time").asDouble());
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                            return;
+                        }
+                        default:
+                            return;
+                    }
+                } catch (Exception e) {
+                    return;
+                }
+            });
+    }
+
+    private static void setUsageField(Object usageHolder, String name, Object value) {
+        try {
+            var f = usageHolder.getClass().getDeclaredField(name);
+            f.setAccessible(true);
+            if (value instanceof Double d && f.getType() == double.class) {
+                f.setDouble(usageHolder, d);
+            } else if (value instanceof Integer i && f.getType() == int.class) {
+                f.setInt(usageHolder, i);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+
     public AgentStatsSummary agentStats(
             @RequestParam(required = false) String start_date,
             @RequestParam(required = false) String end_date) {
@@ -338,7 +615,6 @@ public class ConsoleController {
             @RequestParam(required = false) String chat_id,
             @RequestParam(required = false) String session_id) {
 
-        String executionPhase = "awaiting_user";
         String resolvedSessionId = session_id;
 
         if (chat_id != null && !chat_id.isBlank()) {
@@ -346,10 +622,6 @@ public class ConsoleController {
                 ChatEntity chat = chatService.getChat(chat_id);
                 if (chat != null) {
                     resolvedSessionId = chat.getSessionId();
-                    String runStatus = taskTracker.getStatus(chat.getId());
-                    if ("running".equals(runStatus)) {
-                        executionPhase = "running";
-                    }
                 } else if (resolvedSessionId == null || resolvedSessionId.isBlank()) {
                     return idleStatus();
                 }
@@ -364,7 +636,17 @@ public class ConsoleController {
             return idleStatus();
         }
 
-        return idleStatus();
+        Map<String, Object> status = loopSessionManager.status(resolvedSessionId);
+        if ("idle".equals(status.get("state")) && chat_id != null && !chat_id.isBlank()) {
+            String runStatus = taskTracker.getStatus(chat_id);
+            if ("running".equals(runStatus)) {
+                var m = new LinkedHashMap<String, Object>();
+                m.put("state", "running");
+                m.put("mode", null);
+                return m;
+            }
+        }
+        return status;
     }
 
     private static Map<String, Object> idleStatus() {
