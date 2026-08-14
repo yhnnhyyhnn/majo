@@ -321,6 +321,20 @@ public class ModelProviderController {
     @PutMapping("/models/{provider_id}/models/{model_id}/config")
     public ResponseEntity<?> configureModel(@PathVariable String provider_id, @PathVariable String model_id,
                                             @RequestBody Map<String, Object> body) {
+        // Custom provider (numeric id stored in model_configs): update its model name.
+        try {
+            Long id = Long.parseLong(provider_id);
+            var mc = modelRepo.findById(id).orElse(null);
+            if (mc != null) {
+                if (body.containsKey("model_name") || body.containsKey("model_id")) {
+                    mc.setModelName(Objects.toString(body.getOrDefault("model_name", body.get("model_id")), mc.getModelName()));
+                }
+                modelRepo.save(mc);
+                return ResponseEntity.ok(toCustomProviderDto(mc));
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        // Built-in provider: update its model row.
         var opt = providerModelRepo.findByProviderIdAndModelId(provider_id, model_id);
         if (opt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("detail", "Model '" + model_id + "' not found in provider '" + provider_id + "'"));
