@@ -8,6 +8,7 @@ import com.agent.coding.entity.ProviderModelEntity;
 import com.agent.coding.repository.ModelConfigRepository;
 import com.agent.coding.repository.ProviderModelRepository;
 import com.agent.coding.repository.ProviderRepository;
+import com.agent.coding.service.ModelDiscoveryService;
 import com.agent.coding.service.ModelRoutingService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,14 +30,17 @@ public class ModelProviderController {
     private final ModelConfigRepository modelRepo;
     private final ProviderRepository providerRepo;
     private final ProviderModelRepository providerModelRepo;
+    private final ModelDiscoveryService discoveryService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public ModelProviderController(ModelRoutingService modelRouting, ModelConfigRepository modelRepo,
-                                    ProviderRepository providerRepo, ProviderModelRepository providerModelRepo) {
+                                    ProviderRepository providerRepo, ProviderModelRepository providerModelRepo,
+                                    ModelDiscoveryService discoveryService) {
         this.modelRouting = modelRouting;
         this.modelRepo = modelRepo;
         this.providerRepo = providerRepo;
         this.providerModelRepo = providerModelRepo;
+        this.discoveryService = discoveryService;
     }
 
     @GetMapping("/models")
@@ -315,24 +319,112 @@ public class ModelProviderController {
     }
 
     @PutMapping("/models/{provider_id}/models/{model_id}/config")
-    public Map<String, Object> configureModel(@PathVariable String provider_id, @PathVariable String model_id,
-                                               @RequestBody Map<String, Object> body) { return Map.of(); }
+    public ResponseEntity<?> configureModel(@PathVariable String provider_id, @PathVariable String model_id,
+                                            @RequestBody Map<String, Object> body) {
+        var opt = providerModelRepo.findByProviderIdAndModelId(provider_id, model_id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("detail", "Model '" + model_id + "' not found in provider '" + provider_id + "'"));
+        }
+        var m = opt.get();
+        if (body.containsKey("max_tokens")) m.setMaxTokens(((Number) body.get("max_tokens")).intValue());
+        if (body.containsKey("max_input_length")) {
+            m.setMaxInputLength(((Number) body.get("max_input_length")).intValue());
+            m.setMaxInputLengthConfigured(true);
+        }
+        if (body.containsKey("generate_kwargs")) m.setGenerateKwargs(writeJson(body.get("generate_kwargs")));
+        if (body.containsKey("relay_reasoning")) m.setRelayReasoning(Boolean.TRUE.equals(body.get("relay_reasoning")));
+        if (body.containsKey("thinking_enabled")) m.setThinkingEnabled(body.get("thinking_enabled") == null ? null : Boolean.TRUE.equals(body.get("thinking_enabled")));
+        if (body.containsKey("thinking_budget")) m.setThinkingBudget(body.get("thinking_budget") == null ? null : ((Number) body.get("thinking_budget")).intValue());
+        if (body.containsKey("reasoning_effort")) m.setReasoningEffort(body.get("reasoning_effort") == null ? null : String.valueOf(body.get("reasoning_effort")));
+        providerModelRepo.save(m);
+        var provider = providerRepo.findById(provider_id).orElse(null);
+        if (provider != null) {
+            return ResponseEntity.ok(toProviderDto(provider));
+        }
+        return ResponseEntity.ok(Map.of());
+    }
+
+    private String writeJson(Object o) {
+        try { return mapper.writeValueAsString(o); } catch (Exception e) { return null; }
+    }
+
+    private Map<String, String> resolveConnParams(String providerId, Map<String, Object> body) {
+        var conn = modelRouting.resolveProviderConnection(providerId);
+        String baseUrl = conn.baseUrl();
+        String apiKey = conn.apiKey();
+        if (body != null) {
+            if (body.get("base_url") != null) baseUrl = String.valueOf(body.get("base_url"));
+            if (body.get("api_key") != null) apiKey = String.valueOf(body.get("api_key"));
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        result.put("base_url", baseUrl);
+        result.put("api_key", apiKey);
+        return result;
+    }
 
     @PostMapping("/models/{provider_id}/test")
-    public Map<String, String> testProvider(@PathVariable String provider_id) {
-        return Map.of("status", "ok", "message", "Connection successful");
+    public Map<String, Object> testProvider(@PathVariable String provider_id,
+                                            @RequestBody(required = false) Map<String, Object> body) {
+        var params = resolveConnParams(provider_id, body);
+        boolean ok = discoveryService.testConnection(params.get("base_url"), params.get("api_key"));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", ok);
+        result.put("message", ok ? "Connection successful" : "Connection failed: invalid base_url or api_key");
+        return result;
     }
 
     @PostMapping("/models/{provider_id}/models/test")
-    public Map<String, String> testModel(@PathVariable String provider_id) {
-        return Map.of("status", "ok", "message", "Model test successful");
+    public Map<String, Object> testModel(@PathVariable String provider_id,
+                                         @RequestBody Map<String, Object> body) {
+        var params = resolveConnParams(provider_id, body);
+        String modelId = body.get("model_id") == null ? "" : String.valueOf(body.get("model_id"));
+        boolean ok = discoveryService.testConnection(params.get("base_url"), params.get("api_key"));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", ok);
+        result.put("message", ok
+                ? ("Model '" + modelId + "' connection successful")
+                : "Model connection failed: invalid base_url or api_key");
+        return result;
     }
 
     @PostMapping("/models/{provider_id}/discover")
-    public List<Map<String, String>> discoverModels(@PathVariable String provider_id) { return List.of(); }
+    public Map<String, Object> discoverModels(@PathVariable String provider_id,
+                                              @RequestBody(required = false) Map<String, Object> body,
+                                              @RequestParam(defaultValue = "true") boolean save) {
+        var params = resolveConnParams(provider_id, body);
+        var discovery = discoveryService.discover(provider_id, params.get("base_url"), params.get("api_key"), save);
+        List<ModelInfoDto> models = new ArrayList<>();
+        for (var entity : discovery.models()) {
+            var dto = new ModelInfoDto();
+            dto.setId(entity.getModelId());
+            dto.setName(entity.getName());
+            dto.setProbeSource(entity.getProbeSource());
+            dto.setMaxTokens(entity.getMaxTokens());
+            dto.setMaxInputLength(entity.getMaxInputLength());
+            dto.setMaxInputLengthConfigured(entity.getMaxInputLengthConfigured());
+            models.add(dto);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", discovery.success());
+        result.put("message", discovery.message());
+        result.put("models", models);
+        result.put("added_count", save && discovery.success() ? models.size() : 0);
+        return result;
+    }
 
     @PostMapping("/models/{provider_id}/models/{model_id}/probe-multimodal")
     public Map<String, Object> probeMultimodal(@PathVariable String provider_id, @PathVariable String model_id) {
-        return Map.of("multimodal", false);
+        // Best-effort: infer multimodal support from the model id heuristic.
+        String lower = model_id.toLowerCase();
+        boolean supportsImage = lower.contains("vision") || lower.contains("vl") || lower.contains("omni")
+                || lower.contains("gpt-4o") || lower.contains("gemini");
+        boolean supportsVideo = lower.contains("video") || lower.contains("gemini");
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("supports_image", supportsImage);
+        result.put("supports_video", supportsVideo);
+        result.put("supports_multimodal", supportsImage || supportsVideo);
+        result.put("image_message", supportsImage ? "" : "Model does not support image input");
+        result.put("video_message", supportsVideo ? "" : "Model does not support video input");
+        return result;
     }
 }
