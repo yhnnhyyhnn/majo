@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -226,12 +227,79 @@ public class WorkspaceController {
 
     // === Coding Project ===
 
+    private Path codingProjectsDir(Path workspace) {
+        return workspace.resolve("coding_projects");
+    }
+
     @GetMapping("/workspace/coding-project/list")
-    public List<Map<String, String>> codingProjectList() { return List.of(); }
+    public List<Map<String, Object>> codingProjectList() {
+        return codingProjectList(WORKSPACE);
+    }
+
+    public List<Map<String, Object>> codingProjectList(Path workspace) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        Path projectsDir = codingProjectsDir(workspace);
+        if (!Files.isDirectory(projectsDir)) {
+            return result;
+        }
+        File[] dirs = projectsDir.toFile().listFiles(File::isDirectory);
+        if (dirs == null) {
+            return result;
+        }
+        for (File dir : dirs) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("path", dir.getAbsolutePath());
+            item.put("name", dir.getName());
+            item.put("is_git", Files.isDirectory(dir.toPath().resolve(".git")));
+            item.put("is_active", false);
+            result.add(item);
+        }
+        return result;
+    }
+
     @GetMapping("/workspace/coding-project")
-    public Map<String, Object> codingProject() { return Map.of(); }
+    public Map<String, Object> codingProject() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("path", WORKSPACE.toString());
+        result.put("name", WORKSPACE.getFileName().toString());
+        result.put("is_workspace_default", true);
+        result.put("workspace_dir", WORKSPACE.toString());
+        result.put("exists", true);
+        return result;
+    }
+
     @GetMapping("/workspace/coding-project/browse-dirs")
-    public List<Map<String, String>> browseDirs() { return List.of(); }
+    public Map<String, Object> browseDirs(@RequestParam(defaultValue = "~") String path,
+                                          @RequestParam(defaultValue = "false") boolean show_hidden) {
+        Path dir;
+        if ("~".equals(path)) {
+            dir = Path.of(System.getProperty("user.home"));
+        } else {
+            dir = Path.of(path).toAbsolutePath().normalize();
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("current", dir.toString());
+        Path parent = dir.getParent();
+        result.put("parent", parent == null ? null : parent.toString());
+        List<Map<String, Object>> dirs = new ArrayList<>();
+        if (Files.isDirectory(dir)) {
+            File[] entries = dir.toFile().listFiles(File::isDirectory);
+            if (entries != null) {
+                for (File d : entries) {
+                    if (!show_hidden && d.getName().startsWith(".")) {
+                        continue;
+                    }
+                    Map<String, Object> entry = new LinkedHashMap<>();
+                    entry.put("name", d.getName());
+                    entry.put("path", d.getAbsolutePath());
+                    dirs.add(entry);
+                }
+            }
+        }
+        dirs.sort((a, b) -> String.valueOf(a.get("name")).compareTo(String.valueOf(b.get("name"))));
+        result.put("dirs", dirs);
+        return result;
+    }
     @PostMapping("/workspace/coding-project/create")
     public Map<String, String> codingProjectCreate() { return Map.of("id", UUID.randomUUID().toString()); }
     @PostMapping("/workspace/coding-project/clone")
@@ -400,19 +468,122 @@ public class WorkspaceController {
         return merged;
     }
     @GetMapping("/workspace/system-prompt-files")
-    public List<Map<String, String>> systemPromptFiles() { return List.of(); }
+    public List<String> systemPromptFiles() {
+        return systemPromptFiles(WORKSPACE);
+    }
+
+    public List<String> systemPromptFiles(Path workspace) {
+        List<String> defaults = List.of("AGENTS.md", "SOUL.md", "PROFILE.md");
+        List<String> present = new ArrayList<>();
+        for (String name : defaults) {
+            if (Files.isRegularFile(workspace.resolve(name))) {
+                present.add(name);
+            }
+        }
+        return present;
+    }
+
     @PutMapping("/workspace/system-prompt-files")
-    public Map<String, String> systemPromptFilesUpdate() { return Map.of("status", "ok"); }
+    public List<String> systemPromptFilesUpdate(@RequestBody Map<String, Object> body) {
+        Object files = body.get("files");
+        if (!(files instanceof List<?> list)) {
+            return systemPromptFiles();
+        }
+        List<String> result = new ArrayList<>();
+        for (Object f : list) {
+            String name = String.valueOf(f);
+            if (!name.contains("/") && !name.contains("\\") && name.endsWith(".md")) {
+                result.add(name);
+            }
+        }
+        return result;
+    }
     @GetMapping("/workspace/commands/available")
-    public List<Map<String, String>> commands() { return List.of(); }
+    public Map<String, Object> commands() {
+        List<Map<String, Object>> commands = new ArrayList<>();
+        commands.add(command("/clear", "Clear the conversation context", false));
+        commands.add(command("/compact", "Compact the conversation context; optional instruction supported", true));
+        commands.add(command("/new", "Start a new session", false));
+        commands.add(command("/status", "Show agent and session status", false));
+        commands.add(command("/stop", "Stop the current run", false));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("commands", commands);
+        return result;
+    }
+
+    private static Map<String, Object> command(String name, String description, boolean acceptsArguments) {
+        Map<String, Object> c = new LinkedHashMap<>();
+        c.put("command", name);
+        c.put("description", description);
+        c.put("accepts_arguments", acceptsArguments);
+        return c;
+    }
+
     @GetMapping("/workspace/memory")
-    public List<Map<String, String>> memory() { return List.of(); }
+    public List<Map<String, Object>> memory() {
+        return listMdFiles(WORKSPACE.resolve("memory"));
+    }
+
     @GetMapping("/workspace/memory/{path}")
-    public Map<String, String> memoryFile(@PathVariable String path) { return Map.of("content", ""); }
+    public ResponseEntity<?> memoryFile(@PathVariable String path) {
+        return readMdFile(WORKSPACE.resolve("memory"), path);
+    }
+
     @PutMapping("/workspace/memory/{path}")
-    public Map<String, String> memoryFileSave(@PathVariable String path) { return Map.of("status", "ok"); }
+    public ResponseEntity<?> memoryFileSave(@PathVariable String path, @RequestBody Map<String, String> body) {
+        return writeMdFile(WORKSPACE.resolve("memory"), path, body);
+    }
     @GetMapping("/workspace/watch")
-    public Map<String, String> watch() { return Map.of("status", "ok"); }
+    public org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> watch() {
+        org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =
+                new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(0L);
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
+            try {
+                Map<String, Long> lastModified = new java.util.concurrent.ConcurrentHashMap<>();
+                while (true) {
+                    List<Map<String, Object>> events = new ArrayList<>();
+                    scanWatchFiles(WORKSPACE, lastModified, events);
+                    if (!events.isEmpty()) {
+                        Map<String, Object> payload = new LinkedHashMap<>();
+                        payload.put("type", "file_change");
+                        payload.put("events", events);
+                        emitter.send(org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event()
+                                .data(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload)));
+                    }
+                    Thread.sleep(2000);
+                }
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            } finally {
+                executor.shutdown();
+            }
+        });
+        return ResponseEntity.ok().contentType(org.springframework.http.MediaType.TEXT_EVENT_STREAM).body(emitter);
+    }
+
+    private void scanWatchFiles(Path workspace, Map<String, Long> lastModified,
+                                List<Map<String, Object>> events) {
+        try (var stream = Files.walk(workspace)) {
+            stream.filter(Files::isRegularFile)
+                    .filter(p -> !isSkipped(p.getFileName().toString()))
+                    .forEach(p -> {
+                        String rel = workspace.relativize(p).toString().replace("\\", "/");
+                        long mtime = p.toFile().lastModified();
+                        Long prev = lastModified.get(rel);
+                        if (prev == null) {
+                            lastModified.put(rel, mtime);
+                        } else if (mtime != prev) {
+                            lastModified.put(rel, mtime);
+                            Map<String, Object> ev = new LinkedHashMap<>();
+                            ev.put("change", "modified");
+                            ev.put("path", rel);
+                            events.add(ev);
+                        }
+                    });
+        } catch (IOException ignored) {
+        }
+    }
     @GetMapping("/workspace/binary-files/{path}")
     public Map<String, String> binaryFile(@PathVariable String path) { return Map.of("url", ""); }
 
@@ -453,15 +624,15 @@ public class WorkspaceController {
     public ResponseEntity<?> agentLanguageSave(@PathVariable String agentId,
                                                 @RequestBody Map<String, Object> body) { return languageUpdate(agentId, body); }
     @GetMapping("/agents/{agentId}/workspace/system-prompt-files")
-    public List<Map<String, String>> agentSysPromptFiles(@PathVariable String agentId) { return systemPromptFiles(); }
+    public List<String> agentSysPromptFiles(@PathVariable String agentId) { return systemPromptFiles(workspaceFor(agentId)); }
     @GetMapping("/agents/{agentId}/workspace/commands/available")
-    public List<Map<String, String>> agentCommands(@PathVariable String agentId) { return commands(); }
+    public Map<String, Object> agentCommands(@PathVariable String agentId) { return commands(); }
     @GetMapping("/agents/{agentId}/workspace/memory")
-    public List<Map<String, String>> agentMemory(@PathVariable String agentId) { return memory(); }
+    public List<Map<String, Object>> agentMemory(@PathVariable String agentId) { return listMdFiles(workspaceFor(agentId).resolve("memory")); }
     @GetMapping("/agents/{agentId}/workspace/download")
     public ResponseEntity<Resource> agentDownload(@PathVariable String agentId) { return downloadWorkspace(workspaceFor(agentId)); }
     @GetMapping("/agents/{agentId}/workspace/watch")
-    public Map<String, String> agentWatch(@PathVariable String agentId) { return watch(); }
+    public ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> agentWatch(@PathVariable String agentId) { return watch(); }
 
     private Path workspaceFor(String agentId) {
         return com.agent.coding.skill.SkillRegistry.workspaceDirForAgent(agentId);

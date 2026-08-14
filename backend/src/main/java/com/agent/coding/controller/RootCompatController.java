@@ -12,6 +12,7 @@ import io.agentscope.harness.agent.HarnessAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -30,24 +31,50 @@ public class RootCompatController {
 
     private final SettingsService settingsService;
     private final Toolkit toolkit;
+    private final CronController cronController;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public RootCompatController(SettingsService settingsService, Toolkit toolkit) {
+    public RootCompatController(SettingsService settingsService, Toolkit toolkit,
+                                CronController cronController) {
         this.settingsService = settingsService;
         this.toolkit = toolkit;
+        this.cronController = cronController;
     }
 
+    // ── Legacy plural cron path (qwenpaw migrated /crons/jobs → /cron/jobs).
+    // Forward to the current CronController so older clients keep working.
+
     @GetMapping("/crons/jobs")
-    public List<Map<String, String>> cronsJobs() { return List.of(); }
+    public List<Map<String, Object>> cronsJobs() {
+        return cronController.listJobs(null, null);
+    }
+
     @PostMapping("/crons/jobs")
-    public Map<String, String> cronsJobCreate() { return Map.of("id", UUID.randomUUID().toString()); }
+    public ResponseEntity<?> cronsJobCreate(@RequestBody Map<String, Object> body) {
+        return cronController.createJob(body, null);
+    }
+
     @DeleteMapping("/crons/jobs/{job_id}")
-    public Map<String, String> cronsJobDelete(@PathVariable String job_id) { return Map.of("status", "ok"); }
+    public ResponseEntity<?> cronsJobDelete(@PathVariable String job_id) {
+        return cronController.deleteJob(job_id, null);
+    }
+
+    // ── Voice channel (Twilio phone integration). Majo does not ship the
+    // Twilio/ConversationRelay channel, so these webhooks respond with an
+    // explicit "channel not available" error (mirroring qwenpaw's
+    // build_error_twiml when the voice channel is missing).
 
     @PostMapping("/voice/incoming")
-    public Map<String, String> voiceIncoming() { return Map.of("status", "ok"); }
+    public ResponseEntity<String> voiceIncoming() {
+        String twiml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                + "<Response><Say>Voice channel is not available.</Say></Response>";
+        return ResponseEntity.ok().contentType(org.springframework.http.MediaType.APPLICATION_XML).body(twiml);
+    }
+
     @PostMapping("/voice/status-callback")
-    public Map<String, String> voiceStatusCallback() { return Map.of("status", "ok"); }
+    public Map<String, String> voiceStatusCallback() {
+        return Map.of("status", "ignored");
+    }
 
     @PostMapping(value = "/api/agents/{agentId}/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> agentConsoleChat(@PathVariable String agentId, @RequestBody Map<String, Object> body) {
