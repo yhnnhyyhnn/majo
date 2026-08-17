@@ -672,8 +672,61 @@ public class WorkspaceController {
         } catch (IOException ignored) {
         }
     }
-    @GetMapping("/workspace/binary-files/{path}")
-    public Map<String, String> binaryFile(@PathVariable String path) { return Map.of("url", ""); }
+    private static final Map<String, String> BINARY_MIME_MAP = Map.ofEntries(
+        Map.entry("png", "image/png"), Map.entry("jpg", "image/jpeg"),
+        Map.entry("jpeg", "image/jpeg"), Map.entry("gif", "image/gif"),
+        Map.entry("webp", "image/webp"), Map.entry("svg", "image/svg+xml"),
+        Map.entry("ico", "image/x-icon"), Map.entry("bmp", "image/bmp"),
+        Map.entry("pdf", "application/pdf"), Map.entry("csv", "text/csv"));
+
+    @GetMapping("/workspace/binary-files/**")
+    public ResponseEntity<Resource> binaryFile(HttpServletRequest req) {
+        String filePath = req.getRequestURI().replace("/api/workspace/binary-files/", "");
+        return binaryFile(WORKSPACE, filePath);
+    }
+
+    @GetMapping("/agents/{agentId}/workspace/binary-files/**")
+    public ResponseEntity<Resource> agentBinaryFile(@PathVariable String agentId,
+                                                    HttpServletRequest req) {
+        String filePath = req.getRequestURI().replaceAll(".*/agents/[^/]+/workspace/binary-files/", "");
+        return binaryFile(workspaceFor(agentId), filePath);
+    }
+
+    public ResponseEntity<Resource> binaryFile(Path workspace, String filePath) {
+        Path target = workspace.resolve(filePath).normalize();
+        if (!target.startsWith(workspace)) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (!Files.isRegularFile(target)) {
+            return ResponseEntity.notFound().build();
+        }
+        String ext = extOf(filePath);
+        String mime = BINARY_MIME_MAP.get(ext);
+        if (mime == null) {
+            return ResponseEntity.status(415).build();
+        }
+        try {
+            if (Files.size(target) > 50L * 1024 * 1024) {
+                return ResponseEntity.status(413).build();
+            }
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(mime))
+                .header("Content-Disposition", "inline")
+                .body(new org.springframework.core.io.ByteArrayResource(
+                        Files.readAllBytes(target)));
+        } catch (IOException e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    private static String extOf(String path) {
+        int dot = path.lastIndexOf('.');
+        int slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+        if (dot <= slash || dot == path.length() - 1) {
+            return "";
+        }
+        return path.substring(dot + 1).toLowerCase();
+    }
 
     // === Agent-scoped workspace (resolves per-agent workspace_dir) ===
 
