@@ -14,7 +14,7 @@ import java.nio.channels.FileLock;
 import java.util.*;
 
 /**
- * File-backed store for per-run execution traces, mirroring qwenpaw's
+ * File-backed store for per-run execution traces,'s
  * {@code app/inbox_trace_store.py}. Each run is a JSON file
  * {@code <WORKING_DIR>/inbox_traces/{run_id}.json}. A trace starts with
  * {@code status="running"}, accumulates {@code events}, and is finalized with a

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Maps chat-id → execution state, exactly matching qwenpaw's TaskTracker (plural).
+/** Maps chat-id → execution state, exactly's TaskTracker (plural).
  *  Register on SSE start, deregister on complete/error so GET /loops/status can
  *  report "running" vs "idle" to the frontend loop store. */
 @Component

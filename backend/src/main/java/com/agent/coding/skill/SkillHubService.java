@@ -21,7 +21,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Skills hub client (mirrors qwenpaw/agents/skill_system/hub.py).
+ * Skills hub client (/agents/skill_system/hub.py).
  *
  * <ul>
  *   <li>{@link #searchHubSkills} — ClawHub /api/v1/search</li>
@@ -31,7 +31,7 @@ import java.util.zip.ZipInputStream;
  * </ul>
  *
  * Supported sources: GitHub, ClawHub (slug/detail+file API), LobeHub zip,
- * ModelScope / QwenPaw archive zip, and direct JSON bundle URLs.
+ * ModelScope archive zip, and direct JSON bundle URLs.
  */
 public class SkillHubService {
 
@@ -630,7 +630,7 @@ public class SkillHubService {
     }
 
     // ------------------------------------------------------------------
-    // ModelScope/QwenPaw archive zip fetcher
+    // ModelScope archive zip fetcher
     // ------------------------------------------------------------------
 
     private FetchedBundle fetchArchiveZip(String url, String fallbackName, String errorPrefix,

@@ -578,7 +578,7 @@ public class WorkspaceController {
     @GetMapping("/workspace/transcription-providers")
     public Map<String, Object> getTranscriptionProviders() {
         var providers = new ArrayList<Map<String, Object>>();
-        // qwenpaw: isinstance(provider, OpenAIProvider) && (key || !require_key)
+        //(provider, OpenAIProvider) && (key || !require_key)
         for (var p : providerRepo.findAll()) {
             if (!"OpenAIChatModel".equalsIgnoreCase(p.getChatModel())) continue;
             if (p.getBaseUrl() == null || p.getBaseUrl().isBlank()) continue;
@@ -672,7 +672,7 @@ public class WorkspaceController {
     }
 
     private List<String> copyWorkspaceMdFiles(String language, String agentId) {
-        // qwenpaw copies bundled MD templates for the new language into the
+        // the original copies bundled MD templates for the new language into the
         // workspace. majo ships no per-language MD templates, so nothing to copy.
         return new ArrayList<>();
     }
@@ -956,7 +956,7 @@ public class WorkspaceController {
         return ResponseEntity.ok(Map.of("audio_mode", settingsService.getAudioMode()));
     }
 
-    // ── Channels config (qwenpaw: config.py /channels) ────────────────
+    // ── Channels config (.py /channels) ────────────────
     private static final List<String> BUILTIN_CHANNEL_KEYS = List.of(
         "imessage", "discord", "dingtalk", "feishu", "qq", "telegram",
         "mattermost", "mqtt", "console", "matrix", "slack", "voice",
@@ -1023,7 +1023,7 @@ public class WorkspaceController {
         return Map.of("channel", channelName, "status", "restarted", "detail", "");
     }
 
-    // ── Heartbeat config (qwenpaw: config.py /heartbeat) ──────────────
+    // ── Heartbeat config (.py /heartbeat) ──────────────
     @GetMapping("/config/heartbeat")
     public Map<String, Object> getHeartbeat() {
         return Map.of(
@@ -1049,7 +1049,7 @@ public class WorkspaceController {
         return Map.of("started", true);
     }
 
-    // ── User timezone (per-agent, ported from qwenpaw config.py /user-timezone) ──
+    // ── User timezone (per-agent,/user-timezone) ──
     private static final Map<String, String> NON_STANDARD_TZ_ALIASES = Map.ofEntries(
         Map.entry("Asia/Beijing", "Asia/Shanghai"),
         Map.entry("Asia/Calcutta", "Asia/Kolkata"),
@@ -1127,7 +1127,7 @@ public class WorkspaceController {
         }
     }
 
-    // ── Agent-scoped channels config (port of qwenpaw agent_scoped /agents/{agentId}/config/channels) ──
+    // ── Agent-scoped channels config  ──
     @GetMapping("/agents/{agentId}/config/channels/{channel_name}")
     public Object agentChannelDetail(@PathVariable String agentId, @PathVariable String channel_name) {
         return getChannel(channel_name);
@@ -1162,7 +1162,7 @@ public class WorkspaceController {
     public Object agentChannelsUpdate(@PathVariable String agentId,
                                       @RequestBody Map<String, Object> body) { return updateChannels(body); }
 
-    // ── Agent-scoped heartbeat (port of qwenpaw agent_scoped /agents/{agentId}/config/heartbeat) ──
+    // ── Agent-scoped heartbeat  ──
     @PostMapping("/agents/{agentId}/config/heartbeat/run")
     public Object agentHeartbeatRun(@PathVariable String agentId) { return runHeartbeat(); }
     @PutMapping("/agents/{agentId}/config/heartbeat")

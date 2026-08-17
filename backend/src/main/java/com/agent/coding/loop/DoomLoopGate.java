@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Multi-stage doom loop gate (session-safe), ported from qwenpaw
+ * Multi-stage doom loop gate (session-safe)
  * loop/gates/doom_loop.py. Sliding-window repetition detection that
  * escalates: modify_prompt warns and injects a continuation, stop terminates.
  */
@@ -171,7 +171,7 @@ public class DoomLoopGate extends LoopGate {
         return 1.0 - (double) (unique - 1) / (total - 1);
     }
 
-    /** Hash tool call args (first 2048 bytes), matching qwenpaw _hash_args. */
+    /** Hash tool call args (first 2048 bytes),_hash_args. */
     public static String hashArgs(String rawInput) {
         if (rawInput == null) {
             rawInput = "";

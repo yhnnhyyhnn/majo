@@ -1,7 +1,7 @@
 package com.agent.coding.loop;
 
 /**
- * Abstract base class for all stop condition gates, ported from qwenpaw
+ * Abstract base class for all stop condition gates
  * loop/gates/base.py StopGate.
  *
  * Lifecycle per evaluation (driven by StopHandler):

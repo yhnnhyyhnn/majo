@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Agent-scoped endpoints, ported from qwenpaw app/routers/agent_scoped.py.
+ * Agent-scoped endpoints,.
  * These paths resolve the agent from the URL (rather than the X-Agent-Id
  * header used by the non-scoped variants).
  */

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Channel access control endpoints, ported from qwenpaw app/routers/access_control.py.
+ * Channel access control endpoints,.
  *
  * <p>Manages per-channel whitelist / blacklist / pending approval entries,
  * persisted by {@link AccessControlStore}. The frontend /channels page uses

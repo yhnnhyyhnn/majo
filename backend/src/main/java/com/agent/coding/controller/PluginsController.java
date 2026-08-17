@@ -742,7 +742,7 @@ public class PluginsController {
         }
     }
 
-    // ── Agent-scoped plugins (port of qwenpaw agent_scoped /agents/{agentId}/plugins) ──
+    // ── Agent-scoped plugins  ──
     @GetMapping("/agents/{agentId}/plugins")
     public Object agentPlugins(@PathVariable String agentId) { return listPlugins(); }
 

@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Default {@code AgentsRunningConfig} structure, ported from
- * qwenpaw/config/config.py (AgentsRunningConfig + nested models). The GET
+ * The GET
  * /workspace/running-config endpoint deep-merges these defaults with the
  * persisted profile so the frontend always receives a complete structure.
  */

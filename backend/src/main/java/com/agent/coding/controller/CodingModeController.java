@@ -10,7 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Coding Mode toggle, ported from qwenpaw app/routers/coding_mode.py.
+ * Coding Mode toggle,.
  *
  * <p>State is persisted in the agent profile under {@code coding_mode}
  * ({@code enabled}, {@code project_dir}). The frontend calls this on agent

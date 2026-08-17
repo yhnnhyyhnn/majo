@@ -11,7 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Desktop-only protocol endpoint for the Tauri shell (qwenpaw-desktop style
+ * Desktop-only protocol endpoint for the Tauri shell (Tauri shell style
  * sidecar contract).
  *
  * <p>The Rust shell expects two things from the backend:

@@ -15,7 +15,7 @@ import java.util.Set;
 /**
  * ACP (Agent Communication Protocol) configuration endpoints.
  *
- * Ported from qwenpaw config.py /config/acp. The ACP agents config is
+ * <p>The ACP agents config is
  * per-agent (stored in the agent profile); the Node runtime path is global.
  */
 @RestController

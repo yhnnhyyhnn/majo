@@ -14,7 +14,7 @@ import java.util.Map;
 
 /**
  * Built-in tools management (per-agent enabled / async_execution / config),
- * ported from qwenpaw app/routers/tools.py. Tool state is persisted in the
+ *. Tool state is persisted in the
  * agent profile under the {@code tools} key.
  */
 @RestController
@@ -203,7 +203,7 @@ public class ToolsController {
         return ResponseEntity.ok(result);
     }
 
-    // ===== Agent-scoped (port of qwenpaw agent_scoped /agents/{agentId}/tools) =====
+    // ===== Agent-scoped  =====
 
     @GetMapping("/agents/{agentId}/tools")
     public Object agentListTools(@PathVariable String agentId) {

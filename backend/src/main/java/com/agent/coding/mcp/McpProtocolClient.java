@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  * Minimal MCP (Model Context Protocol) client implementing just enough of
  * the JSON-RPC lifecycle to list tools from a connected MCP server.
  *
- * <p>Supported transports (mirroring the qwenpaw reference which uses the
+ * <p>Supported transports ( mirroring the original reference which uses the 
  * Python MCP SDK):</p>
  * <ul>
  *   <li>{@code stdio} — spawn the command and speak JSON-RPC over stdin/stdout;</li>

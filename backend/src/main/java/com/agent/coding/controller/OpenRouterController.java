@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * OpenRouter model endpoints, ported from qwenpaw app/routers/providers.py
+ * OpenRouter model endpoints,
  * (openrouter section). Model data is fetched live from the public
  * OpenRouter models API; no API key is required to list models.
  */

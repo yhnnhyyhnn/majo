@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 public class AgentConfig {
 
     /**
-     * SDK-registered tool name → qwenpaw API name mapping.
+     * SDK-registered tool name → Majo API name mapping.
      * Add new tools here and to the Toolkit bean below.
      */
     static final Map<String, String> TOOL_NAME_MAP = Map.of(

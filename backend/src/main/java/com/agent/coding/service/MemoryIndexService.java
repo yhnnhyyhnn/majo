@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  * Lightweight keyword memory index for an agent workspace. Scans the agent's
  * memory/ directory and top-level markdown files, builds an inverted
  * keyword index, and persists it to memory/.index.json. This replaces the
- * qwenpaw ReMe vector backend with a zero-dependency file scan so the
+ * the ReMe vector backend with a zero-dependency file scan so the
  * frontend rebuildMemoryIndex action has real semantics.
  */
 @Service

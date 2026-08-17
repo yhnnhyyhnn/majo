@@ -15,7 +15,7 @@ import java.util.Map;
 
 /**
  * Thread-safe persistent store for per-channel access control lists, ported
- * from qwenpaw app/channels/access_control.py (AccessControlStore).
+ *(AccessControlStore).
  *
  * <p>Each channel has a whitelist / blacklist (user_id → {remark, username})
  * and a pending list of users awaiting approval. Persisted as JSON at

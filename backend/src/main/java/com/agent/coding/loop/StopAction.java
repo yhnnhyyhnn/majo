@@ -1,7 +1,7 @@
 package com.agent.coding.loop;
 
 /**
- * Gate decisions for the agent loop, ported from qwenpaw loop/gates/base.py.
+ * Gate decisions for the agent loop,.
  */
 public enum StopAction {
     /** Gate has no opinion, skip. */

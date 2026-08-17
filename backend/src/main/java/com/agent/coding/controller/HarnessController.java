@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Third-party agent harness endpoints, ported from qwenpaw
+ * Third-party agent harness endpoints
  * app/routers/harnesses.py. Returns the provider catalog with live
  * installation/authentication status; model/mcp/skill discovery is surfaced
  * based on provider capabilities.

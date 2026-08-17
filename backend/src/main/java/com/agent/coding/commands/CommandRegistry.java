@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * Command registry for priority-based control-command detection, ported from
- * qwenpaw app/channels/command_registry.py (CommandRegistry).
+ * 
  *
  * <p>Registers slash commands with priority levels; {@code isControlCommand}
  * determines whether a message is a control command (exact prefix match,

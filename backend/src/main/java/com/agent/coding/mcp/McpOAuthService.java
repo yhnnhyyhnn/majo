@@ -29,7 +29,7 @@ import static com.agent.coding.mcp.McpModels.CREDENTIAL_KIND_OAUTH_AUTH_CODE;
  * <p>Implements RFC 8414 (Authorization Server Metadata), RFC 9728
  * (Protected Resource Metadata), RFC 7591 (Dynamic Client Registration) and
  * PKCE (RFC 7636) for interactive browser-based OAuth flows triggered from
- * the frontend. Port of qwenpaw/app/routers/mcp_oauth.py.</p>
+ * the frontend.. </p>
  */
 @Service
 public class McpOAuthService {

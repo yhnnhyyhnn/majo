@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * Global MCP console endpoints ({@code /api/mcp}).
  *
- * <p>Port of qwenpaw/app/routers/mcp.py. All routes are agent-scope-agnostic;
+ * <p>. All routes are agent-scope-agnostic;
  * the frontend (frontend/src/api/modules/mcp.ts) talks to these directly from
  * the MCP management page.</p>
  */
@@ -151,7 +151,7 @@ public class McpController {
         return oauthService.oauthCallback(code, state, error, errorDescription);
     }
 
-    // ── Agent-scoped MCP (port of qwenpaw agent_scoped /agents/{agentId}/mcp) ──
+    // ── Agent-scoped MCP  ──
     @GetMapping("/agents/{agentId}/mcp")
     public Object agentMcpList(@PathVariable String agentId) { return listClients(); }
 

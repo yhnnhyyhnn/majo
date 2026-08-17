@@ -33,7 +33,7 @@ import java.util.zip.ZipOutputStream;
 /**
  * Backup storage: directory layout, zip read/write, HMAC signing and the
  * list / detail / delete / export operations. Ported from
- * qwenpaw backup/_ops/storage.py + _utils/constants.py + _utils/signing.
+
  */
 public class BackupStore {
 
@@ -76,7 +76,7 @@ public class BackupStore {
         return backupDir().resolve(backupId + ".zip");
     }
 
-    /** Locate the zip for a backup id regardless of stored filename (like qwenpaw find_zip_path). */
+    /** Locate the zip for a backup id regardless of stored filename. */
     public static Path findZipPath(String backupId) {
         try {
             validateBackupId(backupId);
@@ -390,7 +390,7 @@ public class BackupStore {
 
     public static void zipDirectory(ZipOutputStream zos, Path root, Path base,
                                     String prefix, java.util.function.BiConsumer<String, Long> progress) throws IOException {
-        // Port of qwenpaw backup/_ops/create_helpers.py: every file under
+        //: every file under
         // root is added (rglob("*") with no name filtering). No skip list —
         // a blacklist here would silently drop content the reference
         // implementation always includes.

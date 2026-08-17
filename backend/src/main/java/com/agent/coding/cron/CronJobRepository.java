@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * File-backed cron job repository, ported from qwenpaw
+ * File-backed cron job repository
  * app/crons/repo/json_repo.py. Jobs live in {@code jobs.json} as
  * {@code {"version": 2, "jobs": [...]}}; per-job execution history lives in
  * {@code jobs_history/{urlencoded_id}.json} as a JSON list (newest first,

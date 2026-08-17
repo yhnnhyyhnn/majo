@@ -12,7 +12,7 @@ import java.util.Set;
 
 /**
  * Global UI settings (language, upload limit), ported from
- * qwenpaw app/routers/settings.py. Persisted in {@code WORKING_DIR/settings.json},
+* Persisted in {@code WORKING_DIR/settings.json},
  * independent of per-agent configuration. All endpoints are public.
  */
 @RestController

@@ -1,7 +1,7 @@
 package com.agent.coding.loop;
 
 /**
- * Elapsed-time limit checked at loop boundaries, ported from qwenpaw
+ * Elapsed-time limit checked at loop boundaries
  * loop/gates/limits.py TimeoutGate. Priority 30.
  */
 public class TimeoutGate extends LoopGate {

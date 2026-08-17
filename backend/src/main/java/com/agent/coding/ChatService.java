@@ -62,7 +62,7 @@ public class ChatService {
         var chat = new ChatEntity();
         chat.setId(UUID.randomUUID().toString());
         chat.setSessionId(sessionId);
-        // Placeholder: first 10 chars (qwenpaw: _extract_placeholder_name)
+        // Placeholder: first 10 chars
         String title = "New Chat";
         if (firstPrompt != null && !firstPrompt.isBlank()) {
             title = firstPrompt.length() > 10 ? firstPrompt.substring(0, 10) : firstPrompt;

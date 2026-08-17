@@ -26,10 +26,10 @@ import java.util.Map;
 
 /**
  * Git workspace operations for the {@code /workspace/git/*} endpoints, ported
- * from qwenpaw app/routers/git.py. Uses JGit (already a project dependency);
+ *. Uses JGit (already a project dependency);
  * no external git binary required.
  *
- * <p>Mirrors the qwenpaw behavior of auto-initialising a repository (with a
+ * <p>mirrors the original behavior of auto-initialising a repository (with a
  * default .gitignore and an empty initial commit) the first time the
  * workspace is opened.
  */

@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Explicit whitelist of built-in user-configurable gates, ported from
- * qwenpaw loop/catalog.py GateCatalog. Describes each gate with stable
+* Describes each gate with stable
  * frontend metadata and a JSON-schema-like params declaration.
  */
 public class GateCatalog {
@@ -72,7 +72,7 @@ public class GateCatalog {
         return schema;
     }
 
-    /** The process-wide built-in catalog (7 gates, matching qwenpaw). */
+    /** The process-wide built-in catalog (7 gates,). */
     public static GateCatalog builtin() {
         List<Entry> list = new ArrayList<>();
         list.add(new Entry("iteration", "Iteration limit",

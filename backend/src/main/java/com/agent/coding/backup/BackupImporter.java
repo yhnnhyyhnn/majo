@@ -14,7 +14,7 @@ import java.util.zip.ZipInputStream;
 
 /**
  * Backup import: validates an uploaded zip, detects ID conflicts (409) and
- * re-signs explicitly trusted legacy/foreign archives. Ported from qwenpaw
+ * re-signs explicitly trusted legacy/foreign archives.
  * backup/_ops/storage.py + _utils/signing/trust.py.
  */
 public class BackupImporter {

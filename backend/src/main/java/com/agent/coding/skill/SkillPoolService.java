@@ -15,7 +15,7 @@ import java.util.*;
  * create, zip import, save (edit/rename), delete, tags, auto-update, upload from
  * workspace, download to workspaces (with conflict preflight), and builtin sync.
  *
- * Port of qwenpaw/agents/skill_system/pool_service.py.
+ *. 
  */
 public class SkillPoolService {
 

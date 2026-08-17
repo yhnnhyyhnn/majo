@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Backup API, ported from qwenpaw app/routers/backup.py. Backups are stored as
+ * Backup API,. Backups are stored as
  * zip archives under {@code WORKING_DIR/.backups}.
  */
 @RestController
@@ -84,7 +84,7 @@ public class BackupController {
         }
     }
 
-    // ===== Create (SSE stream, matches qwenpaw format) =====
+    // ===== Create (SSE stream, matches Majo format) =====
 
     @PostMapping(value = "/backups/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<StreamingResponseBody> createBackupStream(@RequestBody Map<String, Object> body) {
@@ -204,7 +204,7 @@ public class BackupController {
         return String.valueOf(value);
     }
 
-    /** Convert BackupMeta to an insertion-ordered map matching qwenpaw model_dump field order. */
+    /** Convert BackupMeta to an insertion-ordered mapmodel_dump field order. */
     private static Map<String, Object> metaToMap(BackupMeta meta) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", meta.id);

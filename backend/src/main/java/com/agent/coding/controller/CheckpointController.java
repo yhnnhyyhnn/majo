@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Workspace checkpoint endpoints, ported from qwenpaw
+ * Workspace checkpoint endpoints
  * app/routers/checkpoints.py. Snapshots are git commits in the workspace's
  * checkpoint repo (refs/auto|snap|pre-restore) with metadata in
  * .checkpoints/heads.json.

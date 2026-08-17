@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Tool-guard approval actions, ported from qwenpaw app/routers/approval.py.
+ * Tool-guard approval actions,.
  * Resolves a pending tool-execution request registered in
  * {@link ApprovalStore} (which backs the {@code pending_approvals} list in
  * {@code /api/console/push-messages}).

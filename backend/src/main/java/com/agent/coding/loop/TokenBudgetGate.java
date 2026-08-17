@@ -2,7 +2,7 @@ package com.agent.coding.loop;
 
 /**
  * Stop a loop when configured token limits are reached, ported from
- * qwenpaw loop/gates/limits.py TokenBudgetGate. Priority 20.
+* Priority 20.
  */
 public class TokenBudgetGate extends LoopGate {
 

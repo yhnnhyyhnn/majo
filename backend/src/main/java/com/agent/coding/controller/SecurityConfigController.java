@@ -12,11 +12,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Global security configuration endpoints, ported from qwenpaw
+ * Global security configuration endpoints
  * app/routers/config.py (security section). Persisted in the agents.json root
  * under the {@code security} key. The frontend contract (security.ts) wins
- * over qwenpaw field names where they differ (e.g. file-guard {@code paths}
- * vs qwenpaw {@code sensitive_files}).
+ * over original field names where they differ (e.g. file-guard {@code paths}
+ * vs the original {\@code sensitive_files}).
  */
 @RestController
 @RequestMapping("/api/config/security")

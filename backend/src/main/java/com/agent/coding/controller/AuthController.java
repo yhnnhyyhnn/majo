@@ -19,7 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Single-user authentication, ported from qwenpaw app/auth.py + app/routers/auth.py.
+ * Single-user authentication,+ app/routers/auth.py.
  *
  * <p>Auth is disabled by default (env {@code QWENPAW_AUTH_ENABLED} unset): the
  * frontend AuthGuard sees {@code enabled=false} and skips login. When enabled,

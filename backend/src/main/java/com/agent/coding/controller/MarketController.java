@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Skill market endpoints, ported from qwenpaw app/routers/market.py.
+ * Skill market endpoints,.
  *
  * <p>Majo exposes the local skill pool (built-in + workspace skills) as a
  * single built-in provider; the frontend Market panel can therefore list and

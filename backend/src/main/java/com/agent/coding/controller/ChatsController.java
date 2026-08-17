@@ -211,7 +211,7 @@ public class ChatsController {
         return StatusResponse.ok();
     }
 
-    // ── Agent-scoped chats (port of qwenpaw agent_scoped /agents/{agentId}/chats) ──
+    // ── Agent-scoped chats  ──
     @PostMapping("/agents/{agentId}/chats/actions/batch-archive")
     public Object agentBatchArchive(@PathVariable String agentId,
                                     @RequestBody Map<String, Object> body) { return batchArchive(body); }

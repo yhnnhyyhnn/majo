@@ -17,7 +17,7 @@ import java.util.*;
  * and file access. Treats {@code <workspace>/skills} as the source of truth
  * for skill content and {@code <workspace>/skill.json} for runtime state.
  *
- * Port of qwenpaw/agents/skill_system/workspace_service.py.
+ *. 
  */
 public class SkillService {
 

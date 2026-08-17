@@ -20,7 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Provider OAuth flow, ported from qwenpaw app/routers/provider_oauth.py.
+ * Provider OAuth flow,.
  *
  * <p>Currently supports OpenRouter: redirect to openrouter.ai/auth, exchange
  * the returned code for a permanent API key, and persist it on the provider.

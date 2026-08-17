@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Control-command detection, ported from qwenpaw (CommandRegistry usage in
+ * Control-command detection
  * the channel message path). The frontend calls this to decide whether a
  * message is a system control command (e.g. /stop, /approve) vs a normal
  * query before routing to chat or the approval flow.

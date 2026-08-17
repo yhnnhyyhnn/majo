@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 /**
  * SPA fallback so the desktop WebView (which loads the console at
- * {@code /console}, matching the qwenpaw shell's {@code backendConsoleUrl})
+ * {@code /console}, matching the shell's {@code backendConsoleUrl})
  * gets the same React app as the root path.
  *
  * <p>The frontend already detects the {@code /console} prefix and sets its

@@ -3,7 +3,7 @@ package com.agent.coding.loop;
 import java.util.Map;
 
 /**
- * Result from a stop handler / gate evaluation, ported from qwenpaw
+ * Result from a stop handler / gate evaluation
  * loop/gates/base.py StopHandlerResult. When action is
  * INTERRUPT_AND_CONTINUE, continuationMessage is injected as the next user
  * turn to keep the agent running.

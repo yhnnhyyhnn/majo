@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Universal stop handler with composable gates, ported from qwenpaw
+ * Universal stop handler with composable gates
  * loop/gates/handler.py StopHandler.
  *
  * TERMINATE - agent stops immediately.

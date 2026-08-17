@@ -135,7 +135,7 @@ public class ChatController {
             }
         }
 
-        // Fallback: resolve effective model from the qwenpaw-aligned routing
+        // Fallback: resolve effective model from the Majo-aligned routing
         var slot = modelRouting.resolveEffectiveModel(null);
         if (slot.hasBoth()) {
             log.info("Resolved effective model: {}/{}", slot.providerId(), slot.modelId());

@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Builtin skill discovery, manifest reconciliation, import/update of packaged
  * builtins and workspace enumeration.
  *
- * Port of qwenpaw/agents/skill_system/registry.py (functional subset).
+ *. 
  */
 public class SkillRegistry {
 
@@ -301,7 +301,7 @@ public class SkillRegistry {
                     it.remove();
                 }
             }
-            // import packaged builtins missing from the pool (qwenpaw does this at startup)
+            // import packaged builtins missing from the pool (the original does this at startup)
             String preference = getBuiltinSkillLanguagePreference();
             Map<String, BuiltinVariant> preferred = new LinkedHashMap<>();
             for (BuiltinVariant v : iterPackagedBuiltinVariants()) {

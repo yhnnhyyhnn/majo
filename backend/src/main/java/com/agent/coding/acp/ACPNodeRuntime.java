@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * ACP Node runtime detection, ported from qwenpaw/agents/acp/node_runtime.py.
+ * ACP Node runtime detection
  * Builds the candidate list (bundled / system / custom) and resolves the
  * effective node path used by ACP subprocesses.
  */

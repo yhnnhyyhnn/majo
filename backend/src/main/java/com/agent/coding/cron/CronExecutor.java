@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Executes a single cron job once. Ported from qwenpaw app/crons/executor.py.
+ * Executes a single cron job once..
  *
  * <p>task_type "text": deliver the fixed text to the target session (via the
  * console chat store). task_type "agent": run the configured agent with the

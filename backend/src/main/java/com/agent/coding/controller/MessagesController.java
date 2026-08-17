@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Outbound message sending, ported from qwenpaw app/routers/messages.py.
+ * Outbound message sending,.
  * Delivers a text message to a channel on behalf of an agent. Majo currently
  * implements the console channel (persisted as an inbox event); other
  * channels (dingtalk/feishu/discord) are not connected and return 404.

@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Backup metadata, ported from qwenpaw backup/models.py. Mirrors the frontend
+ * Backup metadata,. Mirrors the frontend
  * BackupMeta / BackupScope / BackupDetail contract.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)

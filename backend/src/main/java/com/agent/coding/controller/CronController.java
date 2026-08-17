@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Cron job API, ported from qwenpaw app/crons/api.py (prefix /cron).
+ * Cron job API,(prefix /cron).
  *
  * <p>Jobs are stored per-agent under the agent workspace
- * ({@code <workspace>/jobs.json}), matching qwenpaw's per-workspace
+ * ({@code <workspace>/jobs.json}),'s per-workspace
  * repository. Endpoint shapes and error semantics follow the reference:
  * create ignores the client id and generates a UUID; validation failures
  * return 422 with a {@code detail} message the frontend can translate.

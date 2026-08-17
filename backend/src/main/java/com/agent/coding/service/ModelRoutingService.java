@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/** Java equivalent of qwenpaw's ProviderManager for model routing.
+/** Java equivalent of the original ProviderManager for model routing.
  *  active_model is stored as {provider_id, model} in the DB; the actual
  *  connection (base_url, api_key) is read from the provider record at call
  *  time — not from any flat global settings. */
@@ -36,10 +36,10 @@ public class ModelRoutingService {
         this.modelConfigRepo = modelConfigRepo;
     }
 
-    // ── Effective model resolution (qwenpaw: effective scope) ──────────
+    // ── Effective model resolution (scope) ──────────
 
     /** Resolve the effective active model for an agent.
-     *  Agent-first, then global fallback — exactly matching qwenpaw's
+     *  Agent-first, then global fallback — exactly's
      *  effective scope in get_active_models(). */
     public ModelSlot resolveEffectiveModel(String agentId) {
         var slot = resolveAgentModel(agentId);
@@ -55,7 +55,7 @@ public class ModelRoutingService {
         return ModelSlot.empty();
     }
 
-    /** Resolve an agent's own active model (qwenpaw: _load_agent_model). */
+    /** Resolve an agent's own active model. */
     public ModelSlot resolveAgentModel(String agentId) {
         if (agentId == null || agentId.isBlank()) return null;
         // 1) agent-scoped active_model row in the DB (set via PUT /models/active)
@@ -86,17 +86,17 @@ public class ModelRoutingService {
         return null;
     }
 
-    /** Resolve the global active model (qwenpaw: manager.get_active_model()). */
+    /** Resolve the global active model (.get_active_model()). */
     public ModelSlot resolveGlobalModel() {
         return activeModelRepo.findGlobal()
             .map(e -> new ModelSlot(e.getProviderId(), e.getModelId()))
             .orElse(null);
     }
 
-    // ── Context size (qwenpaw: provider.get_context_size(model_id)) ───
+    // ── Context size (.get_context_size(model_id)) ───
 
     /** Get the effective max input length (context window) for a model.
-     *  Returns null when unresolvable — mirrors qwenpaw. */
+     *  Returns null when unresolvable —. */
     public Integer getContextSize(String providerId, String modelId) {
         if (providerId == null || modelId == null) return null;
         var provider = providerRepo.findById(providerId).orElse(null);
@@ -120,7 +120,7 @@ public class ModelRoutingService {
     // ── Provider resolution ──────────────────────────────────────────
 
     /** Resolve a provider's info: base_url + api_key from providers or custom model_configs.
-     *  This is what qwenpaw's provider.get_chat_model_instance() reads from. */
+     *  This is what the original provider.get_chat_model_instance() reads from. */
     public ProviderConnection resolveProviderConnection(String providerId) {
         if (providerId == null || providerId.isBlank()) return new ProviderConnection("", "", "OpenAIChatModel");
 
@@ -144,7 +144,7 @@ public class ModelRoutingService {
         return new ProviderConnection("", "", "OpenAIChatModel");
     }
 
-    /** Check whether a provider has a specific model (qwenpaw: provider.has_model). */
+    /** Check whether a provider has a specific model (.has_model). */
     public boolean hasModel(String providerId, String modelId) {
         if (providerId == null || modelId == null) return false;
         var bp = providerRepo.findById(providerId).orElse(null);
@@ -165,11 +165,11 @@ public class ModelRoutingService {
         return false;
     }
 
-    // ── Model instantiation (qwenpaw: provider.get_chat_model_instance) ─
+    // ── Model instantiation (.get_chat_model_instance) ─
 
     /** Build an OpenAIChatModel from the provider's connection info at call time.
      *  This replaces the flat SettingsService approach — the model is built from
-     *  the ACTIVE PROVIDER's base_url/api_key, exactly as qwenpaw does. */
+     *  the ACTIVE PROVIDER's base_url/api_key, exactly as the original does. */
     public OpenAIChatModel buildOpenAIChatModel(String providerId, String modelId) {
         var conn = resolveProviderConnection(providerId);
         if (conn.baseUrl.isBlank()) {
@@ -188,7 +188,7 @@ public class ModelRoutingService {
             .build();
     }
 
-    // ── Active model persistence (qwenpaw: activate_model + agent scope) ─
+    // ── Active model persistence (+ agent scope) ─
 
     @Transactional
     public void setGlobalActiveModel(String providerId, String modelId) {
@@ -223,7 +223,7 @@ public class ModelRoutingService {
 
     // ── DTOs ─────────────────────────────────────────────────────────
 
-    /** Model slot: provider_id + model. Mirrors qwenpaw's ModelSlotConfig. */
+    /** Model slot: provider_id + model.'s ModelSlotConfig. */
     public record ModelSlot(String providerId, String modelId) {
         public static ModelSlot empty() { return new ModelSlot("", ""); }
         public boolean hasBoth() {
@@ -235,7 +235,7 @@ public class ModelRoutingService {
     /** Resolved provider connection info. Mirrors what provider.get_chat_model_instance() reads. */
     public record ProviderConnection(String baseUrl, String apiKey, String chatModel) {}
 
-    // ── Harness model catalog (qwenpaw /harnesses/{id}/models) ─────────
+    // ── Harness model catalog─────────
 
     /**
      * Build the harness model catalog from all configured providers/models,

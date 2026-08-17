@@ -18,14 +18,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Cron job data models, ported from qwenpaw app/crons/models.py.
+ * Cron job data models,.
  *
  * <p>Jobs are stored/transported as JSON with snake_case fields matching the
  * frontend contract ({@code CronJobSpecInput} in api/types/cronjob.ts) and the
- * qwenpaw pydantic models. Rather than a rigid POJO tree, the spec is
+
  * represented as a normalized {@link Map} plus typed accessors, because the
  * request payload is permissive ({@code request.input}, {@code meta} etc. are
- * arbitrary JSON) and qwenpaw keeps extra fields.
+ * arbitrary JSON) keeps extra fields.
  */
 public final class CronModels {
 
@@ -172,7 +172,7 @@ public final class CronModels {
     // ------------------------------------------------------------------
 
     /**
-     * Validate and normalize a raw spec map in place, mirroring the qwenpaw
+     * Validate and normalize a raw spec map in place, mirroring the original
      * pydantic validators. Throws IllegalArgumentException with a user-facing
      * message on validation errors.
      */

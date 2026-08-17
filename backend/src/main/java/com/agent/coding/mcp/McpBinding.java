@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * MCP env/header binding classification and presentation helpers.
  *
- * <p>Port of qwenpaw/drivers/adapters/mcp_binding.py. Decides which env /
+ * <p>. Decides which env /
  * header values are stored literally in the card ({@code public}) vs.
  * persisted in the credential record and masked in API responses
  * ({@code secret}), plus masking/restoration of secret values.</p>
@@ -209,7 +209,7 @@ public final class McpBinding {
         return incoming;
     }
 
-    /** Mask a secret value for Console display (mirrors qwenpaw). */
+    /** Mask a secret value for Console display (). */
     public static String maskMcpSecretValue(String value) {
         if (value == null || value.isEmpty()) return value;
         int length = value.length();

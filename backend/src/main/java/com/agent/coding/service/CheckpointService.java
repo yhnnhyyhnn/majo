@@ -25,7 +25,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Workspace checkpoint system, ported from qwenpaw checkpoints/ (service,
+ * Workspace checkpoint system, ported from the original checkpoints module (service,
  * repository, policy, models). Snapshots are git commits in the workspace's
  * checkpoint repo referenced by refs/auto|snap|pre-restore, with metadata
  * persisted in .checkpoints/heads.json.

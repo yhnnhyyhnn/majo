@@ -20,7 +20,7 @@ import java.util.*;
  * atomic writes, SKILL.md frontmatter parsing, zip validation, path-safety
  * guards and metadata building.
  *
- * Port of qwenpaw/agents/skill_system/store.py.
+ *. 
  */
 public class SkillStore {
 
@@ -28,7 +28,7 @@ public class SkillStore {
 
     /**
      * Data directory for agents.json, workspaces, skill_pool, plugins and
-     * backups. Resolution (like qwenpaw WORKING_DIR):
+     * backups. Resolution:
      * 1. MAJO_WORKING_DIR env var, else
      * 2. {user.dir}/data/majo (project-local, independent of source tree).
      * Legacy data (agents.json / skill_pool under the old project root) is

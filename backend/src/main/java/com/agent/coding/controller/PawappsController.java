@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * PawApp (app-type plugin) management, ported from qwenpaw app/routers/pawapps.py.
+ * PawApp (app-type plugin) management,.
  * Apps install into the shared plugins directory; their manifest carries a
  * {@code pawapp} meta section marking them as apps.
  */

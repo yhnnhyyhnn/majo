@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks active loop-mode sessions, mirroring qwenpaw's GoalSession registry.
+ * Tracks active loop-mode sessions,'s GoalSession registry.
  * Drives /loops/status (running vs idle) and provides the gate wiring for
  * goal/mission mode executions.
  */

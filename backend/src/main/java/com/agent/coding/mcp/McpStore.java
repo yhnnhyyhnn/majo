@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  * directory, reusing the same file-lock + atomic-write pattern as
  * {@link SkillStore}.</p>
  *
- * <p>Port of qwenpaw DriverConfigService (card_path / load_card / save_card /
+ * <p>Port of DriverConfigService (card_path / load_card / save_card /
  * list_cards / credential_store) restricted to MCP protocol.</p>
  */
 public class McpStore {

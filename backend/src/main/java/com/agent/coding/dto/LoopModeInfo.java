@@ -1,6 +1,6 @@
 package com.agent.coding.dto;
 
-/** Loop mode descriptor, matching qwenpaw's LoopModeInfo pydantic model. */
+/** Loop mode descriptor,'s LoopModeInfo pydantic model. */
 public record LoopModeInfo(
     String id,
     String name,

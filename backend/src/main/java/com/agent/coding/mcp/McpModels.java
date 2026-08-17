@@ -12,13 +12,13 @@ import java.util.Map;
  *
  * <p>Field names are serialised with {@code snake_case} to match the
  * frontend contract (frontend/src/api/types/mcp.ts), which mirrors the
- * pydantic payloads of the qwenpaw reference implementation.</p>
+ * pydantic payloads of the reference implementation.</p>
  */
 public final class McpModels {
 
     private McpModels() {}
 
-    // ---- constants (mirror qwenpaw/drivers/constants.py) ----
+    // ---- constants () ----
     public static final String PROTOCOL_MCP = "mcp";
     public static final String CAPABILITY_KIND_TOOL = "tool";
     public static final String CREDENTIAL_ALIAS_STATIC = "static";

@@ -41,7 +41,7 @@ public class RootCompatController {
         this.cronController = cronController;
     }
 
-    // ── Legacy plural cron path (qwenpaw migrated /crons/jobs → /cron/jobs).
+    // ── Legacy plural cron path (the original migrated /crons/jobs → /cron/jobs).
     // Forward to the current CronController so older clients keep working.
 
     @GetMapping("/crons/jobs")
@@ -61,7 +61,7 @@ public class RootCompatController {
 
     // ── Voice channel (Twilio phone integration). Majo does not ship the
     // Twilio/ConversationRelay channel, so these webhooks respond with an
-    // explicit "channel not available" error (mirroring qwenpaw's
+    // explicit "channel not available" error ('s
     // build_error_twiml when the voice channel is missing).
 
     @PostMapping("/voice/incoming")

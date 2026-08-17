@@ -137,7 +137,7 @@ public class ModelProviderController {
         try { return mapper.readValue(json, new TypeReference<Object>() {}); } catch (Exception e) { return json; }
     }
 
-    // ── Active model endpoints (qwenpaw-aligned) ─────────────────────
+    // ── Active model endpoints (Majo-aligned) ─────────────────────
 
     @GetMapping("/models/active")
     public Map<String, Object> getActiveModels(
@@ -171,7 +171,7 @@ public class ModelProviderController {
                 .body(Map.of("detail", "scope is required"));
         }
 
-        // Validate provider & model exist (qwenpaw: _validate_model_slot)
+        // Validate provider & model exist
         if (!providerId.isBlank() && !model.isBlank()) {
             if (!modelExists(providerId, model)) {
                 var prov = modelRouting.resolveProviderConnection(providerId);
@@ -231,7 +231,7 @@ public class ModelProviderController {
 
     /** Mirror the DB active_model into the agent profile (agents.json) so the
      *  harness model picker (reads backend_settings/active_model) and the
-     *  qwenpaw model picker (reads the DB) always agree. */
+     *  the model picker (reads the DB) always agree. */
     private void syncProfileActiveModel(String agentId, String providerId, String modelId) {
         try {
             var profile = com.agent.coding.agent.AgentStore.getProfile(agentId);

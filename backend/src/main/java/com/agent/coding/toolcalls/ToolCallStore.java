@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * In-memory registry of running tool calls, mirroring qwenpaw's
+ * In-memory registry of running tool calls,'s
  * ToolCoordinator surface for the {@code /api/tool-calls} endpoints.
  *
  * <p>Majo executes tools inside the AgentScope harness rather than through an

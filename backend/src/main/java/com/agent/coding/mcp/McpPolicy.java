@@ -18,7 +18,7 @@ import static com.agent.coding.mcp.McpModels.PRINCIPAL_SUBJECT_USER;
 /**
  * DriverPolicy &lt;-&gt; MCPAccessPolicy mapping logic.
  *
- * <p>Port of qwenpaw/app/mcp/config_service.py policy presentation code
+ * <p>. py policy presentation code
  * (mcp_access_policy_from_card / driver_policy_from_mcp_access_update and
  * the rule classifiers). Policies are stored inside the client card as
  * {@code {"default_effect": ..., "rules": [...]}}.</p>

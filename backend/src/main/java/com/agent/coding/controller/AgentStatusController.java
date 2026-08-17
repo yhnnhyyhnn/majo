@@ -10,7 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Agent runtime status, ported from qwenpaw app/routers/agent_status.py.
+ * Agent runtime status,.
  * Reports idle / running / disabled with running task count and timestamps.
  */
 @RestController

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Local model (llama.cpp) management, ported from qwenpaw
+ * Local model (llama.cpp) management
  * app/routers/local_models.py. Majo detects the llama-server binary and scans
  * the local models directory; downloading and running the llama.cpp server is
  * a future integration (the endpoints return explicit "not installed" states).

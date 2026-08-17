@@ -21,7 +21,7 @@ import java.util.*;
  * Multi-agent management API ({@code /api/agents}).
  *
  * Backed by {@code WORKING_DIR/agents.json} (AgentStore).  Mirrors the
- * qwenpaw agents router contract consumed by the frontend
+ * agent router contract consumed by the frontend
  * (frontend/src/api/modules/agents.ts).
  */
 @RestController
@@ -255,9 +255,9 @@ public class AgentsController {
     }
 
     /**
-     * Build backend capabilities for an agent, mirroring qwenpaw
+     * Build backend capabilities for an agent,
      * app/routers/agents.py:
-     * - backend "majo": the qwenpaw-style UI model selector is used
+     * - backend "majo": the Majo-style UI model selector is used
      *   (requiresMajoModel(backend) == true), so only workspace_ui and
      *   code_files are advertised.
      * - any other backend (harness-style, e.g. "qwenpaw", "codex"): the full

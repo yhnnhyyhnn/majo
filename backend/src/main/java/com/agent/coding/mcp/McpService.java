@@ -27,7 +27,7 @@ import static com.agent.coding.mcp.McpModels.TRANSPORT_SSE;
 /**
  * Application service for Console-managed MCP client configuration.
  *
- * <p>Port of qwenpaw/app/mcp/config_service.py + the card/credential
+ * <p>. py + the card/credential
  * builders from drivers/adapters/mcp_card_builder.py. Cards are plain JSON
  * maps persisted via {@link McpStore}.</p>
  */

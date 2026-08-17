@@ -10,7 +10,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
- * In-memory registry of pending tool-execution approvals, ported from qwenpaw
+ * In-memory registry of pending tool-execution approvals
  * app/approvals (ApprovalService). Agents register a pending request before
  * executing a guarded tool; the frontend lists them via
  * {@code /api/console/push-messages} and resolves them via

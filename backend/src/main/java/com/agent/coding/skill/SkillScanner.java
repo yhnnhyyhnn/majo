@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 /**
  * Skill security scanner.
  *
- * Ports the shipped signature rules of qwenpaw/security/skill_scanner to Java
+ * Ports the shipped signature rules of the skill scanner to Java
  * regexes. Produces ScanResult with severity/findings matching the Python model
  * and raises {@link SkillScanError} when CRITICAL/HIGH findings are found.
  */

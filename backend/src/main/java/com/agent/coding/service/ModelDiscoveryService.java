@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * OpenAI-compatible model discovery + connection tests, ported from qwenpaw
+ * OpenAI-compatible model discovery + connection tests
  * providers.py (fetch_provider_models / test_provider_connection). Calls the
  * provider's {@code GET /models} endpoint; no external dependencies.
  */

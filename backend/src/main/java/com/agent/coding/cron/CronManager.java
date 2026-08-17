@@ -19,10 +19,10 @@ import java.util.concurrent.ScheduledFuture;
 /**
  * Cron job manager: schedules jobs, tracks per-job state and history, and
  * exposes the CRUD/control operations used by the REST API. Ported from
- * qwenpaw app/crons/manager.py.
+* 
  *
  * <p>Storage lives under the agent workspace ({@code jobs.json} +
- * {@code jobs_history/}), matching qwenpaw's per-workspace repository. The
+ * {@code jobs_history/}),'s per-workspace repository. The
  * scheduler is a Spring {@link ThreadPoolTaskScheduler}: cron jobs use
  * {@link CronTrigger} (6-field, seconds prepended from the normalized 5-field
  * expression), "once" jobs are scheduled at their run_at with optional daily
@@ -74,7 +74,7 @@ public class CronManager {
             } catch (Exception e) {
                 log.warn("Skipping invalid cron job during startup: job_id={} error={}",
                         job.get("id"), e.getMessage());
-                // Auto-disable invalid enabled jobs (qwenpaw behavior)
+                // Auto-disable invalid enabled jobs (original behavior)
                 if (Boolean.TRUE.equals(job.get("enabled"))) {
                     job.put("enabled", false);
                     repo.upsertJob(job);
@@ -191,7 +191,7 @@ public class CronManager {
         } else {
             String cron = String.valueOf(schedule.getOrDefault("cron", "0 9 * * *"));
             // Spring CronTrigger expects 6 fields (second minute hour dom month dow);
-            // qwenpaw normalizes to 5 fields, so prepend seconds.
+            // the original normalizes to 5 fields, so prepend seconds.
             String cron6 = "0 " + cron;
             if (enabled) {
                 ScheduledFuture<?> f = scheduler.schedule(

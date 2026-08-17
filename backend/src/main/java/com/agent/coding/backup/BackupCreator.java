@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Backup creation with SSE progress events. Ported from qwenpaw
+ * Backup creation with SSE progress events.
  * backup/_ops/create.py + create_helpers.py.
  *
  * Event shapes (serialized as {@code data: <json>\n\n}):
@@ -176,8 +176,7 @@ public class BackupCreator {
 
         // Signature covers canonical meta (signature=null) + all zip entries
         // except meta.json, so it can be computed directly on tmp and needs
-        // only one zip rewrite to embed the signed meta.json (qwenpaw
-        // replace_meta_with_local_signature does the same in one pass).
+        // only one zip rewrite to embed the signed meta.json.
         String sig = BackupStore.computeSignature(tmp, toSign);
         toSign.signature = sig;
         log.info("signAndFinalize: signature={}", sig);

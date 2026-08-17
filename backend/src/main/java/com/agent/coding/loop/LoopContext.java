@@ -2,7 +2,7 @@ package com.agent.coding.loop;
 
 /**
  * Evaluation context passed to every gate on each loop iteration, mirroring
- * the ctx dict qwenpaw builds in loop/gates/runner.py.
+ * the ctx dict the original builds in loop/gates/runner.py.
  */
 public class LoopContext {
 

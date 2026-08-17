@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Compile declarative custom loop modes into a StopHandler, ported from
- * qwenpaw loop/compiler.py. Validates every gate's params against the
+* Validates every gate's params against the
  * built-in catalog, enforces exclusive groups, and builds configured gates
  * in order.
  */

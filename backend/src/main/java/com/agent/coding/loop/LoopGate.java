@@ -3,7 +3,7 @@ package com.agent.coding.loop;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Session-safe base for all stateful gates, ported from qwenpaw
+ * Session-safe base for all stateful gates
  * loop/gates/loop_gate.py LoopGate. Manages per-session state keyed by
  * session ID; subclasses store arbitrary state via {@link #activate(Object)}
  * and retrieve it via {@link #state()}.

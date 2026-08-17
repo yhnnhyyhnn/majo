@@ -10,11 +10,11 @@ import java.nio.file.Files;
 import java.util.Map;
 
 /**
- * Global bearer-token auth interceptor, ported from qwenpaw app/auth.py
+ * Global bearer-token auth interceptor,
  * (auth middleware + {@code _PUBLIC_PATHS}).
  *
  * <p>Only active when {@code QWENPAW_AUTH_ENABLED} is set (Majo defaults to
- * auth disabled, matching qwenpaw). When active, every request must carry a
+ * auth disabled,). When active, every request must carry a
  * valid token from {@code WORKING_DIR/auth.json} unless the path is public
  * (auth/login, auth/status, auth/register, version, desktop/shutdown,
  * settings/language, settings/upload-limit, static assets) or the client IP

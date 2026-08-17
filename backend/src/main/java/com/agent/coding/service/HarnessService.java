@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Third-party agent harness catalog + status, ported from qwenpaw
+ * Third-party agent harness catalog + status
  * harnesses/registry.py + app/routers/harnesses.py.
  *
  * <p>Reports supported third-party coding agents (Codex, Qoder; Claude Code
@@ -177,7 +177,7 @@ public class HarnessService {
 
     // ── binary detection ────────────────────────────────────────────────
 
-    /** Resolve a CLI binary from PATH (or configured path), mirroring qwenpaw discovery. */
+    /** Resolve a CLI binary from PATH (or configured path),discovery. */
     private static String resolveBinary(String binary) {
         if (binary == null || binary.isBlank()) {
             return null;

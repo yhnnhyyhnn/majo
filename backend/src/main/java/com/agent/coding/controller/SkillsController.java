@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Skills API (Java port of qwenpaw/app/routers/skills.py + skills_stream.py).
+ * Skills API (Java. py + skills_stream.py).
  *
  * <p>majo runs a single implicit agent ({@code agent_id="default"}) rooted at
  * {@code user.dir}; workspace resolution follows the frontend contract:
@@ -1023,7 +1023,7 @@ public class SkillsController {
         return "high";
     }
 
-    // ── Agent-scoped skills (port of qwenpaw agent_scoped /agents/{agentId}/skills) ──
+    // ── Agent-scoped skills  ──
     @GetMapping("/agents/{agentId}/skills")
     public Object agentSkillList(@PathVariable String agentId, HttpServletRequest request) {
         return listSkills(withAgent(request, agentId));

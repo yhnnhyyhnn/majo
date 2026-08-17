@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Tool-call lifecycle endpoints, ported from qwenpaw app/routers/tool_calls.py.
+ * Tool-call lifecycle endpoints,.
  * Backed by {@link ToolCallStore}; entries are registered by tool executors.
  */
 @RestController

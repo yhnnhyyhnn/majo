@@ -1,7 +1,7 @@
 package com.agent.coding.skill;
 
 /**
- * Skill-domain exceptions mirroring qwenpaw.exceptions.
+ * Skill-domain exceptions.exceptions.
  */
 public class SkillsError extends RuntimeException {
     public SkillsError(String message) { super(message); }

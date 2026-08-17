@@ -2,7 +2,7 @@ package com.agent.coding.inbox;
 
 /**
  * Value holder for a single inbox event, mirroring the JSON shape written by
- * qwenpaw's {@code inbox_store.append_event}. Field names are serialized
+ * the original {@code inbox_store.append_event}. Field names are serialized
  * verbatim (camelCase = snake_case) so the console UI contract is preserved.
  */
 public record InboxEvent(

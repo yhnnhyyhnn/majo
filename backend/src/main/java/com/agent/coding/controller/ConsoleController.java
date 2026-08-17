@@ -107,7 +107,7 @@ public class ConsoleController {
 
         WorkspaceContext.set(workspace);
 
-        // Find or create chat by session_id (qwenpaw: get_or_create_chat)
+        // Find or create chat by session_id
         var chatEntity = chatService.getOrCreateBySession(agentId, sessionId, prompt);
         final String chatId = chatEntity.getId();
         final String placeholderTitle = chatEntity.getTitle();
@@ -240,7 +240,7 @@ public class ConsoleController {
                     slot.modelId() != null ? slot.modelId() : "",
                     usageHolder.inputTokens, usageHolder.outputTokens));
             }
-            // Background LLM title generation (qwenpaw: generate_and_update_title)
+            // Background LLM title generation
             if (firstUserText != null && !firstUserText.isBlank()
                     && !"New Chat".equals(placeholderTitle)) {
                 new Thread(() -> generateTitle(chatId, placeholderTitle, firstUserText, agentId)).start();
@@ -1275,7 +1275,7 @@ public class ConsoleController {
         }
     }
 
-    // ===== Debug backend logs (ported from qwenpaw console.py /debug/backend-logs) =====
+    // ===== Debug backend logs (/debug/backend-logs) =====
     private static final int MAX_DEBUG_LOG_LINES = 1000;
     private static final int DEBUG_LOG_MAX_TAIL_BYTES = 512 * 1024;
 
@@ -1338,7 +1338,7 @@ public class ConsoleController {
         }
     }
 
-    // ── Agent-scoped console (port of qwenpaw agent_scoped /agents/{agentId}/console) ──
+    // ── Agent-scoped console  ──
     @PostMapping("/agents/{agentId}/console/chat/task")
     public Object agentChatTask(@PathVariable String agentId) { return createChatTask(); }
 

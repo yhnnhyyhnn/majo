@@ -1,7 +1,7 @@
 package com.agent.coding.loop;
 
 /**
- * Hard iteration cap for the outer loop, ported from qwenpaw
+ * Hard iteration cap for the outer loop
  * loop/gates/iteration.py IterationGate. Priority 10 (runs early).
  */
 public class IterationGate extends LoopGate {

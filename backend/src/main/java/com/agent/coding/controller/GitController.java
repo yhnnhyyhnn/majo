@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Git workspace endpoints, ported from qwenpaw app/routers/git.py.
+ * Git workspace endpoints,.
  * Operates on the agent's coding directory (workspace dir) resolved from
  * {@code X-Agent-Id}. Auto-initialises a repo on first status call.
  */

@@ -3,7 +3,7 @@ package com.agent.coding.loop;
 import java.util.List;
 
 /**
- * Completion-signal gate for goal-style loops, adapted from qwenpaw
+ * Completion-signal gate for goal-style loops, adapted from the original
  * loop/gates/completion.py CompletionRubricGate. Instead of an LLM rubric
  * evaluation, checks whether the agent's final text contains a completion
  * signal; when absent, injects a continuation to keep working toward the

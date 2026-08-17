@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  * shared across all agents; each agent owns an independent workspace
  * ({@code workspace_dir/skills} + {@code workspace_dir/skill.json}).
  *
- * Port of qwenpaw/config/config.py (AgentsConfig / AgentProfileRef) kept in
+
  * a single JSON file per the user's "配置文件 agents.json" decision.
  */
 public class AgentStore {
@@ -379,7 +379,7 @@ public class AgentStore {
 
     /**
      * Persist the {@code running} config (and optionally the profile-level
-     * {@code approval_level}) for an agent. Mirrors qwenpaw's running-config
+     * {@code approval_level}) for an agent.'s running-config
      * PUT: approval_level lives on the profile, the rest under {@code running}.
      */
     public static void saveRunningConfig(String agentId,

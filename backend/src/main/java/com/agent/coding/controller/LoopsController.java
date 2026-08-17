@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Loop mode discovery + custom mode persistence, ported from qwenpaw
+ * Loop mode discovery + custom mode persistence
  * app/routers/loops.py. Built-in modes are static; custom modes persist in the
  * agent's {@code running.loop.custom_modes} config.
  */

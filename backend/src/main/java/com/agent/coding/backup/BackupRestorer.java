@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.zip.ZipFile;
 
 /**
- * Backup restore. Ported from qwenpaw backup/_ops/restore.py. Restores agent
+ * Backup restore.. Restores agent
  * workspaces, global config (agents.json), skill pool and secrets with
  * full/custom mode and trust semantics.
  */
