@@ -135,7 +135,7 @@ import {
   holdOwnershipLock,
 } from "../../stores/messageQueueStore";
 import {
-  requiresQwenPawModel,
+  requiresMajoModel,
   supportsAgentAttachments,
 } from "../../utils/agentBackend";
 
@@ -664,7 +664,7 @@ function useMultimodalCapabilities(
   locationPathname: string,
   _isChatActive: () => boolean,
   selectedAgent: string,
-  usesQwenPawBackend: boolean,
+  usesMajoBackend: boolean,
 ) {
   const [multimodalCaps, setMultimodalCaps] = useState<{
     supportsMultimodal: boolean;
@@ -695,7 +695,7 @@ function useMultimodalCapabilities(
       supportsImage: false,
       supportsVideo: false,
     };
-    if (!usesQwenPawBackend) {
+    if (!usesMajoBackend) {
       updateCapsIfChanged(noCaps);
       return;
     }
@@ -733,7 +733,7 @@ function useMultimodalCapabilities(
     } catch {
       updateCapsIfChanged(noCaps);
     }
-  }, [selectedAgent, updateCapsIfChanged, usesQwenPawBackend]);
+  }, [selectedAgent, updateCapsIfChanged, usesMajoBackend]);
 
   // Fetch caps on mount and whenever refreshKey changes
   useEffect(() => {
@@ -1203,7 +1203,7 @@ export default function ChatPage() {
   const selectedAgentInfo = agents.find((agent) => agent.id === selectedAgent);
   const selectedAgentBackend = selectedAgentInfo?.backend ?? "majo";
   const backendCapabilities = selectedAgentInfo?.backend_capabilities;
-  const usesQwenPawBackend = requiresQwenPawModel(selectedAgentBackend);
+  const usesMajoBackend = requiresMajoModel(selectedAgentBackend);
   const backendCommands = backendCapabilities?.commands ?? [];
   const approvalPresets = backendCapabilities?.approval_presets ?? [];
   const supportsAttachments = supportsAgentAttachments(
@@ -1459,7 +1459,7 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
-    if (!usesQwenPawBackend) {
+    if (!usesMajoBackend) {
       setChatSkills([]);
       return;
     }
@@ -1481,7 +1481,7 @@ export default function ChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent, usesQwenPawBackend]);
+  }, [selectedAgent, usesMajoBackend]);
 
   const isChatActiveRef = useRef(false);
   // Issue #5142: In Coding mode the Chat component is embedded under /coding/*,
@@ -1673,7 +1673,7 @@ export default function ChatPage() {
     location.pathname,
     isChatActive,
     selectedAgent,
-    usesQwenPawBackend,
+    usesMajoBackend,
   );
 
   const { setLastChatId, getLastChatId } = useAgentStore();
@@ -2093,7 +2093,7 @@ export default function ChatPage() {
       // Clean up the queue and abort any in-flight background send for the
       // removed session so stale items don't linger in storage or get sent
       // after the conversation is deleted. Navigation to a fresh chat is
-      // owned by the delete handlers (via the "qwenpaw:sidebar-new-chat"
+      // owned by the delete handlers (via the "majo:sidebar-new-chat"
       // event), so this callback stays focused on resource cleanup and can
       // run regardless of which session is currently active.
       try {
@@ -2267,7 +2267,7 @@ export default function ChatPage() {
         ...buildAuthHeaders(),
       };
 
-      if (usesQwenPawBackend) {
+      if (usesMajoBackend) {
         try {
           const activeModels = await providerApi.getActiveModels({
             scope: "effective",
@@ -2323,7 +2323,7 @@ export default function ChatPage() {
         }
       }
 
-      if (usesQwenPawBackend) {
+      if (usesMajoBackend) {
         applyApprovalLevelToRequestBody(
           requestBody,
           sessionApprovalLevelRef.current,
@@ -2383,7 +2383,7 @@ export default function ChatPage() {
 
       return wrapChatResponseUsageStream(response, chatRef);
     },
-    [extLists, selectedAgent, runningConfigApprovalLevel, usesQwenPawBackend],
+    [extLists, selectedAgent, runningConfigApprovalLevel, usesMajoBackend],
   );
 
   const handleFileUpload = useCallback(
@@ -2396,7 +2396,7 @@ export default function ChatPage() {
       const { file, onSuccess, onError, onProgress } = options;
       try {
         // Warn when model has no multimodal support
-        if (usesQwenPawBackend && !multimodalCaps.supportsMultimodal) {
+        if (usesMajoBackend && !multimodalCaps.supportsMultimodal) {
           message.warning(t("chat.attachments.multimodalWarning"));
         } else if (
           multimodalCaps.supportsImage &&
@@ -2438,7 +2438,7 @@ export default function ChatPage() {
         onError?.(e instanceof Error ? e : new Error(String(e)));
       }
     },
-    [multimodalCaps, t, usesQwenPawBackend],
+    [multimodalCaps, t, usesMajoBackend],
   );
 
   const options = useMemo(() => {
@@ -2455,7 +2455,7 @@ export default function ChatPage() {
         description: t("chat.commands.clear.description"),
       },
     ];
-    const nativeCommands: CommandSuggestion[] = usesQwenPawBackend
+    const nativeCommands: CommandSuggestion[] = usesMajoBackend
       ? [
           {
             command: "/compact",
@@ -2514,7 +2514,7 @@ export default function ChatPage() {
           message.warning(t("chat.queue.queueFull", { max: MAX_QUEUE_SIZE }));
           return false;
         }
-        const queueText = usesQwenPawBackend
+        const queueText = usesMajoBackend
           ? prepareLoopModeMessage(val)
           : val;
         const enqueueIdentity = sessionApi.getSessionIdentity();
@@ -2549,7 +2549,7 @@ export default function ChatPage() {
         .querySelector('[class*="sender"]')
         ?.querySelector("textarea") as HTMLTextAreaElement | null;
       if (textarea) {
-        const prepared = usesQwenPawBackend
+        const prepared = usesMajoBackend
           ? beginLoopModeSubmission(textarea.value)
           : textarea.value;
         if (prepared !== textarea.value) {
@@ -2646,7 +2646,7 @@ export default function ChatPage() {
         return resolved.map((s) => ({ label: s.label, value: s.value }));
       },
     );
-    const activePluginSuggestions = usesQwenPawBackend ? pluginSuggestions : [];
+    const activePluginSuggestions = usesMajoBackend ? pluginSuggestions : [];
 
     const wrapActionSpec = (
       pluginId: string,
@@ -2767,7 +2767,7 @@ export default function ChatPage() {
             />
             <ChatHeaderTitle />
             <span style={{ flex: 1 }} />
-            {usesQwenPawBackend ? (
+            {usesMajoBackend ? (
               <ModelSelector />
             ) : backendCapabilities?.model_selection ? (
               <HarnessModelSelector providerId={selectedAgentBackend} />
@@ -2786,7 +2786,7 @@ export default function ChatPage() {
       },
       welcome: {
         ...i18nConfig.welcome,
-        nick: extNick ?? "QwenPaw",
+        nick: extNick ?? "Majo",
         avatar: extAvatar ?? "/qwenpaw.png",
         ...(extGreeting !== undefined ? { greeting: extGreeting } : {}),
         ...(extDescription !== undefined
@@ -2833,7 +2833,7 @@ export default function ChatPage() {
                 onTranscription={handleWhisperTranscription}
               />
             ) : null}
-            {usesQwenPawBackend && <LoopModeSelector />}
+            {usesMajoBackend && <LoopModeSelector />}
             {pluginSenderPrefix}
           </>
         ),
@@ -2845,13 +2845,13 @@ export default function ChatPage() {
               gap: 4,
             }}
           >
-            {(usesQwenPawBackend || backendCapabilities?.context_usage) && (
+            {(usesMajoBackend || backendCapabilities?.context_usage) && (
               <ContextUsageIndicator
                 onCompact={handleCompactCommand}
                 onNew={handleNewCommand}
               />
             )}
-            {usesQwenPawBackend ? (
+            {usesMajoBackend ? (
               <ApprovalLevelToggle
                 sessionId={queueSessionId}
                 runningConfigApprovalLevel={runningConfigApprovalLevel}
@@ -3102,7 +3102,7 @@ export default function ChatPage() {
     backendCapabilities,
     backendCommands,
     approvalPresets,
-    usesQwenPawBackend,
+    usesMajoBackend,
     supportsAttachments,
     runningConfigApprovalLevel,
     queueSessionId,
@@ -3149,7 +3149,7 @@ export default function ChatPage() {
         </div>
 
         {/* Rate-limit guidance banner */}
-        {usesQwenPawBackend && rateLimitAlternatives.length > 0 && (
+        {usesMajoBackend && rateLimitAlternatives.length > 0 && (
           <div className={styles.rateLimitBanner}>
             <span className={styles.rateLimitText}>
               {t("chat.rateLimitMessage")}
@@ -3259,7 +3259,7 @@ export default function ChatPage() {
         ))}
 
         <Modal
-          open={usesQwenPawBackend && showModelPrompt}
+          open={usesMajoBackend && showModelPrompt}
           closable={false}
           footer={null}
           width={480}

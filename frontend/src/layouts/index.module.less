@@ -13,7 +13,7 @@
   background: #f9f8f4;
 
   :global {
-    .qwenpaw-space-item {
+    .majo-space-item {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -89,7 +89,7 @@
     padding: 4px;
 
     :global {
-      .qwenpaw-menu {
+      .majo-menu {
         background: transparent !important;
       }
     }
@@ -162,7 +162,7 @@
     // agentScopedSection / sessionList / collapseToggleContainer become flex
     // items and only the sessionList scrolls.
     :global {
-      .qwenpaw-layout-sider-children {
+      .majo-layout-sider-children {
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -194,8 +194,8 @@
 
     :global {
       /* Center icon in collapsed menu items */
-      .qwenpaw-menu-item,
-      .qwenpaw-menu-submenu .qwenpaw-menu-item {
+      .majo-menu-item,
+      .majo-menu-submenu .majo-menu-item {
         padding-left: 0 !important;
         padding-right: 0 !important;
         display: flex !important;
@@ -205,32 +205,32 @@
       }
 
       /* Ensure icon container allows badge overflow */
-      .qwenpaw-menu-item-icon,
-      .qwenpaw-menu-item .anticon {
+      .majo-menu-item-icon,
+      .majo-menu-item .anticon {
         overflow: visible !important;
       }
 
       /* Hide label text in collapsed mode */
-      .qwenpaw-menu-title-content,
-      .qwenpaw-menu-item > span:not([role]):not(.qwenpaw-badge),
-      .qwenpaw-menu-item-only-child > span:not(.qwenpaw-badge) {
+      .majo-menu-title-content,
+      .majo-menu-item > span:not([role]):not(.majo-badge),
+      .majo-menu-item-only-child > span:not(.majo-badge) {
         display: none !important;
       }
 
       /* Hide group labels */
-      .qwenpaw-menu-submenu-title {
+      .majo-menu-submenu-title {
         display: none !important;
       }
     }
   }
 
   :global {
-    .qwenpaw-menu {
+    .majo-menu {
       border-inline-end: 0 !important;
     }
 
     /* Group title (一级菜单分组) */
-    .qwenpaw-menu-submenu-title {
+    .majo-menu-submenu-title {
       font-family: "PingFang SC", sans-serif !important;
       font-size: 12px !important;
       font-weight: 500 !important;
@@ -247,43 +247,43 @@
     }
 
     /* Hide submenu arrow */
-    .qwenpaw-menu-submenu-arrow {
+    .majo-menu-submenu-arrow {
       display: none !important;
     }
 
     /* Always expand submenus */
-    .qwenpaw-menu-submenu {
-      > .qwenpaw-menu {
+    .majo-menu-submenu {
+      > .majo-menu {
         display: block !important;
       }
     }
 
     /* Menu item padding - align all items */
-    .qwenpaw-menu-item {
+    .majo-menu-item {
       padding-left: 8px !important;
     }
 
     /* Remove submenu indent - align with parent */
-    .qwenpaw-menu-submenu .qwenpaw-menu-item {
+    .majo-menu-submenu .majo-menu-item {
       padding-left: 8px !important;
     }
 
     /* Selected item */
-    .qwenpaw-menu-item-selected {
+    .majo-menu-item-selected {
       background: rgba(43, 18, 0, 0.08) !important;
       color: inherit !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
 
-      .qwenpaw-menu-title-content {
+      .majo-menu-title-content {
         display: flex !important;
         align-items: center !important;
       }
     }
 
     /* Selected submenu item - keep text color unchanged */
-    .qwenpaw-menu-submenu .qwenpaw-menu-item-selected {
+    .majo-menu-submenu .majo-menu-item-selected {
       color: inherit !important;
     }
   }
@@ -325,13 +325,13 @@
   }
 
   :global {
-    .qwenpaw-menu {
+    .majo-menu {
       background: #1a1a1a !important;
       border-inline-end: 0 !important;
     }
 
     /* Group title (sub-menu label) */
-    .qwenpaw-menu-submenu-title {
+    .majo-menu-submenu-title {
       color: rgba(255, 255, 255, 0.45) !important;
 
       /* No hover effect for group titles in dark mode */
@@ -342,18 +342,18 @@
     }
 
     /* Regular menu item */
-    .qwenpaw-menu-item {
+    .majo-menu-item {
       color: rgba(255, 255, 255, 0.75) !important;
     }
 
     /* Hover state - only for menu items, not group titles */
-    .qwenpaw-menu-item:hover {
+    .majo-menu-item:hover {
       background: rgba(255, 255, 255, 0.1) !important;
       color: rgba(255, 255, 255, 0.95) !important;
     }
 
     /* Selected item */
-    .qwenpaw-menu-item-selected {
+    .majo-menu-item-selected {
       background: rgba(255, 127, 22, 0.5) !important;
       color: #ff7f16 !important;
     }
@@ -782,7 +782,7 @@
 
 // ─── Update Modal ─────────────────────────────────────────────────────────────
 .updateModal {
-  :global(.qwenpaw-modal-content) {
+  :global(.majo-modal-content) {
     padding: 0 !important;
     border-radius: 12px !important;
     overflow: visible !important;
@@ -790,20 +790,20 @@
     border: none !important;
   }
 
-  :global(.qwenpaw-modal-body) {
+  :global(.majo-modal-body) {
     padding: 0 !important;
   }
 
-  :global(.qwenpaw-modal-footer) {
+  :global(.majo-modal-footer) {
     padding: 12px 24px;
     margin-top: 0;
   }
 
-  :global(.qwenpaw-modal-header) {
+  :global(.majo-modal-header) {
     display: none !important;
   }
 
-  :global(.qwenpaw-modal-close) {
+  :global(.majo-modal-close) {
     display: none !important;
   }
 }
@@ -941,7 +941,7 @@
     color: rgba(255, 255, 255, 0.85);
 
     /* Text buttons (Docs / FAQ / GitHub / Changelog) */
-    :global(.qwenpaw-btn-text),
+    :global(.majo-btn-text),
     :global(.ant-btn-text) {
       color: rgba(255, 255, 255, 0.75) !important;
 

@@ -39,12 +39,12 @@ class AuditStore {
       rec.kind === "chat.error"
     ) {
       console.warn(
-        `[QwenPaw audit] ${rec.kind} ${id} by ${rec.pluginId}` +
+        `[Majo audit] ${rec.kind} ${id} by ${rec.pluginId}` +
           (rec.detail ? `: ${rec.detail}` : ""),
       );
     } else {
       console.info(
-        `[QwenPaw audit] ${rec.kind} ${id} by ${rec.pluginId}` +
+        `[Majo audit] ${rec.kind} ${id} by ${rec.pluginId}` +
           (rec.supersededPluginId
             ? ` (superseded ${rec.supersededPluginId})`
             : ""),

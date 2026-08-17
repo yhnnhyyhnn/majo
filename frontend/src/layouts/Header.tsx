@@ -347,7 +347,7 @@ export default function Header() {
           <Slot name="header.logo" kind="replace">
             <img
               src={isDark ? "/logo-dark.svg" : "/logo-light.svg"}
-              alt="QwenPaw"
+              alt="Majo"
               className={styles.logoImg}
             />
           </Slot>

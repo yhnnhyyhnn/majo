@@ -9,8 +9,8 @@ function getSelectedAgentId(): string {
   try {
     // Read from sessionStorage first (per-tab agent), fall back to localStorage
     const agentStorage =
-      sessionStorage.getItem("qwenpaw-agent-storage") ||
-      localStorage.getItem("qwenpaw-agent-storage");
+      sessionStorage.getItem("majo-agent-storage") ||
+      localStorage.getItem("majo-agent-storage");
     if (agentStorage) {
       const parsed = JSON.parse(agentStorage);
       const selectedAgent = parsed?.state?.selectedAgent;
@@ -33,7 +33,7 @@ function generateFallbackFilename(): string {
     .replace(/\..+/, "")
     .replace("T", "_")
     .slice(0, 15); // YYYYMMDD_HHMMSS
-  return `qwenpaw_workspace_${agentId}_${timestamp}.zip`;
+  return `majo_workspace_${agentId}_${timestamp}.zip`;
 }
 
 function encodePath(path: string): string {

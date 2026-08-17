@@ -248,9 +248,9 @@ export function useSessionListData(
   // via DOM events and may not see currentSessionId change on errors.
   useEffect(() => {
     const onDone = () => setSwitchingSessionId(null);
-    window.addEventListener("qwenpaw:sidebar-switch-done", onDone);
+    window.addEventListener("majo:sidebar-switch-done", onDone);
     return () =>
-      window.removeEventListener("qwenpaw:sidebar-switch-done", onDone);
+      window.removeEventListener("majo:sidebar-switch-done", onDone);
   }, []);
 
   const handleDelete = useCallback(
@@ -287,7 +287,7 @@ export function useSessionListData(
             (s as ExtendedChatSession).realId === currentSessionId,
         );
         if (!stillExists) {
-          window.dispatchEvent(new CustomEvent("qwenpaw:sidebar-new-chat"));
+          window.dispatchEvent(new CustomEvent("majo:sidebar-new-chat"));
         }
       }
     },
@@ -362,7 +362,7 @@ export function useSessionListData(
           const isCurrentSession =
             sessionId === currentSessionId || backendId === currentSessionId;
           if (isCurrentSession) {
-            window.dispatchEvent(new CustomEvent("qwenpaw:sidebar-new-chat"));
+            window.dispatchEvent(new CustomEvent("majo:sidebar-new-chat"));
           }
         }
       } catch (err) {

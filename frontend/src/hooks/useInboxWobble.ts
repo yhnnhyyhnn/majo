@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = "qwenpaw.inbox.approvalWobble";
+const STORAGE_KEY = "majo.inbox.approvalWobble";
 const SYNC_EVENT = "qwenpaw:inbox-wobble-change";
 
 /**

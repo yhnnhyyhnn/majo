@@ -262,7 +262,7 @@ const ChatSessionDrawer: React.FC<ChatSessionDrawerProps> = (props) => {
       sessionApi.finishSessionSwitch();
     }
     if (embedded) {
-      window.dispatchEvent(new CustomEvent("qwenpaw:sidebar-new-chat"));
+      window.dispatchEvent(new CustomEvent("majo:sidebar-new-chat"));
     } else {
       await createNewSession();
       if (!pinned) {
@@ -424,9 +424,9 @@ const ChatSessionDrawer: React.FC<ChatSessionDrawerProps> = (props) => {
     const onDone = () => {
       setSwitchingSessionId(null);
     };
-    window.addEventListener("qwenpaw:sidebar-switch-done", onDone);
+    window.addEventListener("majo:sidebar-switch-done", onDone);
     return () =>
-      window.removeEventListener("qwenpaw:sidebar-switch-done", onDone);
+      window.removeEventListener("majo:sidebar-switch-done", onDone);
   }, []);
 
   // In embedded mode, clear switchingSessionId when the URL changes
@@ -479,7 +479,7 @@ const ChatSessionDrawer: React.FC<ChatSessionDrawerProps> = (props) => {
             (s as ExtendedChatSession).realId === urlChatId,
         );
         if (!stillExists) {
-          window.dispatchEvent(new CustomEvent("qwenpaw:sidebar-new-chat"));
+          window.dispatchEvent(new CustomEvent("majo:sidebar-new-chat"));
         }
       }
     },
@@ -577,7 +577,7 @@ const ChatSessionDrawer: React.FC<ChatSessionDrawerProps> = (props) => {
             urlChatId &&
             (sessionId === urlChatId || backendId === urlChatId)
           ) {
-            window.dispatchEvent(new CustomEvent("qwenpaw:sidebar-new-chat"));
+            window.dispatchEvent(new CustomEvent("majo:sidebar-new-chat"));
           }
         }
       } catch (err) {

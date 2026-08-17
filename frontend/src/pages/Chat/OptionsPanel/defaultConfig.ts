@@ -4,10 +4,10 @@ const defaultConfig = {
   theme: {
     colorPrimary: "#FF7F16",
     darkMode: false,
-    prefix: "qwenpaw",
+    prefix: "majo",
     leftHeader: {
       logo: "",
-      title: "Work with QwenPaw",
+      title: "Work with Majo",
     },
     bubbleList: {
       userMessageAnchors: {

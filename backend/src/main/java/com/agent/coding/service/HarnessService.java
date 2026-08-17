@@ -67,8 +67,8 @@ public class HarnessService {
         caps.put("attachments", true);
         caps.put("context_usage", false);
         caps.put("skills_commands", false);
-        caps.put("qwenpaw_skills_projection", true);
-        caps.put("qwenpaw_mcp_projection", true);
+        caps.put("majo_skills_projection", true);
+        caps.put("majo_mcp_projection", true);
         caps.put("provider_skills_discovery", true);
         caps.put("provider_mcp_discovery", true);
         caps.put("mcp_tool_allowlist", true);
@@ -107,8 +107,8 @@ public class HarnessService {
         caps.put("attachments", true);
         caps.put("context_usage", false);
         caps.put("skills_commands", false);
-        caps.put("qwenpaw_skills_projection", true);
-        caps.put("qwenpaw_mcp_projection", true);
+        caps.put("majo_skills_projection", true);
+        caps.put("majo_mcp_projection", true);
         caps.put("provider_skills_discovery", true);
         caps.put("provider_mcp_discovery", false);
         caps.put("mcp_tool_allowlist", true);
@@ -144,8 +144,8 @@ public class HarnessService {
         caps.put("attachments", false);
         caps.put("context_usage", false);
         caps.put("skills_commands", false);
-        caps.put("qwenpaw_skills_projection", false);
-        caps.put("qwenpaw_mcp_projection", false);
+        caps.put("majo_skills_projection", false);
+        caps.put("majo_mcp_projection", false);
         caps.put("provider_skills_discovery", false);
         caps.put("provider_mcp_discovery", false);
         caps.put("mcp_tool_allowlist", false);

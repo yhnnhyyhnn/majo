@@ -258,7 +258,7 @@ public class AgentsController {
      * Build backend capabilities for an agent, mirroring qwenpaw
      * app/routers/agents.py:
      * - backend "majo": the qwenpaw-style UI model selector is used
-     *   (requiresQwenPawModel(backend) == true), so only workspace_ui and
+     *   (requiresMajoModel(backend) == true), so only workspace_ui and
      *   code_files are advertised.
      * - any other backend (harness-style, e.g. "qwenpaw", "codex"): the full
      *   harness capability set is advertised, including {@code model_selection}
@@ -287,8 +287,8 @@ public class AgentsController {
         caps.put("attachments", false);
         caps.put("context_usage", false);
         caps.put("skills_commands", false);
-        caps.put("qwenpaw_skills_projection", false);
-        caps.put("qwenpaw_mcp_projection", false);
+        caps.put("majo_skills_projection", false);
+        caps.put("majo_mcp_projection", false);
         caps.put("provider_skills_discovery", false);
         caps.put("provider_mcp_discovery", false);
         caps.put("mcp_tool_allowlist", false);

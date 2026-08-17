@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { requiresQwenPawModel, supportsAgentAttachments } from "./agentBackend";
+import { requiresMajoModel, supportsAgentAttachments } from "./agentBackend";
 
-describe("requiresQwenPawModel", () => {
+describe("requiresMajoModel", () => {
   it("requires a configured model for native QwenPaw agents", () => {
-    expect(requiresQwenPawModel("qwenpaw")).toBe(true);
+    expect(requiresMajoModel("qwenpaw")).toBe(true);
   });
 
   it("does not inspect QwenPaw models for Codex agents", () => {
-    expect(requiresQwenPawModel("codex")).toBe(false);
+    expect(requiresMajoModel("codex")).toBe(false);
   });
 });
 
