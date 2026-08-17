@@ -12,6 +12,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -214,15 +215,102 @@ public class WorkspaceController {
     }
 
     public ResponseEntity<Resource> downloadWorkspace(Path workspace) {
-        // Return a simple zip stub — full implementation would zip the workspace
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM)
-            .header("Content-Disposition", "attachment; filename=workspace.zip")
-            .body(new FileSystemResource(workspace.resolve("pom.xml")));
+        if (!Files.isDirectory(workspace)) {
+            return ResponseEntity.status(404).body(null);
+        }
+        try {
+            byte[] zipBytes = zipDirectory(workspace);
+            String filename = "workspace_" + java.time.LocalDate.now() + ".zip";
+            return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
+                .body(new org.springframework.core.io.ByteArrayResource(zipBytes));
+        } catch (IOException e) {
+            log.error("Failed to zip workspace {}", workspace, e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    /** Recursively pack a directory into an in-memory zip, skipping runtime dirs. */
+    public static byte[] zipDirectory(Path root) throws IOException {
+        java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(buf)) {
+            Files.walkFileTree(root, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                    if (!dir.equals(root) && SKIP_NAMES.contains(dir.getFileName().toString())) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    String name = root.relativize(file).toString().replace('\\', '/');
+                    zos.putNextEntry(new java.util.zip.ZipEntry(name));
+                    Files.copy(file, zos);
+                    zos.closeEntry();
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        }
+        return buf.toByteArray();
     }
 
     @PostMapping("/workspace/upload")
-    public Map<String, String> uploadWorkspace() {
-        return Map.of("url", "");
+    public ResponseEntity<Map<String, Object>> uploadWorkspace(
+            @RequestParam("file") MultipartFile file) {
+        return uploadWorkspace(file, WORKSPACE);
+    }
+
+    public ResponseEntity<Map<String, Object>> uploadWorkspace(MultipartFile file, Path workspace) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "file is required"));
+        }
+        String contentType = file.getContentType();
+        if (contentType != null && !contentType.isBlank()
+                && !Set.of("application/zip", "application/x-zip-compressed", "application/octet-stream")
+                        .contains(contentType)) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "Uploaded file is not a valid zip archive"));
+        }
+        byte[] data;
+        try {
+            data = file.getBytes();
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body(Map.of("detail", "Failed to read upload: " + e.getMessage()));
+        }
+        try {
+            extractAndMergeZip(data, workspace);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("detail", e.getMessage()));
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body(Map.of("detail", "Failed to extract zip: " + e.getMessage()));
+        }
+        return ResponseEntity.ok(Map.of("success", true, "message", "Workspace updated from zip"));
+    }
+
+    /** Validate zip entries (no path traversal) and merge into workspace. */
+    public static void extractAndMergeZip(byte[] data, Path workspace) throws IOException {
+        Path root = workspace.toAbsolutePath().normalize();
+        Files.createDirectories(root);
+        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
+                new java.io.ByteArrayInputStream(data))) {
+            java.util.zip.ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                String name = entry.getName();
+                Path target = root.resolve(name).normalize();
+                if (!target.startsWith(root)) {
+                    throw new IllegalArgumentException("Zip contains unsafe path: " + name);
+                }
+                if (entry.isDirectory()) {
+                    Files.createDirectories(target);
+                } else {
+                    Files.createDirectories(target.getParent());
+                    Files.copy(zis, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                zis.closeEntry();
+            }
+        }
     }
 
     // === Coding Project ===
