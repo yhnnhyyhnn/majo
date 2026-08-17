@@ -11,7 +11,7 @@ const agent: AgentSummary = {
   description: "",
   workspace_dir: "",
   enabled: true,
-  backend: "qwenpaw",
+  backend: "majo",
   pinned: false,
 };
 

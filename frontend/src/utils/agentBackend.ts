@@ -2,11 +2,9 @@ import type { AgentBackend } from "../api/types/agents";
 import type { HarnessCapabilities } from "../api/modules/harness";
 
 export function requiresMajoModel(backend: AgentBackend): boolean {
-  // qwenpaw: the native backend uses the qwenpaw model selector
-  // (backend === "qwenpaw"). majo runs every agent through the same model
-  // routing, so both the "majo" backend (default agent) and "qwenpaw"
-  // (agents created with the qwenpaw backend value) use the native selector.
-  return backend === "qwenpaw" || backend === "majo";
+  // The native backend uses the Majo model selector; all other backends
+  // (codex, qoder) use their own runtime's model management.
+  return backend === "majo";
 }
 
 export function supportsAgentAttachments(

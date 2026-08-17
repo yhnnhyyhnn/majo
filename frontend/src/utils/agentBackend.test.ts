@@ -3,18 +3,18 @@ import { describe, expect, it } from "vitest";
 import { requiresMajoModel, supportsAgentAttachments } from "./agentBackend";
 
 describe("requiresMajoModel", () => {
-  it("requires a configured model for native QwenPaw agents", () => {
-    expect(requiresMajoModel("qwenpaw")).toBe(true);
+  it("requires a configured model for native Majo agents", () => {
+    expect(requiresMajoModel("majo")).toBe(true);
   });
 
-  it("does not inspect QwenPaw models for Codex agents", () => {
+  it("does not inspect Majo models for Codex agents", () => {
     expect(requiresMajoModel("codex")).toBe(false);
   });
 });
 
 describe("supportsAgentAttachments", () => {
   it("keeps attachments enabled for native agents", () => {
-    expect(supportsAgentAttachments("qwenpaw")).toBe(true);
+    expect(supportsAgentAttachments("majo")).toBe(true);
   });
 
   it("enables sender drop handling when Codex declares attachments", () => {
