@@ -193,8 +193,11 @@ public class AgentsController {
     }
 
     // ------------------------------------------------------------------
-    // Memory reindex (stub - no memory index yet)
+    // Memory reindex (lightweight keyword index over workspace files)
     // ------------------------------------------------------------------
+
+    private final com.agent.coding.service.MemoryIndexService memoryIndexService =
+            new com.agent.coding.service.MemoryIndexService();
 
     @PostMapping("/{agentId}/memory/reindex")
     public Map<String, Object> rebuildMemoryIndex(@PathVariable String agentId) {
@@ -202,9 +205,7 @@ public class AgentsController {
         if (profile == null) {
             throw new SkillsError("Agent '" + agentId + "' not found");
         }
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", "completed");
-        return result;
+        return memoryIndexService.rebuild(agentId);
     }
 
     // ------------------------------------------------------------------
