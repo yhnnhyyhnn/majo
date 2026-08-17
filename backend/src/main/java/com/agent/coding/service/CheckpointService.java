@@ -490,7 +490,15 @@ public class CheckpointService {
         Map<String, String> refs = listRefs(workspace);
         Map<String, String> heads = loadHeads(workspace);
         List<String> sorted = new ArrayList<>(refs.keySet());
-        sorted.sort((a, b) -> refs.get(b).compareTo(refs.get(a)));
+        sorted.sort((a, b) -> {
+            try {
+                long ta = commitTimestamp(workspace, refs.get(a));
+                long tb = commitTimestamp(workspace, refs.get(b));
+                if (ta != tb) return Long.compare(tb, ta);
+            } catch (Exception ignored) {
+            }
+            return refs.get(b).compareTo(refs.get(a));
+        });
 
         Map<String, Integer> perSession = new LinkedHashMap<>();
         List<String> deleted = new ArrayList<>();

@@ -65,10 +65,11 @@ class CheckpointServiceTest {
     }
 
     @Test
-    void gcDeletesOldRefs() throws IOException {
+    void gcDeletesOldRefs() throws IOException, InterruptedException {
         Path ws = Files.createTempDirectory("majo-cp-gc");
         Files.writeString(ws.resolve("a.txt"), "x", StandardCharsets.UTF_8);
         service.makeSnapshot(ws, "snap", "sess-1", "u1", "console", "one", "one");
+        Thread.sleep(1100);
         Files.writeString(ws.resolve("a.txt"), "y", StandardCharsets.UTF_8);
         service.makeSnapshot(ws, "snap", "sess-1", "u1", "console", "two", "two");
 

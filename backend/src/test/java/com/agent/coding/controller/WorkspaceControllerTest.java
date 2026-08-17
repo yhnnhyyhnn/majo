@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -79,5 +80,41 @@ class WorkspaceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.current").isString())
                 .andExpect(jsonPath("$.dirs").isArray());
+    }
+
+    @Test
+    void codingProjectCreateRequiresName() throws Exception {
+        mockMvc.perform(post("/api/workspace/coding-project/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void codingProjectCreateMakesDir() throws Exception {
+        String unique = "cp-test-" + System.currentTimeMillis();
+        mockMvc.perform(post("/api/workspace/coding-project/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"" + unique + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(unique))
+                .andExpect(jsonPath("$.path").isString());
+    }
+
+    @Test
+    void codingProjectImportRequiresPath() throws Exception {
+        mockMvc.perform(post("/api/workspace/coding-project/import-local")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void codingProjectSetClearsProjectDir() throws Exception {
+        mockMvc.perform(put("/api/workspace/coding-project")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"path\": null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.is_workspace_default").value(true));
     }
 }

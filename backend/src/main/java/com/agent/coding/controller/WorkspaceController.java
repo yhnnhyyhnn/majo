@@ -1,6 +1,7 @@
 package com.agent.coding.controller;
 
 import com.agent.coding.SettingsService;
+import com.agent.coding.agent.AgentStore;
 import com.agent.coding.repository.ProviderRepository;
 import com.agent.coding.repository.ModelConfigRepository;
 import com.agent.coding.service.PluginRegistry;
@@ -389,13 +390,172 @@ public class WorkspaceController {
         return result;
     }
     @PostMapping("/workspace/coding-project/create")
-    public Map<String, String> codingProjectCreate() { return Map.of("id", UUID.randomUUID().toString()); }
+    public ResponseEntity<Map<String, Object>> codingProjectCreate(@RequestBody Map<String, Object> body,
+                                                                   HttpServletRequest request) {
+        String name = str(body.get("name")).trim();
+        if (name.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "Project name cannot be empty"));
+        }
+        try {
+            Path base = codingProjectsDir(resolveWorkspace(request));
+            Files.createDirectories(base);
+            Path target = safeProjectDest(base, name);
+            Files.createDirectories(target);
+            try (org.eclipse.jgit.api.Git git = org.eclipse.jgit.api.Git.init().setDirectory(target.toFile()).call()) {
+                // repo created
+            }
+            AgentStore.setProjectDir(resolveAgentId(request), target.toString());
+            return ResponseEntity.ok(Map.of("path", target.toString(), "name", target.getFileName().toString()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("detail", e.getMessage()));
+        }
+    }
+
     @PostMapping("/workspace/coding-project/clone")
-    public Map<String, String> codingProjectClone() { return Map.of("id", UUID.randomUUID().toString()); }
+    public ResponseEntity<Map<String, Object>> codingProjectClone(@RequestBody Map<String, Object> body,
+                                                                  HttpServletRequest request) {
+        String url = str(body.get("url"));
+        if (url.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "url is required"));
+        }
+        String name = str(body.get("name")).trim();
+        try {
+            Path base = codingProjectsDir(resolveWorkspace(request));
+            Files.createDirectories(base);
+            Path target = name.isEmpty() ? base : safeProjectDest(base, name);
+            org.eclipse.jgit.api.Git.cloneRepository()
+                    .setURI(url)
+                    .setDirectory(target.toFile())
+                    .call()
+                    .close();
+            AgentStore.setProjectDir(resolveAgentId(request), target.toString());
+            return ResponseEntity.ok(Map.of("path", target.toString(), "name", target.getFileName().toString()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("detail", e.getMessage()));
+        }
+    }
+
     @PostMapping("/workspace/coding-project/import-local")
-    public Map<String, String> codingProjectImport() { return Map.of("id", UUID.randomUUID().toString()); }
+    public ResponseEntity<Map<String, Object>> codingProjectImport(@RequestBody Map<String, Object> body,
+                                                                   HttpServletRequest request) {
+        String sourcePath = str(body.get("path"));
+        if (sourcePath.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "path is required"));
+        }
+        Path source = Path.of(sourcePath).toAbsolutePath().normalize();
+        if (!Files.isDirectory(source)) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "Not a directory: " + source));
+        }
+        String destName = str(body.get("name")).trim();
+        if (destName.isEmpty()) {
+            destName = source.getFileName().toString();
+        }
+        try {
+            Path base = codingProjectsDir(resolveWorkspace(request));
+            Files.createDirectories(base);
+            Path dest = safeProjectDest(base, destName);
+            copyDirectoryExcluding(source, dest);
+            AgentStore.setProjectDir(resolveAgentId(request), dest.toString());
+            return ResponseEntity.ok(Map.of("path", dest.toString(), "name", dest.getFileName().toString()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("detail", e.getMessage()));
+        }
+    }
+
     @PostMapping("/workspace/coding-project/upload-zip")
-    public Map<String, String> codingProjectUploadZip() { return Map.of("id", UUID.randomUUID().toString()); }
+    public ResponseEntity<Map<String, Object>> codingProjectUploadZip(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) String name,
+            HttpServletRequest request) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "file is required"));
+        }
+        try {
+            byte[] data = file.getBytes();
+            Path base = codingProjectsDir(resolveWorkspace(request));
+            Files.createDirectories(base);
+            String destName = name == null || name.isBlank() ? "project" : name.trim();
+            Path dest = safeProjectDest(base, destName);
+            Files.createDirectories(dest);
+            extractAndMergeZip(data, dest);
+            AgentStore.setProjectDir(resolveAgentId(request), dest.toString());
+            return ResponseEntity.ok(Map.of("path", dest.toString(), "name", dest.getFileName().toString()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("detail", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("detail", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/workspace/coding-project")
+    public ResponseEntity<Map<String, Object>> codingProjectSet(@RequestBody Map<String, Object> body,
+                                                                HttpServletRequest request) {
+        String path = body.get("path") == null ? "" : str(body.get("path"));
+        try {
+            if (path.isBlank()) {
+                AgentStore.setProjectDir(resolveAgentId(request), null);
+                return ResponseEntity.ok(Map.of(
+                        "path", resolveWorkspace(request).toString(),
+                        "name", resolveWorkspace(request).getFileName().toString(),
+                        "is_workspace_default", true));
+            }
+            Path target = Path.of(path).toAbsolutePath().normalize();
+            if (!Files.isDirectory(target)) {
+                return ResponseEntity.badRequest().body(Map.of("detail", "Path does not exist: " + target));
+            }
+            AgentStore.setProjectDir(resolveAgentId(request), target.toString());
+            return ResponseEntity.ok(Map.of(
+                    "path", target.toString(),
+                    "name", target.getFileName().toString(),
+                    "is_workspace_default", false,
+                    "workspace_dir", target.toString(),
+                    "exists", true));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("detail", e.getMessage()));
+        }
+    }
+
+    private static String str(Object o) {
+        return o == null ? "" : String.valueOf(o);
+    }
+
+    private static Path safeProjectDest(Path base, String name) {
+        Path target = base.resolve(name).normalize();
+        if (!target.startsWith(base)) {
+            throw new IllegalArgumentException("Unsafe project name: " + name);
+        }
+        return target;
+    }
+
+    private static void copyDirectoryExcluding(Path source, Path dest) throws IOException {
+        Files.walkFileTree(source, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                if (!dir.equals(source) && SKIP_NAMES.contains(dir.getFileName().toString())) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Path rel = source.relativize(file);
+                Path target = dest.resolve(rel);
+                Files.createDirectories(target.getParent());
+                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+                return FileVisitResult.CONTINUE;
+            }
+        });
+    }
+
+    private Path resolveWorkspace(HttpServletRequest request) {
+        String agentId = resolveAgentId(request);
+        if (AgentStore.hasAgent(agentId)) {
+            return AgentStore.workspaceDirForAgent(agentId);
+        }
+        return WORKSPACE;
+    }
+
 
     // === Audio / Transcription ===
 

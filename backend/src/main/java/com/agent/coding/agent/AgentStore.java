@@ -431,6 +431,32 @@ public class AgentStore {
         updateAgent(agentId, updates);
     }
 
+    /** Set (or clear) the agent's active project directory. */
+    public static void setProjectDir(String agentId, String projectDir) {
+        ensureAgentsInitialized();
+        Map<String, Object> config = loadConfig();
+        Map<String, Object> profiles = SkillService.asMap(config.get("profiles"));
+        Map<String, Object> profile = SkillService.asMap(profiles.get(agentId));
+        if (profile.isEmpty()) {
+            throw new SkillNotFoundException("Agent '" + agentId + "' not found");
+        }
+        if (projectDir == null || projectDir.isBlank()) {
+            profile.remove("project_dir");
+        } else {
+            profile.put("project_dir", projectDir);
+        }
+        SkillStore.writeJsonAtomic(AGENTS_FILE, config);
+    }
+
+    /** Return the agent's active project directory, or null. */
+    public static String getProjectDir(String agentId) {
+        Map<String, Object> profile = getProfile(agentId);
+        if (profile == null) {
+            return null;
+        }
+        return SkillService.str(profile.get("project_dir"), null);
+    }
+
     /** Return the global ACP node_path stored in the agents.json root (never null). */
     @SuppressWarnings("unchecked")
     public static String getGlobalACPNodePath() {
