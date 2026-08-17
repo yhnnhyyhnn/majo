@@ -125,6 +125,15 @@ public class ChatService {
     }
 
     @Transactional
+    public ChatEntity setProjectDir(String chatId, String projectDir) {
+        return chatRepo.findById(chatId).map(chat -> {
+            chat.setProjectDir(projectDir);
+            chat.setUpdatedAt(LocalDateTime.now());
+            return chatRepo.save(chat);
+        }).orElse(null);
+    }
+
+    @Transactional
     public void saveMessages(String chatId, List<Map<String, String>> messages) {
         if (messages.isEmpty()) return;
         chatRepo.findById(chatId).ifPresent(chat -> {

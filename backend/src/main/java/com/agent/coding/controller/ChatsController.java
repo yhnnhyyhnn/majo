@@ -5,7 +5,9 @@ import com.agent.coding.dto.ChatHistoryDto;
 import com.agent.coding.dto.ChatSpecDto;
 import com.agent.coding.dto.DeletedResponse;
 import com.agent.coding.dto.StatusResponse;
+import com.agent.coding.entity.ChatEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,9 +44,68 @@ public class ChatsController {
         return ChatSpecDto.from(service.create());
     }
 
+    /** Effective session project directory: session override > agent > workspace. */
+    private Map<String, Object> projectDirResponse(ChatEntity chat) {
+        String sessionOverride = chat.getProjectDir();
+        String agentDir = com.agent.coding.agent.AgentStore.getProjectDir(chat.getAgentId());
+        String projectDir;
+        String source;
+        if (sessionOverride != null && !sessionOverride.isBlank()) {
+            projectDir = sessionOverride;
+            source = "session";
+        } else if (agentDir != null && !agentDir.isBlank()) {
+            projectDir = agentDir;
+            source = "agent";
+        } else {
+            projectDir = com.agent.coding.agent.AgentStore.workspaceDirForAgent(chat.getAgentId()).toString();
+            source = "workspace_fallback";
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("project_dir", projectDir);
+        result.put("source", source);
+        result.put("agent_project_dir", agentDir);
+        result.put("exists", java.nio.file.Files.isDirectory(java.nio.file.Path.of(projectDir)));
+        return result;
+    }
+
+    @GetMapping("/chats/{id}/project-dir")
+    public ResponseEntity<Map<String, Object>> getChatProjectDir(@PathVariable String id) {
+        ChatEntity chat = service.getChat(id);
+        if (chat == null) {
+            return ResponseEntity.status(404).body(Map.of("detail", "Chat not found: " + id));
+        }
+        return ResponseEntity.ok(projectDirResponse(chat));
+    }
+
+    @PutMapping("/chats/{id}/project-dir")
+    public ResponseEntity<Map<String, Object>> setChatProjectDir(@PathVariable String id,
+                                                                 @RequestBody Map<String, Object> body) {
+        String projectDir = body.get("project_dir") == null ? "" : String.valueOf(body.get("project_dir"));
+        if (projectDir.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "project_dir is required"));
+        }
+        java.nio.file.Path target = java.nio.file.Path.of(projectDir).toAbsolutePath().normalize();
+        if (!java.nio.file.Files.isDirectory(target)) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "Project directory is unavailable: " + target));
+        }
+        ChatEntity chat = service.setProjectDir(id, target.toString());
+        if (chat == null) {
+            return ResponseEntity.status(404).body(Map.of("detail", "Chat not found: " + id));
+        }
+        return ResponseEntity.ok(projectDirResponse(chat));
+    }
+
+    @DeleteMapping("/chats/{id}/project-dir")
+    public ResponseEntity<Map<String, Object>> clearChatProjectDir(@PathVariable String id) {
+        ChatEntity chat = service.setProjectDir(id, null);
+        if (chat == null) {
+            return ResponseEntity.status(404).body(Map.of("detail", "Chat not found: " + id));
+        }
+        return ResponseEntity.ok(projectDirResponse(chat));
+    }
+
     @GetMapping("/chats/{id}")
-    public Object getChat(@PathVariable String id) {
-        var chat = service.getChat(id);
+    public Object getChat(@PathVariable String id) {        var chat = service.getChat(id);
         if (chat == null) return Map.of("error", "not found");
         var messages = service.getMessages(id).stream()
             .map(m -> {

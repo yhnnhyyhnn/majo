@@ -457,6 +457,20 @@ public class AgentStore {
         return SkillService.str(profile.get("project_dir"), null);
     }
 
+    /** Return the global offload default policy (keep_foreground default). */
+    public static String getOffloadPolicy() {
+        Map<String, Object> config = loadConfig();
+        return SkillService.str(config.get("offload_policy"), "keep_foreground");
+    }
+
+    /** Persist the global offload default policy. */
+    public static void setOffloadPolicy(String policy) {
+        ensureAgentsInitialized();
+        Map<String, Object> config = loadConfig();
+        config.put("offload_policy", policy);
+        SkillStore.writeJsonAtomic(AGENTS_FILE, config);
+    }
+
     /** Return the global ACP node_path stored in the agents.json root (never null). */
     @SuppressWarnings("unchecked")
     public static String getGlobalACPNodePath() {

@@ -29,6 +29,9 @@ import { backupApi } from "./modules/backup";
 import { consoleApi } from "./modules/console";
 import { accessControlApi } from "./modules/accessControl";
 import { checkpointsApi } from "./modules/checkpoints";
+import { toolCallsApi } from "./modules/toolCalls";
+import { projectDirectoryApi } from "./modules/projectDirectory";
+import { chatProjectDirectoryApi } from "./modules/chatProjectDirectory";
 
 export const api = {
   // Root
@@ -103,6 +106,15 @@ export const api = {
 
   // Checkpoints
   ...checkpointsApi,
+
+  // Tool Calls
+  ...toolCallsApi,
+
+  // Project Directory
+  ...projectDirectoryApi,
+
+  // Chat Project Directory
+  ...chatProjectDirectoryApi,
 };
 
 export default api;

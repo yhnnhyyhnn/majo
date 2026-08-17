@@ -53,4 +53,17 @@ public class SettingsController {
             result.get("modelName"), result.get("baseUrl"));
         return result;
     }
+
+    @GetMapping("/settings/offload-policy")
+    public Map<String, String> getOffloadPolicy() {
+        return Map.of("default_action",
+                com.agent.coding.agent.AgentStore.getOffloadPolicy());
+    }
+
+    @PutMapping("/settings/offload-policy")
+    public Map<String, String> setOffloadPolicy(@RequestBody Map<String, String> body) {
+        String action = body.getOrDefault("default_action", "keep_foreground");
+        com.agent.coding.agent.AgentStore.setOffloadPolicy(action);
+        return Map.of("default_action", action);
+    }
 }

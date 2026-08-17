@@ -35,6 +35,9 @@ public class ChatEntity {
     @Column(name = "archived_at")
     private LocalDateTime archivedAt;
 
+    @Column(name = "project_dir", length = 1024)
+    private String projectDir;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -65,4 +68,6 @@ public class ChatEntity {
     public void setAgentId(String agentId) { this.agentId = agentId; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public String getProjectDir() { return projectDir; }
+    public void setProjectDir(String projectDir) { this.projectDir = projectDir; }
 }
