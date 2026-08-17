@@ -3,6 +3,7 @@ package com.agent.coding.controller;
 import com.agent.coding.agent.AgentStore;
 import com.agent.coding.dto.*;
 import com.agent.coding.skill.SkillPoolService;
+import com.agent.coding.skill.SkillNotFoundException;
 import com.agent.coding.skill.SkillRegistry;
 import com.agent.coding.skill.SkillStore;
 import com.agent.coding.skill.SkillsError;
@@ -47,7 +48,7 @@ public class AgentsController {
     public AgentProfileConfig getAgent(@PathVariable String agentId) {
         Map<String, Object> profile = AgentStore.getProfile(agentId);
         if (profile == null) {
-            throw new SkillsError("Agent '" + agentId + "' not found");
+            throw new SkillNotFoundException("Agent '" + agentId + "' not found");
         }
         return toAgentProfileConfig(profile);
     }
@@ -81,7 +82,7 @@ public class AgentsController {
             @RequestBody(required = false) CopyAgentRequest request) {
         Map<String, Object> source = AgentStore.getProfile(agentId);
         if (source == null) {
-            throw new SkillsError("Agent '" + agentId + "' not found");
+            throw new SkillNotFoundException("Agent '" + agentId + "' not found");
         }
         CopyAgentRequest req = request != null ? request : new CopyAgentRequest();
 
@@ -165,7 +166,7 @@ public class AgentsController {
                                                     @RequestBody Map<String, Object> body) {
         Map<String, Object> profile = AgentStore.getProfile(agentId);
         if (profile == null) {
-            throw new SkillsError("Agent '" + agentId + "' not found");
+            throw new SkillNotFoundException("Agent '" + agentId + "' not found");
         }
         Map<String, Object> updates = new LinkedHashMap<>();
         updates.put("backend_settings", body);
@@ -203,7 +204,7 @@ public class AgentsController {
     public Map<String, Object> rebuildMemoryIndex(@PathVariable String agentId) {
         Map<String, Object> profile = AgentStore.getProfile(agentId);
         if (profile == null) {
-            throw new SkillsError("Agent '" + agentId + "' not found");
+            throw new SkillNotFoundException("Agent '" + agentId + "' not found");
         }
         return memoryIndexService.rebuild(agentId);
     }

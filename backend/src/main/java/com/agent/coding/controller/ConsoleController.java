@@ -560,6 +560,7 @@ public class ConsoleController {
     }
 
 
+    @GetMapping("/agent-stats")
     public AgentStatsSummary agentStats(
             @RequestParam(required = false) String start_date,
             @RequestParam(required = false) String end_date) {

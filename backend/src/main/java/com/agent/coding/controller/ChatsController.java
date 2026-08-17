@@ -105,8 +105,11 @@ public class ChatsController {
     }
 
     @GetMapping("/chats/{id}")
-    public Object getChat(@PathVariable String id) {        var chat = service.getChat(id);
-        if (chat == null) return Map.of("error", "not found");
+    public Object getChat(@PathVariable String id) {
+        var chat = service.getChat(id);
+        if (chat == null) {
+            return ResponseEntity.status(404).body(Map.of("detail", "Chat not found: " + id));
+        }
         var messages = service.getMessages(id).stream()
             .map(m -> {
                 Map<String, Object> map = new LinkedHashMap<>();
