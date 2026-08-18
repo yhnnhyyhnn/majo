@@ -98,21 +98,23 @@ public class PawappsController {
     }
 
     @GetMapping("/{app_id}")
-    public Map<String, Object> get(@PathVariable String app_id) {
+    public ResponseEntity<Map<String, Object>> get(@PathVariable String app_id) {
+        Map<String, Object> info = findApp(app_id);
+        if (info == null) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .body(Map.of("detail", "PawApp not found: " + app_id));
+        }
+        return ResponseEntity.ok(info);
+    }
+
+    private Map<String, Object> findApp(String app_id) {
         for (File dir : appDirs()) {
             Map<String, Object> info = appInfo(dir);
             if (app_id.equals(SkillService.str(info.get("id"))) || app_id.equals(dir.getName())) {
                 return info;
             }
         }
-        Map<String, Object> notFound = new LinkedHashMap<>();
-        notFound.put("id", app_id);
-        notFound.put("name", "");
-        notFound.put("version", "0.0.0");
-        notFound.put("description", "");
-        notFound.put("status", "not_found");
-        notFound.put("settings", List.of());
-        return notFound;
+        return null;
     }
 
     @DeleteMapping("/{app_id}")
@@ -146,10 +148,10 @@ public class PawappsController {
 
     @GetMapping("/{app_id}/settings")
     public Map<String, Object> settings(@PathVariable String app_id) {
-        Map<String, Object> info = get(app_id);
+        Map<String, Object> info = findApp(app_id);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("app_id", app_id);
-        result.put("settings", info.getOrDefault("settings", List.of()));
+        result.put("settings", info == null ? List.of() : info.getOrDefault("settings", List.of()));
         return result;
     }
 

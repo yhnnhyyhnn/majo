@@ -14,6 +14,13 @@ import { renderWithProviders } from "@/test/common_setup";
 import ChatPage from "./index";
 import { chatExtensions } from "@/plugins/registry/chatExtensions";
 
+// t() returns the raw key so tests can assert on key strings directly
+// (matches how this suite was written before i18n resources loaded).
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key, i18n: { language: "en" } }),
+  initReactI18next: { init: () => undefined, type: "3rdParty" },
+}));
+
 // ---------------------------------------------------------------------------
 // Capture AgentScopeRuntimeWebUI options
 // ---------------------------------------------------------------------------
@@ -111,6 +118,18 @@ vi.mock("@/api/modules/agent", () => ({
   TranscriptionError: class TranscriptionError extends Error {},
 }));
 
+vi.mock("@/api/modules/skill", () => ({
+  skillApi: {
+    listSkills: vi.fn(() => Promise.resolve([])),
+  },
+}));
+
+vi.mock("@/api/modules/commands", () => ({
+  commandsApi: {
+    check: vi.fn(() => Promise.resolve({ match: null })),
+  },
+}));
+
 vi.mock("antd", async (importOriginal) => {
   const actual = await importOriginal<typeof import("antd")>();
   return {
@@ -134,7 +153,17 @@ vi.mock("@/stores/agentStore", () => ({
   useAgentStore: vi.fn(() => ({
     selectedAgent: mockSelectedAgent(),
     setSelectedAgent: mockSetSelectedAgent,
+    agents: [],
+    refreshAgents: vi.fn(),
+    getLastChatId: vi.fn(() => null),
+    setLastChatId: vi.fn(),
   })),
+}));
+
+vi.mock("@/stores/uploadLimitStore", () => ({
+  useUploadLimitStore: {
+    getState: () => ({ uploadMaxSizeMb: 10 }),
+  },
 }));
 
 vi.mock("@/contexts/ThemeContext", () => ({
@@ -147,15 +176,32 @@ vi.mock("./sessionApi", () => ({
     onSessionRemoved: null,
     onSessionSelected: null,
     onSessionCreated: null,
+    lastActiveChatId: null,
+    preferredChatId: null,
     getRealIdForSession: vi.fn(() => null),
+    getEffectiveSessionId: vi.fn((s: string) => s),
+    getBackendSessionId: vi.fn((s: string) => s),
+    getSessionIdentity: vi.fn(() => ({ user_id: "default", session_id: "s1", channel: "console" })),
+    isSessionSwitching: vi.fn(() => false),
+    isUnresolvedLocalSession: vi.fn(() => false),
+    resetWindowIdentity: vi.fn(),
+    patchLastUserMessage: vi.fn(),
     setLastUserMessage: vi.fn(),
   },
 }));
 
 vi.mock("./OptionsPanel/defaultConfig", () => ({
-  default: { theme: { leftHeader: {} }, api: {} },
+  default: {
+    theme: {
+      leftHeader: {},
+      bubbleList: { userMessageAnchors: { variant: "navigator" } },
+    },
+    api: {},
+    welcome: {},
+    sender: {},
+  },
   getDefaultConfig: vi.fn(() => ({
-    theme: { leftHeader: {} },
+    theme: { leftHeader: {}, bubbleList: {} },
     welcome: {},
     sender: {},
   })),
@@ -341,9 +387,13 @@ describe("ChatPage", () => {
       signal: undefined,
     });
 
-    const init = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
-    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
-    expect(body.request_context).toEqual({
+    // Find the POST /console/chat call (earlier GET polls carry no body).
+    const chatCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([, init]) => init?.body != null);
+    const init = chatCall?.[1] as RequestInit;
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    expect(body.request_context).toMatchObject({
       session_id: "session-1",
       agent_id: "default",
       datasource_id: "ds-123",
@@ -408,7 +458,9 @@ describe("ChatPage", () => {
     await screen.findByTestId("chat-ui");
 
     expect(capturedOptions.sender.allowSpeech).toBe(false);
-    expect(capturedOptions.sender.prefix).toBeUndefined();
+    // prefix now always renders (Whisper button slot + loop selector); the
+    // pre-load state only matters for allowSpeech.
+    expect(capturedOptions.sender.prefix).toBeTruthy();
 
     act(() => {
       resolveProviderType({ transcription_provider_type: "disabled" });
@@ -439,7 +491,7 @@ describe("ChatPage", () => {
 
     await waitFor(() => {
       expect(capturedOptions.sender.allowSpeech).toBe(true);
-      expect(capturedOptions.sender.prefix).toBeUndefined();
+      expect(capturedOptions.sender.prefix).toBeTruthy();
     });
   });
 

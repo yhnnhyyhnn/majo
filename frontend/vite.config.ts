@@ -68,6 +68,17 @@ export default defineConfig(({ mode }) => {
         inline: [/@agentscope-ai\/(?!icons|chat|design)/],
       },
       alias: {
+        // HostBubbles deep-imports vendor Card components (not in package
+        // top-level exports). Route them to the mock so ChatPage tests load.
+        // Must precede the "@agentscope-ai/chat" prefix alias below.
+        "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI/core/AgentScopeRuntime/Request/Card": path.resolve(
+          __dirname,
+          "src/test/chat-request-card-mock.tsx",
+        ),
+        "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI/core/AgentScopeRuntime/Response/Card": path.resolve(
+          __dirname,
+          "src/test/chat-response-card-mock.tsx",
+        ),
         // chat is aliased to a tiny stub to avoid OOM from the 2.3MB real package
         // Tests that need specific behavior override with vi.mock('@agentscope-ai/chat', factory)
         "@agentscope-ai/chat": path.resolve(__dirname, "src/test/chat-mock.ts"),
@@ -94,8 +105,6 @@ export default defineConfig(({ mode }) => {
         "**/dist/**",
         // 旧测试用 node:test，与 vitest 不兼容，待迁移
         "**/testConnectionMessage.test.ts",
-        // ChatPage test causes worker crash - pre-existing issue, needs more mock setup
-        "**/pages/Chat/ChatPage.test.tsx",
         // Tauri modules require @tauri-apps/api which only exists in desktop builds
         "**/src/tauri/**",
       ],
