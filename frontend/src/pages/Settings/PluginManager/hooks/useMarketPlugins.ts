@@ -52,7 +52,7 @@ export function useMarketPlugins({ onInstalled }: UseMarketPluginsOptions) {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [sortBy, setSortBy] = useState<MarketPluginSortBy>("downloads");
   const [installingId, setInstallingId] = useState<string | null>(null);
-  const [qwenpawVersion, setQwenpawVersion] = useState<string | null>(null);
+  const [majoVersion, setMajoVersion] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -66,7 +66,7 @@ export function useMarketPlugins({ onInstalled }: UseMarketPluginsOptions) {
       .then((data) => {
         const version =
           typeof data === "object" && data !== null ? data.version : null;
-        setQwenpawVersion(typeof version === "string" ? version : null);
+        setMajoVersion(typeof version === "string" ? version : null);
       })
       .catch((err) => {
         if (err instanceof Error && err.name === "AbortError") {
@@ -74,7 +74,7 @@ export function useMarketPlugins({ onInstalled }: UseMarketPluginsOptions) {
         }
         // eslint-disable-next-line no-console
         console.error("[useMarketPlugins] failed to fetch version:", err);
-        setQwenpawVersion(null);
+        setMajoVersion(null);
       });
     return () => {
       controller.abort();
@@ -140,8 +140,8 @@ export function useMarketPlugins({ onInstalled }: UseMarketPluginsOptions) {
 
   const isCompatible = useCallback(
     (entry: MarketPluginEntry) =>
-      isMarketPluginCompatible(entry, qwenpawVersion),
-    [qwenpawVersion],
+      isMarketPluginCompatible(entry, majoVersion),
+    [majoVersion],
   );
 
   const handleInstall = useCallback(
@@ -178,7 +178,7 @@ export function useMarketPlugins({ onInstalled }: UseMarketPluginsOptions) {
     category,
     sortBy,
     installingId,
-    qwenpawVersion,
+    majoVersion,
     isCompatible,
     handleSearch,
     handleCategoryChange,

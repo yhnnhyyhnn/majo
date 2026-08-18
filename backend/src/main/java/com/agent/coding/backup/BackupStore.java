@@ -63,7 +63,7 @@ public class BackupStore {
         String ver = "majo";
         String ts = TS.format(Instant.now());
         String short8 = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
-        return "qwenpaw-" + ver + "-" + ts + "-" + short8;
+        return "majo-" + ver + "-" + ts + "-" + short8;
     }
 
     public static void validateBackupId(String backupId) {
@@ -153,7 +153,7 @@ public class BackupStore {
         scope.put("include_skill_pool", meta.scope.include_skill_pool);
         canonical.put("scope", scope);
         canonical.put("agent_count", meta.agentCount);
-        canonical.put("qwenpaw_version", meta.qwenpawVersion == null ? "" : meta.qwenpawVersion);
+        canonical.put("majo_version", meta.majoVersion == null ? "" : meta.majoVersion);
         canonical.put("system_info", meta.systemInfo == null ? Map.of() : new java.util.TreeMap<>(meta.systemInfo));
         canonical.put("accepted_via_trust", Boolean.TRUE.equals(meta.acceptedViaTrust));
         try {
@@ -170,7 +170,7 @@ public class BackupStore {
             mac.update("META\u0000".getBytes(StandardCharsets.UTF_8));
             BackupMeta signingMeta = new BackupMeta(meta.id, meta.name, meta.description, meta.createdAt,
                 meta.scope, meta.agentCount);
-            signingMeta.qwenpawVersion = meta.qwenpawVersion;
+            signingMeta.majoVersion = meta.majoVersion;
             signingMeta.systemInfo = meta.systemInfo;
             signingMeta.acceptedViaTrust = meta.acceptedViaTrust;
             signingMeta.signature = null;

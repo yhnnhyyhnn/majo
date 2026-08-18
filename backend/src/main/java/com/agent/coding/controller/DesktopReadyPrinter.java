@@ -11,22 +11,22 @@ import org.springframework.stereotype.Component;
  *
  * <p>Contract with the Rust shell ({@code src/backend/events.rs}): the shell
  * watches the child process stdout and parses lines of the form
- * {@code QWENPAW_BACKEND_READY {"port":N}} to learn which port the backend is
+ * {@code MAJO_BACKEND_READY {"port":N}} to learn which port the backend is
  * actually bound to. The line must be a single stdout line with that exact
  * prefix, followed by JSON with a {@code port} field.
  *
- * <p>Only active when the desktop shell injected {@code QWENPAW_DESKTOP_APP=1};
+ * <p>Only active when the desktop shell injected {@code MAJO_DESKTOP_APP=1};
  * plain browser/docker deployments skip it so stdout stays clean.
  */
 @Component
 public class DesktopReadyPrinter implements ApplicationListener<WebServerInitializedEvent> {
 
     private static final Logger log = LoggerFactory.getLogger(DesktopReadyPrinter.class);
-    private static final String READY_PREFIX = "QWENPAW_BACKEND_READY ";
+    private static final String READY_PREFIX = "MAJO_BACKEND_READY ";
 
     @Override
     public void onApplicationEvent(WebServerInitializedEvent event) {
-        if (System.getenv("QWENPAW_DESKTOP_APP") == null) {
+        if (System.getenv("MAJO_DESKTOP_APP") == null) {
             return;
         }
         int port = event.getWebServer().getPort();

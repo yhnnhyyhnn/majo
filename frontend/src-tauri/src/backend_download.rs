@@ -249,7 +249,7 @@ pub(crate) async fn read_workspace_binary_file(
 
 /// Resolve a relative workspace file path to an absolute path.
 ///
-/// Reads the QwenPaw config to determine the coding project directory (or workspace
+/// Reads the Majo config to determine the coding project directory (or workspace
 /// directory if no custom project is set), then safely joins the relative path to
 /// prevent path traversal attacks.
 ///

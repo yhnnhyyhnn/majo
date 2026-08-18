@@ -13,7 +13,7 @@ import java.util.Map;
  * Global bearer-token auth interceptor,
  * (auth middleware + {@code _PUBLIC_PATHS}).
  *
- * <p>Only active when {@code QWENPAW_AUTH_ENABLED} is set (Majo defaults to
+ * <p>Only active when {@code MAJO_AUTH_ENABLED} is set (Majo defaults to
  * auth disabled,). When active, every request must carry a
  * valid token from {@code WORKING_DIR/auth.json} unless the path is public
  * (auth/login, auth/status, auth/register, version, desktop/shutdown,
@@ -53,7 +53,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean isAuthEnabled() {
-        String flag = System.getenv("QWENPAW_AUTH_ENABLED");
+        String flag = System.getenv("MAJO_AUTH_ENABLED");
         if (flag == null || flag.isBlank()) {
             return false;
         }

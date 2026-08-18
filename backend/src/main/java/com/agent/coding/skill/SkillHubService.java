@@ -267,12 +267,12 @@ public class SkillHubService {
         if (host.equals("platform.agentscope.io")) {
             String[] spec = extractModelScopeSpec(bundleUrl);
             if (spec == null) throw new SkillsError(
-                    "Invalid QwenPaw URL format. Use URL like https://platform.agentscope.io/skills/@owner/skill-name");
+                    "Invalid Majo URL format. Use URL like https://platform.agentscope.io/skills/@owner/skill-name");
             return fetchArchiveZip(QWENPAW_ARCHIVE
                     .replace("{owner}", urlEncode(spec[0]))
                     .replace("{name}", urlEncode(spec[1]))
                     .replace("{branch}", urlEncode(version.trim().isEmpty() ? spec[2] : version.trim())),
-                    spec[1], "QwenPaw archive download failed", cancelChecker);
+                    spec[1], "Majo archive download failed", cancelChecker);
         }
         if (host.equals("api.aliyun.com") || host.equals("www.api.aliyun.com")) {
             throw new SkillsError("Aliyun AgentExplorer import requires the Aliyun SDK, which is not "
@@ -981,7 +981,7 @@ public class SkillHubService {
     private Map<String, String> requestHeaders(String accept) {
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put("Accept", accept);
-        headers.put("User-Agent", "qwenpaw-skills-hub/1.0");
+        headers.put("User-Agent", "majo-skills-hub/1.0");
         String token = System.getenv("GITHUB_TOKEN");
         if (token == null || token.isBlank()) token = System.getenv("GH_TOKEN");
         if (token != null && !token.isBlank()) headers.put("Authorization", "Bearer " + token);

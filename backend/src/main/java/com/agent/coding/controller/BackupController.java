@@ -219,7 +219,7 @@ public class BackupController {
         scope.put("include_skill_pool", meta.scope.include_skill_pool);
         m.put("scope", scope);
         m.put("agent_count", meta.agentCount);
-        m.put("qwenpaw_version", meta.qwenpawVersion);
+        m.put("majo_version", meta.majoVersion);
         m.put("system_info", meta.systemInfo == null ? Map.of() : meta.systemInfo);
         m.put("signature", meta.signature);
         m.put("accepted_via_trust", meta.acceptedViaTrust);

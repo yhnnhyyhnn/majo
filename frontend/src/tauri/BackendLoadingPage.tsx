@@ -40,8 +40,8 @@ export default function BackendLoadingPage({
 
   const percent = Math.min(Math.round((elapsed / totalSec) * 100), 100);
   const style = {
-    "--qwenpaw-brand-color": BRAND_COLOR,
-    "--qwenpaw-error-color": ERROR_COLOR,
+    "--majo-brand-color": BRAND_COLOR,
+    "--majo-error-color": ERROR_COLOR,
   } as CSSProperties;
 
   return (

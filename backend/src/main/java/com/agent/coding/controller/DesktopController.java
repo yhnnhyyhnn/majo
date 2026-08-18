@@ -16,12 +16,12 @@ import java.util.Map;
  *
  * <p>The Rust shell expects two things from the backend:
  * <ol>
- *   <li>A ready line {@code QWENPAW_BACKEND_READY {"port":N}} printed to
+ *   <li>A ready line {@code MAJO_BACKEND_READY {"port":N}} printed to
  *       stdout once Tomcat is listening (see {@link DesktopReadyPrinter});
  *       the shell parses the port out of it.</li>
  *   <li>A {@code POST /api/desktop/shutdown} endpoint guarded by the
- *       {@code X-QwenPaw-Desktop-Shutdown-Token} header matching the
- *       {@code QWENPAW_DESKTOP_SHUTDOWN_TOKEN} env var the shell injects.
+ *       {@code X-Majo-Desktop-Shutdown-Token} header matching the
+ *       {@code MAJO_DESKTOP_SHUTDOWN_TOKEN} env var the shell injects.
  *       The shell calls it on quit so the sidecar can drain gracefully
  *       instead of being force-killed.</li>
  * </ol>
@@ -37,8 +37,8 @@ public class DesktopController {
 
     private static final Logger log = LoggerFactory.getLogger(DesktopController.class);
 
-    static final String SHUTDOWN_TOKEN_ENV = "QWENPAW_DESKTOP_SHUTDOWN_TOKEN";
-    static final String SHUTDOWN_TOKEN_HEADER = "X-QwenPaw-Desktop-Shutdown-Token";
+    static final String SHUTDOWN_TOKEN_ENV = "MAJO_DESKTOP_SHUTDOWN_TOKEN";
+    static final String SHUTDOWN_TOKEN_HEADER = "X-Majo-Desktop-Shutdown-Token";
 
     private final ApplicationContext context;
 

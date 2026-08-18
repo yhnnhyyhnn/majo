@@ -21,7 +21,7 @@ import java.util.Map;
 /**
  * Single-user authentication,+ app/routers/auth.py.
  *
- * <p>Auth is disabled by default (env {@code QWENPAW_AUTH_ENABLED} unset): the
+ * <p>Auth is disabled by default (env {@code MAJO_AUTH_ENABLED} unset): the
  * frontend AuthGuard sees {@code enabled=false} and skips login. When enabled,
  * one account is stored as a salted SHA-256 hash in {@code WORKING_DIR/auth.json}
  * with JWT-style bearer tokens (default 7-day expiry).
@@ -39,7 +39,7 @@ public class AuthController {
     }
 
     private boolean isAuthEnabled() {
-        String flag = System.getenv("QWENPAW_AUTH_ENABLED");
+        String flag = System.getenv("MAJO_AUTH_ENABLED");
         if (flag == null || flag.isBlank()) {
             return false;
         }

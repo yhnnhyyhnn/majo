@@ -30,7 +30,7 @@ vi.mock("../hooks/useMarketPlugins", () => ({
     category: undefined,
     sortBy: "downloads",
     installingId: null,
-    qwenpawVersion: "2.0.0",
+    majoVersion: "2.0.0",
     isCompatible: () => true,
     handleSearch: vi.fn(),
     handleCategoryChange: vi.fn(),

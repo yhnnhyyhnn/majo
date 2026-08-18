@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class ACPNodeRuntime {
 
-    private static final String DESKTOP_NODE_RUNTIME_ENV = "QWENPAW_DESKTOP_NODE_RUNTIME";
+    private static final String DESKTOP_NODE_RUNTIME_ENV = "MAJO_DESKTOP_NODE_RUNTIME";
 
     private ACPNodeRuntime() {
     }

@@ -610,7 +610,7 @@ public class SkillService {
     /** Create a temp staging dir whose child is the skill name. */
     public static Path stagedSkillDir(String skillName) {
         try {
-            Path tempRoot = Files.createTempDirectory("qwenpaw_skill_stage_" + skillName + "_");
+            Path tempRoot = Files.createTempDirectory("majo_skill_stage_" + skillName + "_");
             return tempRoot.resolve(skillName);
         } catch (IOException e) {
             throw new SkillsError("Cannot create staging dir");

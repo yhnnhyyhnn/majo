@@ -27,7 +27,7 @@ public class AgentConfig {
     );
 
     @Bean
-    Set<String> implementedQwenpawToolNames() {
+    Set<String> implementedMajoToolNames() {
         return TOOL_NAME_MAP.values().stream().collect(Collectors.toUnmodifiableSet());
     }
 

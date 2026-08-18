@@ -746,7 +746,7 @@ public class SkillStore {
         }
         Path tmpDir;
         try {
-            tmpDir = Files.createTempDirectory("qwenpaw_skill_upload_");
+            tmpDir = Files.createTempDirectory("majo_skill_upload_");
         } catch (IOException e) {
             throw new SkillsError("Cannot create temp dir for zip extraction");
         }

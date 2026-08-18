@@ -40,7 +40,7 @@ public class BackupMeta {
     @JsonProperty("version") public String version = "1";
     @JsonProperty("scope") public Scope scope = new Scope();
     @JsonProperty("agent_count") public int agentCount;
-    @JsonProperty("qwenpaw_version") public String qwenpawVersion = "";
+    @JsonProperty("majo_version") public String majoVersion = "";
     @JsonProperty("system_info") public Map<String, Object> systemInfo = new LinkedHashMap<>();
     @JsonProperty("signature") public String signature;
     @JsonProperty("accepted_via_trust") public Boolean acceptedViaTrust;

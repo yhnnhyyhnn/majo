@@ -133,7 +133,7 @@ public class BackupCreator {
 
             if (!cancelled) {
                 meta.agentCount = backedUp;
-                meta.qwenpawVersion = "majo";
+                meta.majoVersion = "majo";
                 meta.systemInfo = systemInfo();
                 meta.acceptedViaTrust = false;
                 meta.signature = null;
@@ -169,7 +169,7 @@ public class BackupCreator {
     private static BackupMeta signAndFinalize(Path tmp, BackupMeta meta, Path dest) throws IOException {
         BackupMeta toSign = new BackupMeta(meta.id, meta.name, meta.description, meta.createdAt,
             meta.scope, meta.agentCount);
-        toSign.qwenpawVersion = meta.qwenpawVersion;
+        toSign.majoVersion = meta.majoVersion;
         toSign.systemInfo = meta.systemInfo;
         toSign.acceptedViaTrust = false;
         toSign.signature = null;

@@ -84,7 +84,7 @@ export function MarketPluginList({ onInstalled }: MarketPluginListProps) {
     category,
     sortBy,
     installingId,
-    qwenpawVersion,
+    majoVersion,
     isCompatible,
     handleSearch,
     handleCategoryChange,
@@ -263,7 +263,7 @@ export function MarketPluginList({ onInstalled }: MarketPluginListProps) {
                       ? `This plugin is labeled for QwenPaw ${
                           entry.qwenpaw_compat_labels?.join(", ") ?? "unknown"
                         }; compatibility with QwenPaw ${
-                          qwenpawVersion ?? "unknown"
+                          majoVersion ?? "unknown"
                         } is unverified.`
                       : undefined
                   }
@@ -289,7 +289,7 @@ export function MarketPluginList({ onInstalled }: MarketPluginListProps) {
                             labels:
                               entry.qwenpaw_compat_labels?.join(", ") ??
                               "unknown",
-                            version: qwenpawVersion ?? "unknown",
+                            version: majoVersion ?? "unknown",
                           }),
                           okText: t(
                             "pluginManager.compatWarningConfirm",
