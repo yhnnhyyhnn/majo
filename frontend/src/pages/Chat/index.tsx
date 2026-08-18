@@ -2787,7 +2787,7 @@ export default function ChatPage() {
       welcome: {
         ...i18nConfig.welcome,
         nick: extNick ?? "Majo",
-        avatar: extAvatar ?? "/qwenpaw.png",
+        avatar: extAvatar ?? "/majo-icon.svg",
         ...(extGreeting !== undefined ? { greeting: extGreeting } : {}),
         ...(extDescription !== undefined
           ? { description: extDescription }
