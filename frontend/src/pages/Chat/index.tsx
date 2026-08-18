@@ -561,7 +561,7 @@ function renderSuggestionLabel(command: string, description?: string) {
 
 const DEFAULT_USER_ID = "default";
 const DEFAULT_CHANNEL = "console";
-const WIDE_MODE_STORAGE_KEY = "qwenpaw_chat_wide_mode";
+const WIDE_MODE_STORAGE_KEY = "majo_chat_wide_mode";
 
 // Stable fallback so an absent queue entry doesn't produce a fresh array
 // reference on every render (which would invalidate the options memo).
@@ -922,7 +922,7 @@ function useMessageHistoryNavigation(
 // Chat input draft persistence
 // ---------------------------------------------------------------------------
 
-const DRAFT_STORAGE_KEY_PREFIX = "qwenpaw_chat_input_draft";
+const DRAFT_STORAGE_KEY_PREFIX = "majo_chat_input_draft";
 let draftSuppressed = false;
 
 function getDraftStorageKey(agentId?: string): string {
@@ -1138,7 +1138,7 @@ function SessionQueuePanel({ sessionId, ...handlers }: SessionQueuePanelProps) {
   return <MessageQueuePanel items={items} runState={runState} {...handlers} />;
 }
 
-const HISTORY_PANEL_STORAGE_KEY = "qwenpaw_history_panel_open";
+const HISTORY_PANEL_STORAGE_KEY = "majo_history_panel_open";
 
 export default function ChatPage() {
   const { t, i18n } = useTranslation();

@@ -59,9 +59,9 @@ describe("countConfiguredProviders", () => {
 });
 
 describe("getIsConfigured", () => {
-  it("treats qwenpaw-local as always configured", () => {
+  it("treats majo-local as always configured", () => {
     expect(
-      getIsConfigured(provider({ id: "qwenpaw-local", require_api_key: true })),
+      getIsConfigured(provider({ id: "majo-local", require_api_key: true })),
     ).toBe(true);
   });
 

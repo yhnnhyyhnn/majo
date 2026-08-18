@@ -133,7 +133,7 @@ function ModelsPage() {
 
     // QwenPaw Local is always "configured" (embedded)
     const isEmbedded = (p: ProviderInfo) =>
-      p.id === "qwenpaw-local" || p.id === "copaw-local";
+      p.id === "majo-local" || p.id === "copaw-local";
 
     // Separate local vs cloud first
     const allCloud: ProviderInfo[] = [];

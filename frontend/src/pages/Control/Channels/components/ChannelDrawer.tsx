@@ -169,7 +169,7 @@ export function ChannelDrawer({
   const currentAgent = agents.find((a) => a.id === selectedAgent);
   const defaultMediaDir = currentAgent?.workspace_dir
     ? `${currentAgent.workspace_dir}/media`
-    : "~/.qwenpaw/media";
+    : "~/.majo/media";
   const currentLang = i18n.language?.startsWith("zh") ? "zh" : "en";
   const label = activeKey ? getChannelLabel(activeKey, t) : activeLabel;
   const { message } = useAppMessage();
@@ -292,9 +292,9 @@ export function ChannelDrawer({
             <Form.Item
               name="device_name"
               label="Device Name"
-              tooltip="A stable device identity for the Matrix client. Defaults to 'qwenpaw-worker' if left empty."
+              tooltip="A stable device identity for the Matrix client. Defaults to 'majo-worker' if left empty."
             >
-              <Input placeholder="qwenpaw-worker" />
+              <Input placeholder="majo-worker" />
             </Form.Item>
             <Form.Item
               name="dm_disabled"
@@ -1216,7 +1216,7 @@ export function ChannelDrawer({
               label={t("channels.wechatBotTokenFile")}
               tooltip={t("channels.wechatBotTokenFileTooltip")}
             >
-              <Input placeholder="~/.qwenpaw/wechat_bot_token" />
+              <Input placeholder="~/.majo/wechat_bot_token" />
             </Form.Item>
             <Form.Item name="media_dir" label={t("channels.wechatMediaDir")}>
               <Input placeholder={defaultMediaDir} />
