@@ -16,6 +16,7 @@
     "enabled": "Ativado",
     "disabled": "Desativado",
     "preview": "Visualizar",
+    "source": "Código-fonte",
     "view": "Visualizar",
     "content": "Conteudo",
     "loading": "Carregando...",
@@ -89,7 +90,8 @@
     "debug": "Depuracao",
     "plugins": "Plugins",
     "backups": "Backups",
-    "pluginManager": "Gerenciador de Plugins"
+    "pluginManager": "Gerenciador de Plugins",
+    "files": "Arquivos"
   },
   "debug": {
     "title": "Depuracao",
@@ -3186,5 +3188,25 @@
         "description": "Execute uma tarefa estruturada e persistente em várias etapas."
       }
     }
+  },
+  "files": {
+    "title": "Arquivos",
+    "navigator": "Navegador de arquivos",
+    "source": "Fonte",
+    "workspace": "Workspace",
+    "agentWorkspace": "Workspace do agente",
+    "profile": "Perfil",
+    "daily": "Diário",
+    "digest": "Base de Conhecimento",
+    "uploadConflictTitle": "Conflito de nomes de arquivo",
+    "uploadConflictDescription": "Alguns arquivos já existem: {{files}}",
+    "conflictRename": "Renomear",
+    "conflictRenameDescription": "Renomear os arquivos enviados para manter ambos",
+    "conflictSkip": "Pular",
+    "conflictSkipDescription": "Não enviar arquivos com nomes existentes",
+    "conflictOverwrite": "Substituir",
+    "conflictOverwriteDescription": "Substituir arquivos existentes com os mesmos nomes",
+    "closeTab": "Fechar Aba",
+    "closeOtherTabs": "Fechar Outras Abas"
   }
 }

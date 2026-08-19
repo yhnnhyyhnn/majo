@@ -16,6 +16,7 @@
     "enabled": "Đã bật",
     "disabled": "Đã tắt",
     "preview": "Xem trước",
+    "source": "Mã nguồn",
     "view": "Xem",
     "content": "Nội dung",
     "loading": "Đang tải...",
@@ -91,7 +92,8 @@
     "debug": "Gỡ lỗi",
     "plugins": "Plugin",
     "backups": "Sao lưu",
-    "pluginManager": "Quản lý Plugin"
+    "pluginManager": "Quản lý Plugin",
+    "files": "Tệp"
   },
   "header": {
     "changelog": "Nhật ký thay đổi",
@@ -1713,5 +1715,25 @@
         "description": "Chạy tác vụ nhiều bước có cấu trúc và liên tục."
       }
     }
+  },
+  "files": {
+    "title": "Tệp",
+    "navigator": "Trình duyệt tệp",
+    "source": "Nguồn",
+    "workspace": "Workspace",
+    "agentWorkspace": "Workspace agent",
+    "profile": "Hồ sơ",
+    "daily": "Nhật ký",
+    "digest": "Cơ sở kiến thức",
+    "uploadConflictTitle": "Xung đột tên tệp",
+    "uploadConflictDescription": "Một số tệp đã tồn tại: {{files}}",
+    "conflictRename": "Đổi tên",
+    "conflictRenameDescription": "Đổi tên tệp tải lên để giữ cả hai",
+    "conflictSkip": "Bỏ qua",
+    "conflictSkipDescription": "Không tải lên tệp trùng tên",
+    "conflictOverwrite": "Ghi đè",
+    "conflictOverwriteDescription": "Thay thế tệp hiện có cùng tên",
+    "closeTab": "Đóng tab",
+    "closeOtherTabs": "Đóng các tab khác"
   }
 }

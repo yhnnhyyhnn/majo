@@ -17,6 +17,7 @@
     "enabled": "Enabled",
     "disabled": "Disabled",
     "preview": "Preview",
+    "source": "Source",
     "view": "View",
     "content": "Content",
     "loading": "Loading...",
@@ -139,7 +140,8 @@
     "debug": "Debug",
     "plugins": "Plugins",
     "backups": "Backups",
-    "pluginManager": "Plugin Manager"
+    "pluginManager": "Plugin Manager",
+    "files": "Files"
   },
   "sidebar": {
     "newVersion": "New version available: v{{version}}, click to upgrade",
@@ -3323,5 +3325,25 @@
         "description": "Run a structured, persistent multi-step task."
       }
     }
+  },
+  "files": {
+    "title": "Files",
+    "navigator": "Files navigator",
+    "source": "Source",
+    "workspace": "Workspace",
+    "agentWorkspace": "Agent workspace",
+    "profile": "Profile",
+    "daily": "Daily",
+    "digest": "Knowledge Base",
+    "uploadConflictTitle": "File name conflicts",
+    "uploadConflictDescription": "Some files already exist: {{files}}",
+    "conflictRename": "Rename",
+    "conflictRenameDescription": "Keep both by renaming the uploaded files",
+    "conflictSkip": "Skip",
+    "conflictSkipDescription": "Do not upload files with existing names",
+    "conflictOverwrite": "Overwrite",
+    "conflictOverwriteDescription": "Replace existing files with the same names",
+    "closeTab": "Close Tab",
+    "closeOtherTabs": "Close Other Tabs"
   }
 }

@@ -9,15 +9,12 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { XMarkdown } from "@ant-design/x-markdown";
 import { invoke } from "@tauri-apps/api/core";
 import { workspaceApi } from "../../api/modules/workspace";
 import { buildAuthHeaders } from "../../api/authHeaders";
 import { isDesktopTauriRuntime } from "../../utils/openExternalLink";
-import { ExternalMarkdownLink } from "../../components/Markdown/externalLinkComponents";
+import { mermaidComponents } from "../../components/MermaidCodeBlock";
 import { useAgentStore } from "../../stores/agentStore";
 import styles from "./FilePreview.module.less";
 
@@ -36,7 +33,13 @@ const IMAGE_EXTS = new Set([
   "bmp",
 ]);
 
-export type PreviewType = "image" | "pdf" | "markdown" | "csv" | "none";
+export type PreviewType =
+  | "image"
+  | "pdf"
+  | "markdown"
+  | "csv"
+  | "json"
+  | "none";
 
 export function getPreviewType(filePath: string): PreviewType {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
@@ -44,6 +47,7 @@ export function getPreviewType(filePath: string): PreviewType {
   if (ext === "pdf") return "pdf";
   if (ext === "md" || ext === "mdx") return "markdown";
   if (ext === "csv") return "csv";
+  if (ext === "json" || ext === "jsonc") return "json";
   return "none";
 }
 
@@ -197,47 +201,19 @@ function PdfPreview({ filePath }: { filePath: string }) {
   );
 }
 
-const markdownComponents = {
-  a: ExternalMarkdownLink,
-  pre({ children }: { children?: React.ReactNode }) {
-    return <>{children}</>;
-  },
-  code({ node: _node, inline: _inline, className, children, ...rest }: any) {
-    const match = /language-([\w-]+)/.exec(className || "");
-    const codeText = String(children).replace(/\n$/, "");
-    if (match) {
-      return (
-        <SyntaxHighlighter
-          language={match[1]}
-          style={oneDark}
-          customStyle={{
-            margin: 0,
-            borderRadius: "6px",
-            fontSize: "13px",
-            lineHeight: "1.6",
-          }}
-        >
-          {codeText}
-        </SyntaxHighlighter>
-      );
-    }
-    return (
-      <code className={className} {...rest}>
-        {children}
-      </code>
-    );
-  },
-};
+const markdownComponents = mermaidComponents;
 
 function MarkdownPreview({ content }: { content: string }) {
   return (
     <div className={styles.markdownWrap}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+      <XMarkdown
+        content={content}
         components={markdownComponents}
-      >
-        {content}
-      </ReactMarkdown>
+        dompurifyConfig={{
+          ADD_TAGS: ["pre", "code"],
+          ADD_ATTR: ["data-block", "data-state", "data-lang", "class"],
+        }}
+      />
     </div>
   );
 }
@@ -290,12 +266,54 @@ function CsvPreview({ content }: { content: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// JSON preview
+// ---------------------------------------------------------------------------
+
+function JsonPreview({ content }: { content: string }) {
+  const result = useMemo(() => {
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return { formatted: "", error: "" };
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      return { formatted: JSON.stringify(parsed, null, 2), error: "" };
+    } catch (error) {
+      return {
+        formatted: "",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }, [content]);
+
+  if (result.error) {
+    return (
+      <div className={styles.jsonError} role="alert">
+        <div className={styles.jsonErrorTitle}>Invalid JSON</div>
+        <div className={styles.jsonErrorDetail}>{result.error}</div>
+        <pre className={styles.jsonRaw}>
+          <code>{content}</code>
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.jsonWrap}>
+      <pre className={styles.jsonCode}>
+        <code>{result.formatted}</code>
+      </pre>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
 export interface FilePreviewProps {
   filePath: string;
-  /** Text content – used by Markdown and CSV renderers. */
+  /** Text content – used by Markdown, CSV and JSON renderers. */
   content: string;
 }
 
@@ -306,5 +324,6 @@ export default function FilePreview({ filePath, content }: FilePreviewProps) {
   if (type === "pdf") return <PdfPreview filePath={filePath} />;
   if (type === "markdown") return <MarkdownPreview content={content} />;
   if (type === "csv") return <CsvPreview content={content} />;
+  if (type === "json") return <JsonPreview content={content} />;
   return null;
 }

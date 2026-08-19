@@ -128,12 +128,12 @@ export const BUILTIN_MENU: MenuItem[] = [
     order: 30,
   },
   {
-    id: "core.workspace",
+    id: "core.files",
     location: "primary.agentScoped",
     parentId: "core.agent-group",
-    label: navLabel("nav.workspace"),
+    label: navLabel("nav.files"),
     icon: SparkLocalFileLine,
-    route: "core.workspace",
+    route: "core.files",
     order: 10,
   },
   {

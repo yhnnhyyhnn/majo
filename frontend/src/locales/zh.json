@@ -17,6 +17,7 @@
     "enabled": "已启用",
     "disabled": "已禁用",
     "preview": "预览",
+    "source": "源码",
     "view": "查看",
     "content": "内容",
     "loading": "加载中...",
@@ -139,7 +140,8 @@
     "debug": "调试",
     "plugins": "插件",
     "backups": "备份",
-    "pluginManager": "插件管理"
+    "pluginManager": "插件管理",
+    "files": "文件"
   },
   "sidebar": {
     "newVersion": "发现新版本 v{{version}}，点击前往升级",
@@ -3342,5 +3344,25 @@
         "description": "运行结构化、可持续的多步骤任务。"
       }
     }
+  },
+  "files": {
+    "title": "文件",
+    "navigator": "文件导航",
+    "source": "来源",
+    "workspace": "工作区",
+    "agentWorkspace": "Agent 工作区",
+    "profile": "档案",
+    "daily": "日记",
+    "digest": "知识库",
+    "uploadConflictTitle": "文件名冲突",
+    "uploadConflictDescription": "以下文件已存在：{{files}}",
+    "conflictRename": "重命名",
+    "conflictRenameDescription": "重命名上传文件以保留两者",
+    "conflictSkip": "跳过",
+    "conflictSkipDescription": "跳过同名文件的上传",
+    "conflictOverwrite": "覆盖",
+    "conflictOverwriteDescription": "用同名文件覆盖现有文件",
+    "closeTab": "关闭标签页",
+    "closeOtherTabs": "关闭其他标签页"
   }
 }

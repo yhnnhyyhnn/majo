@@ -48,3 +48,80 @@
     color: inherit;
   }
 }
+
+.toggleBlock {
+  margin: 12px 0;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.toggleTabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+}
+
+.toggleTab {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #666;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover {
+    background: #f0f0f0;
+  }
+}
+
+.toggleTabActive {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: rgba(97, 92, 237, 0.1);
+  color: #615cec;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sourceBlock {
+  padding: 0;
+  max-height: 480px;
+  overflow: auto;
+
+  pre {
+    margin: 0;
+    border-radius: 0;
+  }
+}
+
+:global(.dark-mode) {
+  .toggleBlock {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: #1f1f1f;
+  }
+
+  .toggleTabs {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    background: #1f1f1f;
+  }
+
+  .toggleTab {
+    color: rgba(255, 255, 255, 0.6);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .toggleTabActive {
+    background: rgba(97, 92, 237, 0.25);
+    color: #a5a1ff;
+  }
+}

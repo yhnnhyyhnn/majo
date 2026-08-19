@@ -14,6 +14,7 @@ interface AgentMenuCapabilities {
 type MenuTreeItem = MenuItem & { __children?: MenuItem[] };
 
 const NATIVE_WORKSPACE_MENU_IDS = new Set([
+  "core.files",
   "core.workspace",
   "core.acp",
   "core.agent-config",

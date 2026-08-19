@@ -40,6 +40,16 @@ function encodePath(path: string): string {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
+export class UploadConflictError extends Error {
+  files: string[];
+
+  constructor(files: string[]) {
+    super("Upload contains conflicting filenames");
+    this.name = "UploadConflictError";
+    this.files = files;
+  }
+}
+
 export const workspaceApi = {
   listFiles: () =>
     request<MdFileInfo[]>("/workspace/files").then((files) =>
@@ -130,6 +140,65 @@ export const workspaceApi = {
       method: "PUT",
       body: JSON.stringify(files),
     }),
+
+  /** List memory markdown files, optionally filtered to daily or digest. */
+  listMemoryFiles: (section?: "daily" | "digest") =>
+    request<MdFileInfo[]>(
+      section
+        ? `/workspace/memory?section=${encodeURIComponent(section)}`
+        : "/workspace/memory",
+    ).then((files) =>
+      files.map((file) => ({
+        ...file,
+        updated_at: new Date(file.modified_time).getTime(),
+      })),
+    ),
+
+  /**
+   * Upload ordinary files into the current agent workspace (or a
+   * subdirectory). Without a conflict policy, an existing-name collision
+   * rejects with UploadConflictError so the caller can ask the user.
+   */
+  uploadFiles: async (
+    files: File[],
+    path = "",
+    conflict?: "overwrite" | "skip" | "rename",
+  ): Promise<{
+    files: Array<{
+      name: string;
+      path: string;
+      size?: number;
+      status: "uploaded" | "skipped";
+    }>;
+  }> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    const url = getApiUrl(
+      `/workspace/file-upload?path=${encodeURIComponent(path)}${
+        conflict ? `&conflict=${encodeURIComponent(conflict)}` : ""
+      }`,
+    );
+    const response = await fetch(url, {
+      method: "POST",
+      headers: buildAuthHeaders(),
+      body: formData,
+    });
+    if (response.status === 409) {
+      const payload = (await response.json().catch(() => null)) as {
+        detail?: { code?: string; files?: string[] };
+      } | null;
+      if (payload?.detail?.code === "upload_conflict") {
+        throw new UploadConflictError(payload.detail.files ?? []);
+      }
+    }
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(
+        `File upload failed: ${response.status} ${response.statusText} - ${text}`,
+      );
+    }
+    return response.json();
+  },
 
   // Coding Mode – full file tree (all file types)
   listCodeFiles: () =>

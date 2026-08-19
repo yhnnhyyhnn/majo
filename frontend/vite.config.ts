@@ -5,10 +5,13 @@ import path from "path";
 
 // Vitest plugin: transforms .css imports inside node_modules to empty stubs.
 // This prevents errors from packages like @agentscope-ai/icons that import CSS.
+// Only active during test runs (VITEST env) so production builds still bundle
+// real stylesheets (e.g. monaco-editor's editor.main.css).
 const cssStubPlugin = {
   name: "css-stub",
+  enforce: "pre" as "pre",
   transform(_code: string, id: string) {
-    if (id.includes("node_modules") && id.endsWith(".css")) {
+    if (process.env.VITEST && id.includes("node_modules") && id.endsWith(".css")) {
       return { code: "export default {}" };
     }
   },

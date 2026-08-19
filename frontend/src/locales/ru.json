@@ -16,6 +16,7 @@
     "enabled": "Включено",
     "disabled": "Отключено",
     "preview": "Предпросмотр",
+    "source": "Исходный код",
     "view": "Просмотр",
     "content": "Содержимое",
     "loading": "Загрузка...",
@@ -87,7 +88,8 @@
     "plugins": "Плагины",
     "acp": "ACP",
     "backups": "Резервные копии",
-    "pluginManager": "Менеджер плагинов"
+    "pluginManager": "Менеджер плагинов",
+    "files": "Файлы"
   },
   "debug": {
     "title": "Отладка",
@@ -3146,5 +3148,25 @@
         "description": "Структурированная длительная многоэтапная задача."
       }
     }
+  },
+  "files": {
+    "title": "Файлы",
+    "navigator": "Навигатор файлов",
+    "source": "Источник",
+    "workspace": "Рабочее пространство",
+    "agentWorkspace": "Рабочее пространство агента",
+    "profile": "Профиль",
+    "daily": "Дневник",
+    "digest": "База знаний",
+    "uploadConflictTitle": "Конфликт имён файлов",
+    "uploadConflictDescription": "Некоторые файлы уже существуют: {{files}}",
+    "conflictRename": "Переименовать",
+    "conflictRenameDescription": "Переименовать загружаемые файлы и сохранить оба",
+    "conflictSkip": "Пропустить",
+    "conflictSkipDescription": "Не загружать файлы с существующими именами",
+    "conflictOverwrite": "Перезаписать",
+    "conflictOverwriteDescription": "Заменить существующие файлы с теми же именами",
+    "closeTab": "Закрыть вкладку",
+    "closeOtherTabs": "Закрыть другие вкладки"
   }
 }

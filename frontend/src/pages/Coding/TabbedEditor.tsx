@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Editor, {
   DiffEditor,
   type Monaco,
@@ -29,7 +30,7 @@ import {
   Save,
   X,
 } from "lucide-react";
-import { Tooltip } from "antd";
+import { Tooltip, Dropdown } from "antd";
 import FilePreview, { isPreviewable } from "./FilePreview";
 import { workspaceApi } from "../../api/modules/workspace";
 import { useWorkspaceWatch } from "../../hooks/useWorkspaceWatch";
@@ -225,6 +226,7 @@ export default function TabbedEditor({
   onFileSaved,
 }: TabbedEditorProps) {
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const activeTabPathRef = useRef(activeTabPath);
   activeTabPathRef.current = activeTabPath;
@@ -810,36 +812,65 @@ export default function TabbedEditor({
         {tabs.map((tab) => {
           const active = tab.path === activeTabPath;
           const hasDiff = Boolean(pendingDiffs[tab.path]);
+          const closeOthers = () => {
+            for (const other of tabs) {
+              if (other.path !== tab.path) onTabClose(other.path);
+            }
+          };
           return (
-            <div
+            <Dropdown
               key={tab.path}
-              className={`${styles.tab} ${active ? styles.tabActive : ""} ${
-                hasDiff ? styles.tabDiff : ""
-              }`}
-              onClick={() => onTabSelect(tab.path)}
-              role="tab"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && onTabSelect(tab.path)}
-              title={tab.path}
+              trigger={["contextMenu"]}
+              menu={{
+                items: [
+                  {
+                    key: "close",
+                    label: t("files.closeTab"),
+                    onClick: () => onTabClose(tab.path),
+                  },
+                  {
+                    key: "closeOthers",
+                    label: t("files.closeOtherTabs"),
+                    disabled: tabs.length <= 1,
+                    onClick: closeOthers,
+                  },
+                ],
+              }}
             >
-              {hasDiff ? (
-                <GitCompareArrows size={11} className={styles.diffDot} />
-              ) : tab.dirty ? (
-                <span className={styles.dirtyDot} />
-              ) : null}
-              <span className={styles.tabName}>{shortPath(tab.path)}</span>
-              <button
-                type="button"
-                className={styles.closeBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
+              <div
+                className={`${styles.tab} ${active ? styles.tabActive : ""} ${
+                  hasDiff ? styles.tabDiff : ""
+                }`}
+                onClick={() => onTabSelect(tab.path)}
+                onAuxClick={(e) => {
+                  if (e.button !== 1) return;
+                  e.preventDefault();
                   onTabClose(tab.path);
                 }}
-                aria-label="Close tab"
+                role="tab"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && onTabSelect(tab.path)}
+                title={tab.path}
               >
-                <X size={11} />
-              </button>
-            </div>
+                {hasDiff ? (
+                  <GitCompareArrows size={11} className={styles.diffDot} />
+                ) : tab.dirty ? (
+                  <span className={styles.dirtyDot} />
+                ) : null}
+                <span className={styles.tabName}>{shortPath(tab.path)}</span>
+                <button
+                  type="button"
+                  className={styles.closeBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTabClose(tab.path);
+                  }}
+                  aria-label={`${t("files.closeTab")}: ${shortPath(tab.path)}`}
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            </Dropdown>
           );
         })}
       </div>
@@ -948,6 +979,7 @@ export default function TabbedEditor({
                 theme={isDark ? "vs-dark" : "light"}
                 beforeMount={handleBeforeMount}
                 onMount={handleDiffMount}
+                loading={<div className={styles.editorLoading}>Loading…</div>}
                 options={{
                   renderSideBySide: false,
                   readOnly: false,
@@ -1001,6 +1033,7 @@ export default function TabbedEditor({
               theme={isDark ? "vs-dark" : "light"}
               beforeMount={handleBeforeMount}
               onMount={handleMount}
+              loading={<div className={styles.editorLoading}>Loading…</div>}
               onChange={(v) => {
                 onTabContentChange(activeTabPath, v ?? "");
                 onTabDirtyChange(activeTabPath, true);

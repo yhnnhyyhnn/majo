@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { ComponentProps } from "@ant-design/x-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { MermaidCodeBlock } from "./MermaidCodeBlock";
+import { MermaidToggleBlock } from "./MermaidCodeBlock";
 
 /**
  * Extracts plain text from React children recursively.
@@ -37,7 +37,7 @@ function CodeWithMermaid({
   if (block && lang === "mermaid") {
     const chartSource = extractText(children);
     if (chartSource.trim()) {
-      return <MermaidCodeBlock chart={chartSource} />;
+      return <MermaidToggleBlock chart={chartSource} />;
     }
   }
 

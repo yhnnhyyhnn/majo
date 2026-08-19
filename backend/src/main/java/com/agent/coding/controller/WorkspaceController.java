@@ -60,8 +60,8 @@ public class WorkspaceController {
     // === File Tree ===
 
     @GetMapping("/workspace/code-files")
-    public List<Map<String, Object>> listCodeFiles() {
-        return listCodeFiles(WORKSPACE);
+    public List<Map<String, Object>> listCodeFiles(HttpServletRequest request) {
+        return listCodeFiles(resolveWorkspace(request));
     }
 
     public List<Map<String, Object>> listCodeFiles(Path workspace) {
@@ -96,7 +96,7 @@ public class WorkspaceController {
 
     @GetMapping("/workspace/code-files/**")
     public ResponseEntity<?> readCodeFile(HttpServletRequest req) {
-        return readCodeFile(WORKSPACE, req);
+        return readCodeFile(resolveWorkspace(req), req);
     }
 
     public ResponseEntity<?> readCodeFile(Path workspace, HttpServletRequest req) {
@@ -134,7 +134,7 @@ public class WorkspaceController {
 
     @PutMapping("/workspace/code-files/**")
     public ResponseEntity<?> writeCodeFile(HttpServletRequest req, @RequestBody Map<String, String> body) {
-        return writeCodeFile(WORKSPACE, req, body);
+        return writeCodeFile(resolveWorkspace(req), req, body);
     }
 
     public ResponseEntity<?> writeCodeFile(Path workspace, HttpServletRequest req, Map<String, String> body) {
@@ -156,8 +156,18 @@ public class WorkspaceController {
     // === Markdown Files ===
 
     @GetMapping("/workspace/files")
-    public List<Map<String, Object>> listMdFiles() {
-        return listMdFiles(WORKSPACE);
+    public List<Map<String, Object>> listMdFiles(HttpServletRequest request) {
+        Path workspace = resolveWorkspace(request);
+        ensureWorkspaceTemplates(workspace);
+        return listMdFiles(workspace);
+    }
+
+    /** Ensure the bundled workspace MD templates exist for a fresh workspace. */
+    private static void ensureWorkspaceTemplates(Path workspace) {
+        try {
+            Files.createDirectories(workspace);
+        } catch (IOException ignored) {}
+        com.agent.coding.skill.SkillRegistry.copyWorkspaceMdTemplates(workspace);
     }
 
     public List<Map<String, Object>> listMdFiles(Path workspace) {
@@ -177,8 +187,8 @@ public class WorkspaceController {
     }
 
     @GetMapping("/workspace/files/{name}")
-    public ResponseEntity<?> readMdFile(@PathVariable String name) {
-        return readMdFile(WORKSPACE, name);
+    public ResponseEntity<?> readMdFile(@PathVariable String name, HttpServletRequest request) {
+        return readMdFile(resolveWorkspace(request), name);
     }
 
     public ResponseEntity<?> readMdFile(Path workspace, String name) {
@@ -193,8 +203,9 @@ public class WorkspaceController {
     }
 
     @PutMapping("/workspace/files/{name}")
-    public ResponseEntity<?> writeMdFile(@PathVariable String name, @RequestBody Map<String, String> body) {
-        return writeMdFile(WORKSPACE, name, body);
+    public ResponseEntity<?> writeMdFile(@PathVariable String name, @RequestBody Map<String, String> body,
+                                         HttpServletRequest request) {
+        return writeMdFile(resolveWorkspace(request), name, body);
     }
 
     public ResponseEntity<?> writeMdFile(Path workspace, String name, Map<String, String> body) {
@@ -211,8 +222,8 @@ public class WorkspaceController {
     // === Download/Upload ===
 
     @GetMapping("/workspace/download")
-    public ResponseEntity<Resource> downloadWorkspace() {
-        return downloadWorkspace(WORKSPACE);
+    public ResponseEntity<Resource> downloadWorkspace(HttpServletRequest request) {
+        return downloadWorkspace(resolveWorkspace(request));
     }
 
     public ResponseEntity<Resource> downloadWorkspace(Path workspace) {
@@ -260,8 +271,9 @@ public class WorkspaceController {
 
     @PostMapping("/workspace/upload")
     public ResponseEntity<Map<String, Object>> uploadWorkspace(
-            @RequestParam("file") MultipartFile file) {
-        return uploadWorkspace(file, WORKSPACE);
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+        return uploadWorkspace(file, resolveWorkspace(request));
     }
 
     public ResponseEntity<Map<String, Object>> uploadWorkspace(MultipartFile file, Path workspace) {
@@ -288,6 +300,121 @@ public class WorkspaceController {
             return ResponseEntity.status(500).body(Map.of("detail", "Failed to extract zip: " + e.getMessage()));
         }
         return ResponseEntity.ok(Map.of("success", true, "message", "Workspace updated from zip"));
+    }
+
+    /**
+     * Upload ordinary files into the agent workspace (or a subdirectory),
+     * mirroring qwenpaw's /workspace/file-upload. When a filename already
+     * exists and no conflict policy is given, responds 409 so the client can
+     * ask the user; retry with conflict=overwrite|skip|rename to resolve.
+     */
+    @PostMapping("/workspace/file-upload")
+    public ResponseEntity<Map<String, Object>> uploadWorkspaceFiles(
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(defaultValue = "") String path,
+            @RequestParam(required = false) String conflict,
+            HttpServletRequest request) {
+        if (files == null || files.length == 0) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "files are required"));
+        }
+        if (conflict != null && !conflict.isBlank()
+                && !Set.of("overwrite", "skip", "rename").contains(conflict)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("detail", "conflict must be overwrite, skip, or rename"));
+        }
+        Path workspace = resolveWorkspace(request);
+        Path directory;
+        try {
+            directory = resolveUploadDirectory(workspace, path);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("detail", e.getMessage()));
+        }
+        List<String> conflicts = new ArrayList<>();
+        Map<String, Object> prepared = new LinkedHashMap<>();
+        for (MultipartFile file : files) {
+            String name = file.getOriginalFilename();
+            if (name == null || name.isBlank()) continue;
+            name = name.replace('\\', '/');
+            if (name.contains("/")) {
+                name = name.substring(name.lastIndexOf('/') + 1);
+            }
+            if (Files.exists(directory.resolve(name))) {
+                conflicts.add(name);
+            }
+            prepared.put(name, file);
+        }
+        if (!conflicts.isEmpty() && (conflict == null || conflict.isBlank())) {
+            Map<String, Object> detail = new LinkedHashMap<>();
+            detail.put("code", "upload_conflict");
+            detail.put("files", conflicts);
+            return ResponseEntity.status(409).body(Map.of("detail", detail));
+        }
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : prepared.entrySet()) {
+            String name = entry.getKey();
+            MultipartFile file = (MultipartFile) entry.getValue();
+            Path target = directory.resolve(name).normalize();
+            if (!target.startsWith(directory)) {
+                return ResponseEntity.badRequest().body(Map.of("detail", "Unsafe filename: " + name));
+            }
+            String status;
+            if (Files.exists(target) && "skip".equals(conflict)) {
+                status = "skipped";
+            } else {
+                String finalName = name;
+                if (Files.exists(target) && "rename".equals(conflict)) {
+                    finalName = uniqueName(directory, name);
+                    target = directory.resolve(finalName);
+                }
+                try {
+                    Files.createDirectories(directory);
+                    file.transferTo(target.toFile());
+                    status = "uploaded";
+                } catch (IOException e) {
+                    return ResponseEntity.status(500)
+                            .body(Map.of("detail", "Failed to write " + finalName + ": " + e.getMessage()));
+                }
+                name = finalName;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("name", name);
+            item.put("path", directory.relativize(target).toString().replace("\\", "/"));
+            item.put("status", status);
+            results.add(item);
+        }
+        return ResponseEntity.ok(Map.of("files", results));
+    }
+
+    private Path resolveUploadDirectory(Path workspace, String path) {
+        Path root = workspace.toAbsolutePath().normalize();
+        if (path == null || path.isBlank()) {
+            return root;
+        }
+        Path target = root.resolve(path.replace('\\', '/')).normalize();
+        if (!target.startsWith(root)) {
+            throw new IllegalArgumentException("Unsafe upload path: " + path);
+        }
+        if (Files.exists(target) && !Files.isDirectory(target)) {
+            throw new IllegalArgumentException("Upload path is not a directory: " + path);
+        }
+        return target;
+    }
+
+    private static String uniqueName(Path directory, String name) {
+        String base = name;
+        String ext = "";
+        int dot = name.lastIndexOf('.');
+        if (dot > 0) {
+            base = name.substring(0, dot);
+            ext = name.substring(dot);
+        }
+        int counter = 1;
+        String candidate = base + " (" + counter + ")" + ext;
+        while (Files.exists(directory.resolve(candidate))) {
+            counter++;
+            candidate = base + " (" + counter + ")" + ext;
+        }
+        return candidate;
     }
 
     /** Validate zip entries (no path traversal) and merge into workspace. */
@@ -347,13 +474,18 @@ public class WorkspaceController {
     }
 
     @GetMapping("/workspace/coding-project")
-    public Map<String, Object> codingProject() {
+    public Map<String, Object> codingProject(HttpServletRequest request) {
+        Path ws = resolveWorkspace(request);
+        String projectDir = com.agent.coding.agent.AgentStore.getProjectDir(resolveAgentId(request));
+        boolean isDefault = projectDir == null || projectDir.isBlank()
+                || ws.toString().equals(Path.of(projectDir).toAbsolutePath().normalize().toString());
+        Path effective = isDefault ? ws : Path.of(projectDir).toAbsolutePath().normalize();
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("path", WORKSPACE.toString());
-        result.put("name", WORKSPACE.getFileName().toString());
-        result.put("is_workspace_default", true);
-        result.put("workspace_dir", WORKSPACE.toString());
-        result.put("exists", true);
+        result.put("path", effective.toString());
+        result.put("name", effective.getFileName().toString());
+        result.put("is_workspace_default", isDefault);
+        result.put("workspace_dir", ws.toString());
+        result.put("exists", Files.exists(effective));
         return result;
     }
 
@@ -672,9 +804,9 @@ public class WorkspaceController {
     }
 
     private List<String> copyWorkspaceMdFiles(String language, String agentId) {
-        // the original copies bundled MD templates for the new language into the
-        // workspace. majo ships no per-language MD templates, so nothing to copy.
-        return new ArrayList<>();
+        Path workspace = AgentStore.workspaceDirForAgent(agentId);
+        return com.agent.coding.skill.SkillRegistry.copyWorkspaceMdTemplatesForLanguage(
+                language, workspace);
     }
 
     @GetMapping("/workspace/running-config")
@@ -716,8 +848,8 @@ public class WorkspaceController {
         return merged;
     }
     @GetMapping("/workspace/system-prompt-files")
-    public List<String> systemPromptFiles() {
-        return systemPromptFiles(WORKSPACE);
+    public List<String> systemPromptFiles(HttpServletRequest request) {
+        return systemPromptFiles(resolveWorkspace(request));
     }
 
     public List<String> systemPromptFiles(Path workspace) {
@@ -732,10 +864,11 @@ public class WorkspaceController {
     }
 
     @PutMapping("/workspace/system-prompt-files")
-    public List<String> systemPromptFilesUpdate(@RequestBody Map<String, Object> body) {
+    public List<String> systemPromptFilesUpdate(@RequestBody Map<String, Object> body,
+                                                HttpServletRequest request) {
         Object files = body.get("files");
         if (!(files instanceof List<?> list)) {
-            return systemPromptFiles();
+            return systemPromptFiles(request);
         }
         List<String> result = new ArrayList<>();
         for (Object f : list) {
@@ -768,21 +901,73 @@ public class WorkspaceController {
     }
 
     @GetMapping("/workspace/memory")
-    public List<Map<String, Object>> memory() {
-        return listMdFiles(WORKSPACE.resolve("memory"));
+    public List<Map<String, Object>> memory(
+            @RequestParam(required = false) String section,
+            HttpServletRequest request) {
+        Path memoryDir = resolveWorkspace(request).resolve("memory");
+        if ("daily".equals(section)) {
+            return listMdFilesExcluding(memoryDir, "digest");
+        }
+        if ("digest".equals(section)) {
+            return listMdFilesUnder(memoryDir, "digest");
+        }
+        return listMdFiles(memoryDir);
+    }
+
+    private List<Map<String, Object>> listMdFilesExcluding(Path memoryDir, String excludedDir) {
+        List<Map<String, Object>> files = new ArrayList<>();
+        try (var stream = Files.walk(memoryDir)) {
+            stream.filter(Files::isRegularFile)
+                .filter(f -> f.getFileName().toString().endsWith(".md"))
+                .filter(f -> !isSkipped(f.getFileName().toString()))
+                .forEach(f -> {
+                    String rel = memoryDir.relativize(f).toString().replace("\\", "/");
+                    if (rel.startsWith(excludedDir + "/")) return;
+                    files.add(mdEntry(memoryDir, f));
+                });
+        } catch (IOException ignored) {}
+        return files;
+    }
+
+    private List<Map<String, Object>> listMdFilesUnder(Path memoryDir, String subDir) {
+        Path dir = memoryDir.resolve(subDir);
+        if (!Files.isDirectory(dir)) return new ArrayList<>();
+        List<Map<String, Object>> files = new ArrayList<>();
+        try (var stream = Files.walk(dir)) {
+            stream.filter(Files::isRegularFile)
+                .filter(f -> f.getFileName().toString().endsWith(".md"))
+                .filter(f -> !isSkipped(f.getFileName().toString()))
+                .forEach(f -> files.add(mdEntry(memoryDir, f)));
+        } catch (IOException ignored) {}
+        return files;
+    }
+
+    private Map<String, Object> mdEntry(Path memoryDir, Path file) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        String rel = memoryDir.relativize(file).toString().replace("\\", "/");
+        m.put("filename", rel);
+        m.put("path", rel);
+        m.put("size", file.toFile().length());
+        m.put("modified_time", ISO.format(Instant.ofEpochMilli(file.toFile().lastModified()).atZone(ZoneId.systemDefault())));
+        return m;
     }
 
     @GetMapping("/workspace/memory/{path}")
-    public ResponseEntity<?> memoryFile(@PathVariable String path) {
-        return readMdFile(WORKSPACE.resolve("memory"), path);
+    public ResponseEntity<?> memoryFile(@PathVariable String path, HttpServletRequest request) {
+        return readMdFile(resolveWorkspace(request).resolve("memory"), path);
     }
 
     @PutMapping("/workspace/memory/{path}")
-    public ResponseEntity<?> memoryFileSave(@PathVariable String path, @RequestBody Map<String, String> body) {
-        return writeMdFile(WORKSPACE.resolve("memory"), path, body);
+    public ResponseEntity<?> memoryFileSave(@PathVariable String path, @RequestBody Map<String, String> body,
+                                            HttpServletRequest request) {
+        return writeMdFile(resolveWorkspace(request).resolve("memory"), path, body);
     }
     @GetMapping("/workspace/watch")
-    public org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> watch() {
+    public org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> watch(HttpServletRequest request) {
+        return watchSse(resolveWorkspace(request));
+    }
+
+    private org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> watchSse(Path workspace) {
         org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =
                 new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(0L);
         java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -791,7 +976,7 @@ public class WorkspaceController {
                 Map<String, Long> lastModified = new java.util.concurrent.ConcurrentHashMap<>();
                 while (true) {
                     List<Map<String, Object>> events = new ArrayList<>();
-                    scanWatchFiles(WORKSPACE, lastModified, events);
+                    scanWatchFiles(workspace, lastModified, events);
                     if (!events.isEmpty()) {
                         Map<String, Object> payload = new LinkedHashMap<>();
                         payload.put("type", "file_change");
@@ -842,7 +1027,7 @@ public class WorkspaceController {
     @GetMapping("/workspace/binary-files/**")
     public ResponseEntity<Resource> binaryFile(HttpServletRequest req) {
         String filePath = req.getRequestURI().replace("/api/workspace/binary-files/", "");
-        return binaryFile(WORKSPACE, filePath);
+        return binaryFile(resolveWorkspace(req), filePath);
     }
 
     @GetMapping("/agents/{agentId}/workspace/binary-files/**")
@@ -933,7 +1118,7 @@ public class WorkspaceController {
     @GetMapping("/agents/{agentId}/workspace/download")
     public ResponseEntity<Resource> agentDownload(@PathVariable String agentId) { return downloadWorkspace(workspaceFor(agentId)); }
     @GetMapping("/agents/{agentId}/workspace/watch")
-    public ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> agentWatch(@PathVariable String agentId) { return watch(); }
+    public ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> agentWatch(@PathVariable String agentId) { return watchSse(workspaceFor(agentId)); }
 
     private Path workspaceFor(String agentId) {
         return com.agent.coding.skill.SkillRegistry.workspaceDirForAgent(agentId);

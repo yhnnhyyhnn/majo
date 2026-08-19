@@ -16,6 +16,7 @@
     "enabled": "有効",
     "disabled": "無効",
     "preview": "プレビュー",
+    "source": "ソース",
     "view": "閲覧",
     "content": "内容",
     "loading": "読み込み中...",
@@ -87,7 +88,8 @@
     "plugins": "プラグイン",
     "acp": "ACP",
     "backups": "バックアップ",
-    "pluginManager": "プラグインマネージャー"
+    "pluginManager": "プラグインマネージャー",
+    "files": "ファイル"
   },
   "debug": {
     "title": "デバッグ",
@@ -3131,5 +3133,25 @@
         "description": "構造化された複数ステップのタスクを継続的に実行します。"
       }
     }
+  },
+  "files": {
+    "title": "ファイル",
+    "navigator": "ファイルナビゲーター",
+    "source": "ソース",
+    "workspace": "ワークスペース",
+    "agentWorkspace": "エージェントワークスペース",
+    "profile": "プロフィール",
+    "daily": "日記",
+    "digest": "ナレッジベース",
+    "uploadConflictTitle": "ファイル名の競合",
+    "uploadConflictDescription": "一部のファイルは既に存在します: {{files}}",
+    "conflictRename": "名前を変更",
+    "conflictRenameDescription": "アップロードファイルの名前を変更して両方保持",
+    "conflictSkip": "スキップ",
+    "conflictSkipDescription": "同名のファイルをアップロードしない",
+    "conflictOverwrite": "上書き",
+    "conflictOverwriteDescription": "同名の既存ファイルを置き換え",
+    "closeTab": "タブを閉じる",
+    "closeOtherTabs": "他のタブを閉じる"
   }
 }

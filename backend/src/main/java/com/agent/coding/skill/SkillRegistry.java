@@ -352,6 +352,7 @@ public class SkillRegistry {
         } catch (IOException e) {
             throw new SkillsError("Cannot create workspace dirs: " + workspaceDir);
         }
+        copyWorkspaceMdTemplates(workspaceDir);
         return SkillStore.mutateJson(manifestPath, SkillService.defaultWorkspaceManifest(), payload -> {
             Map<String, Object> skills = SkillService.asMap(payload.get("skills"));
             if (Files.isDirectory(skillsDir)) {
@@ -369,6 +370,75 @@ public class SkillRegistry {
             }
             return payload;
         });
+    }
+
+    /** Copy the bundled workspace MD templates (AGENTS/SOUL/PROFILE/…) into a
+     *  workspace when missing, mirroring qwenpaw's agent bootstrap. */
+    public static void copyWorkspaceMdTemplates(Path workspaceDir) {
+        copyWorkspaceMdTemplates(workspaceDir, null);
+    }
+
+    /** Copy templates for a specific language (en|zh); null uses the bundled
+     *  English defaults. Existing files are never overwritten. Returns the
+     *  names of files actually copied. */
+    public static List<String> copyWorkspaceMdTemplatesForLanguage(String language, Path workspaceDir) {
+        String dir = "workspace-md/" + ("zh".equals(language) ? "zh" : "en");
+        List<String> copied = new ArrayList<>();
+        try {
+            ClassLoader cl = SkillRegistry.class.getClassLoader();
+            var resources = cl.getResources(dir);
+            while (resources.hasMoreElements()) {
+                java.net.URL url = resources.nextElement();
+                if ("file".equals(url.getProtocol())) {
+                    Path src = Paths.get(url.toURI());
+                    if (!Files.isDirectory(src)) continue;
+                    try (var files = Files.list(src)) {
+                        files.filter(p -> p.getFileName().toString().endsWith(".md"))
+                            .sorted()
+                            .forEach(template -> {
+                                String name = template.getFileName().toString();
+                                Path target = workspaceDir.resolve(name);
+                                try {
+                                    if (Files.exists(target)) return;
+                                    Files.createDirectories(workspaceDir);
+                                    Files.copy(template, target);
+                                    copied.add(name);
+                                } catch (IOException ignored) {}
+                            });
+                    }
+                } else {
+                    String prefix = url.getFile();
+                    int bang = prefix.indexOf("!/");
+                    if (bang <= 0) continue;
+                    String base = prefix.substring(bang + 2).replace("\\", "/");
+                    java.net.URL jarUrl = new java.net.URL(prefix.substring(0, bang));
+                    try (java.util.zip.ZipInputStream zis =
+                                 new java.util.zip.ZipInputStream(jarUrl.openStream())) {
+                        java.util.zip.ZipEntry e;
+                        while ((e = zis.getNextEntry()) != null) {
+                            String name = e.getName().replace('\\', '/');
+                            if (!name.startsWith(base + "/") || !name.endsWith(".md")) continue;
+                            String fileName = name.substring(name.lastIndexOf('/') + 1);
+                            Path target = workspaceDir.resolve(fileName).normalize();
+                            if (!target.startsWith(workspaceDir.normalize())) continue;
+                            if (Files.exists(target)) continue;
+                            Files.createDirectories(workspaceDir);
+                            Files.copy(zis, target);
+                            copied.add(fileName);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to copy workspace md templates into {}: {}", workspaceDir, e.getMessage());
+        }
+        return copied;
+    }
+
+    /** Copy templates for a specific language (en|zh); null uses the bundled
+     *  English defaults. Existing files are never overwritten. */
+    public static void copyWorkspaceMdTemplates(Path workspaceDir, String language) {
+        copyWorkspaceMdTemplatesForLanguage(language, workspaceDir);
     }
 
     @SuppressWarnings("unchecked")

@@ -16,6 +16,7 @@
     "enabled": "Aktif",
     "disabled": "Nonaktif",
     "preview": "Pratinjau",
+    "source": "Sumber",
     "view": "Lihat",
     "content": "Konten",
     "loading": "Memuat...",
@@ -89,7 +90,8 @@
     "debug": "Debug",
     "plugins": "Plugin",
     "pluginManager": "Manajer Plugin",
-    "backups": "Cadangan"
+    "backups": "Cadangan",
+    "files": "File"
   },
   "header": {
     "changelog": "Catatan Perubahan",
@@ -2523,5 +2525,25 @@
         "description": "Jalankan tugas multi-langkah yang terstruktur dan berkelanjutan."
       }
     }
+  },
+  "files": {
+    "title": "File",
+    "navigator": "Navigator file",
+    "source": "Sumber",
+    "workspace": "Workspace",
+    "agentWorkspace": "Workspace agen",
+    "profile": "Profil",
+    "daily": "Jurnal",
+    "digest": "Basis Pengetahuan",
+    "uploadConflictTitle": "Konflik nama file",
+    "uploadConflictDescription": "Beberapa file sudah ada: {{files}}",
+    "conflictRename": "Ganti nama",
+    "conflictRenameDescription": "Ganti nama file yang diunggah untuk menyimpan keduanya",
+    "conflictSkip": "Lewati",
+    "conflictSkipDescription": "Jangan unggah file dengan nama yang sudah ada",
+    "conflictOverwrite": "Timpa",
+    "conflictOverwriteDescription": "Ganti file yang ada dengan nama yang sama",
+    "closeTab": "Tutup Tab",
+    "closeOtherTabs": "Tutup Tab Lain"
   }
 }

@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -116,5 +117,134 @@ class WorkspaceControllerTest {
                         .content("{\"path\": null}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.is_workspace_default").value(true));
+    }
+
+    @Test
+    void codeFilesAreScopedToAgentWorkspace() throws Exception {
+        mockMvc.perform(get("/api/workspace/code-files")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void markdownFilesAreScopedToAgentWorkspace() throws Exception {
+        mockMvc.perform(get("/api/workspace/files")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void defaultWorkspaceTemplatesAreListed() throws Exception {
+        mockMvc.perform(get("/api/workspace/files")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].filename", org.hamcrest.Matchers.hasItem("AGENTS.md")))
+                .andExpect(jsonPath("$[*].filename", org.hamcrest.Matchers.hasItem("SOUL.md")))
+                .andExpect(jsonPath("$[*].filename", org.hamcrest.Matchers.hasItem("PROFILE.md")))
+                .andExpect(jsonPath("$[*].filename", org.hamcrest.Matchers.hasItem("HEARTBEAT.md")))
+                .andExpect(jsonPath("$[*].filename", org.hamcrest.Matchers.hasItem("MEMORY.md")));
+    }
+
+    @Test
+    void memoryIsScopedToAgentWorkspace() throws Exception {
+        mockMvc.perform(get("/api/workspace/memory")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void codingProjectIsScopedToAgentWorkspace() throws Exception {
+        mockMvc.perform(get("/api/workspace/coding-project")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workspace_dir").isString())
+                .andExpect(jsonPath("$.is_workspace_default").value(true));
+    }
+
+    @Test
+    void memorySectionDailyFiltersDigest() throws Exception {
+        mockMvc.perform(get("/api/workspace/memory")
+                        .param("section", "daily")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void memorySectionDigestFiltersDaily() throws Exception {
+        mockMvc.perform(get("/api/workspace/memory")
+                        .param("section", "digest")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void fileUploadRequiresFiles() throws Exception {
+        mockMvc.perform(multipart("/api/workspace/file-upload")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "other", "x.txt", "text/plain", "x".getBytes()))
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void fileUploadRejectsInvalidConflictPolicy() throws Exception {
+        mockMvc.perform(multipart("/api/workspace/file-upload")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "files", "hello.txt", "text/plain", "hi".getBytes()))
+                        .param("conflict", "nope")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void fileUploadWritesFile() throws Exception {
+        String name = "majo-upload-" + System.currentTimeMillis() + ".txt";
+        mockMvc.perform(multipart("/api/workspace/file-upload")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "files", name, "text/plain", "hello".getBytes()))
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.files[0].name").value(name))
+                .andExpect(jsonPath("$.files[0].status").value("uploaded"));
+    }
+
+    @Test
+    void fileUploadConflictsWithoutPolicy() throws Exception {
+        String name = "majo-conflict-" + System.currentTimeMillis() + ".txt";
+        byte[] content = "v1".getBytes();
+        mockMvc.perform(multipart("/api/workspace/file-upload")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "files", name, "text/plain", content))
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/workspace/file-upload")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "files", name, "text/plain", "v2".getBytes()))
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail.code").value("upload_conflict"));
+    }
+
+    @Test
+    void fileUploadOverwriteResolvesConflict() throws Exception {
+        String name = "majo-overwrite-" + System.currentTimeMillis() + ".txt";
+        byte[] content = "v1".getBytes();
+        mockMvc.perform(multipart("/api/workspace/file-upload")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "files", name, "text/plain", content))
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/workspace/file-upload")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "files", name, "text/plain", "v2".getBytes()))
+                        .param("conflict", "overwrite")
+                        .header("X-Agent-Id", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.files[0].status").value("uploaded"));
     }
 }

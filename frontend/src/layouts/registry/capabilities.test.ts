@@ -15,7 +15,7 @@ const items: MenuItem[] = [
     isGroup: true,
     __children: [
       {
-        id: "core.workspace",
+        id: "core.files",
         location: "primary.agentScoped",
         label: "Files",
       },

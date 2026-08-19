@@ -35,7 +35,7 @@ const AgentConfigPage = lazyImportWithRetry("../../pages/Agent/Config");
 const SkillsPage = lazyImportWithRetry("../../pages/Agent/Skills");
 const SkillPoolPage = lazyImportWithRetry("../../pages/Settings/SkillPool");
 const ToolsPage = lazyImportWithRetry("../../pages/Agent/Tools");
-const WorkspacePage = lazyImportWithRetry("../../pages/Agent/Workspace");
+const FilesPage = lazyImportWithRetry("../../pages/Files");
 const MCPPage = lazyImportWithRetry("../../pages/Agent/MCP");
 const ACPPage = lazyImportWithRetry("../../pages/Agent/ACP");
 const ModelsPage = lazyImportWithRetry("../../pages/Settings/Models");
@@ -79,6 +79,11 @@ function ACPRedirect() {
   return <Navigate to="/acp" replace />;
 }
 
+/** Backward-compat alias: /workspace now lives at /files (qwenpaw-aligned). */
+function WorkspaceRedirect() {
+  return <Navigate to="/files" replace />;
+}
+
 export const BUILTIN_ROUTES: Route[] = [
   { id: "core.root", path: "/", component: DefaultRedirect },
   { id: "core.chat", path: "/chat/*", component: Chat },
@@ -94,7 +99,8 @@ export const BUILTIN_ROUTES: Route[] = [
   { id: "core.mcp", path: "/mcp", component: MCPPage },
   { id: "core.acp", path: "/acp", component: ACPPage },
   { id: "core.acp-alias", path: "/ACP", component: ACPRedirect },
-  { id: "core.workspace", path: "/workspace", component: WorkspacePage },
+  { id: "core.files", path: "/files", component: FilesPage },
+  { id: "core.workspace", path: "/workspace", component: WorkspaceRedirect },
   { id: "core.agents", path: "/agents", component: AgentsPage },
   { id: "core.models", path: "/models", component: ModelsPage },
   {

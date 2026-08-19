@@ -1,0 +1,392 @@
+.filesPage {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pageHeader {
+  flex-shrink: 0;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Left navigator ─────────────────────────────────────────────────────── */
+
+.navigator {
+  width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.sourceTabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  flex-shrink: 0;
+}
+
+.sourceTab {
+  flex: 1;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(20, 20, 19, 0.6);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: rgba(128, 128, 128, 0.08);
+  }
+
+  &.sourceTabActive {
+    background: rgba(97, 92, 237, 0.12);
+    color: #615cec;
+    font-weight: 600;
+  }
+}
+
+.navigatorBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+.directoryBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 6px;
+}
+
+.directoryPath {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 12px;
+  color: rgba(20, 20, 19, 0.65);
+}
+
+.directoryActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(20, 20, 19, 0.6);
+  cursor: pointer;
+  font-size: 13px;
+
+  &:hover:not(:disabled) {
+    background: rgba(128, 128, 128, 0.1);
+    color: #615cec;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.profileRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+
+  &:hover {
+    background: rgba(128, 128, 128, 0.08);
+  }
+
+  &.memoryRowSelected {
+    background: rgba(97, 92, 237, 0.12);
+    color: #615cec;
+  }
+
+  .memoryRowName {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(20, 20, 19, 0.85);
+  }
+}
+
+.conflictModal {
+  :global {
+    .majo-modal-body {
+      padding: 16px;
+    }
+  }
+}
+
+.conflictDescription {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: rgba(20, 20, 19, 0.65);
+}
+
+.conflictChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conflictChoice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: #615cec;
+    background: rgba(97, 92, 237, 0.06);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  strong {
+    font-size: 13px;
+  }
+
+  span {
+    font-size: 12px;
+    color: rgba(20, 20, 19, 0.5);
+  }
+}
+
+.navigatorEmpty {
+  color: rgba(20, 20, 19, 0.45);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 8px;
+}
+
+/* ── Memory rows (daily / digest) ───────────────────────────────────────── */
+
+.memoryRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: rgba(20, 20, 19, 0.85);
+
+  &:hover {
+    background: rgba(128, 128, 128, 0.08);
+  }
+
+  &.memoryRowSelected {
+    background: rgba(97, 92, 237, 0.12);
+    color: #615cec;
+  }
+}
+
+.memoryRowIcon {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(20, 20, 19, 0.45);
+  font-size: 12px;
+}
+
+.memoryRowName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memoryRowMeta {
+  margin-left: auto;
+  font-size: 11px;
+  color: rgba(20, 20, 19, 0.4);
+  flex-shrink: 0;
+}
+
+.memoryGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(20, 20, 19, 0.55);
+  cursor: pointer;
+  user-select: none;
+}
+
+.memoryChildren {
+  margin-left: 12px;
+  border-left: 1px solid rgba(128, 128, 128, 0.15);
+  padding-left: 4px;
+}
+
+/* ── Right editor ───────────────────────────────────────────────────────── */
+
+.editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editorEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(20, 20, 19, 0.4);
+  font-size: 14px;
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────────────── */
+
+:global(.dark-mode) {
+  .sourceTab {
+    color: rgba(255, 255, 255, 0.6);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &.sourceTabActive {
+      background: rgba(97, 92, 237, 0.25);
+      color: #a5a1ff;
+    }
+  }
+
+  .navigator {
+    border-right-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .sourceTabs {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .navigatorEmpty {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .directoryBar {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .directoryPath {
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .iconButton {
+    color: rgba(255, 255, 255, 0.6);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      color: #a5a1ff;
+    }
+  }
+
+  .profileRow {
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &.memoryRowSelected {
+      background: rgba(97, 92, 237, 0.25);
+    }
+
+    .memoryRowName {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  .conflictDescription {
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .conflictChoice {
+    border-color: rgba(255, 255, 255, 0.15);
+
+    &:hover:not(:disabled) {
+      border-color: #a5a1ff;
+      background: rgba(97, 92, 237, 0.15);
+    }
+
+    span {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .memoryRow {
+    color: rgba(255, 255, 255, 0.85);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &.memoryRowSelected {
+      background: rgba(97, 92, 237, 0.25);
+      color: #a5a1ff;
+    }
+  }
+
+  .memoryRowIcon {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .memoryRowMeta {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .memoryGroupHeader {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .memoryChildren {
+    border-left-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .editorEmpty {
+    color: rgba(255, 255, 255, 0.35);
+  }
+}
