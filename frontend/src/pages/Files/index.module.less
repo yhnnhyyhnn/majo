@@ -144,6 +144,30 @@
   }
 }
 
+.profileRowDragging {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(97, 92, 237, 0.15);
+}
+
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex-shrink: 0;
+  color: rgba(20, 20, 19, 0.35);
+  cursor: grab;
+  font-size: 13px;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:hover {
+    color: #615cec;
+  }
+}
+
 .conflictModal {
   :global {
     .majo-modal-body {

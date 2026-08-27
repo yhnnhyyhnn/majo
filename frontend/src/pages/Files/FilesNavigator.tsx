@@ -7,6 +7,22 @@ import {
   UploadOutlined,
 } from "@ant-design/icons";
 import { Modal, Switch } from "antd";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { HolderOutlined } from "@ant-design/icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { projectDirectoryApi } from "../../api/modules/projectDirectory";
@@ -35,6 +51,7 @@ interface FilesNavigatorProps {
   onFileClick: (file: MarkdownFile) => void;
   onDailyMemoryClick: (daily: DailyMemoryFile) => void;
   onToggleFileEnabled: (filename: string) => void;
+  onReorderFiles: (newOrder: string[]) => void;
   onWorkspaceFileSelect: (path: string, content: string) => void;
   onRefresh: () => void;
   fileTreeKey: number;
@@ -131,6 +148,64 @@ function DigestNode({
   );
 }
 
+function SortableProfileRow({
+  file,
+  enabled,
+  selected,
+  onSelect,
+  onToggle,
+}: {
+  file: MarkdownFile;
+  enabled: boolean;
+  selected: boolean;
+  onSelect: () => void;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: file.filename, disabled: !enabled });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`${styles.profileRow} ${
+        selected ? styles.memoryRowSelected : ""
+      } ${isDragging ? styles.profileRowDragging : ""}`}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.6 : undefined,
+      }}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && onSelect()}
+    >
+      {enabled && (
+        <span
+          className={styles.dragHandle}
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`reorder ${file.filename}`}
+        >
+          <HolderOutlined />
+        </span>
+      )}
+      <span className={styles.memoryRowName}>{file.filename}</span>
+      <Switch
+        size="small"
+        checked={enabled}
+        aria-label={t("workspace.systemPromptToggleTooltip")}
+        onClick={(_checked, event) => {
+          event.stopPropagation();
+          onToggle();
+        }}
+      />
+    </div>
+  );
+}
+
 export default function FilesNavigator({
   source,
   onSourceChange,
@@ -141,6 +216,7 @@ export default function FilesNavigator({
   onFileClick,
   onDailyMemoryClick,
   onToggleFileEnabled,
+  onReorderFiles,
   onWorkspaceFileSelect,
   onRefresh,
   fileTreeKey,
@@ -173,11 +249,13 @@ export default function FilesNavigator({
     };
   }, []);
 
+  const uploadPathRef = useRef("");
+
   const runUpload = useCallback(
     async (filesToUpload: File[], conflict?: "overwrite" | "skip" | "rename") => {
       setUploading(true);
       try {
-        await workspaceApi.uploadFiles(filesToUpload, "", conflict);
+        await workspaceApi.uploadFiles(filesToUpload, uploadPathRef.current, conflict);
         setPendingUploads(null);
         setConflictingNames([]);
         message.success(t("workspace.uploadSuccess"));
@@ -199,7 +277,30 @@ export default function FilesNavigator({
   );
 
   const renderWorkspace = () => (
-    <FileTree key={fileTreeKey} onFileSelect={onWorkspaceFileSelect} />
+    <FileTree
+      key={fileTreeKey}
+      onFileSelect={onWorkspaceFileSelect}
+      onUploadRequest={(dirPath: string, files: File[]) => {
+        uploadPathRef.current = dirPath;
+        void runUpload(files);
+      }}
+    />
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleProfileDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = enabledFiles.indexOf(String(active.id));
+      const newIndex = enabledFiles.indexOf(String(over.id));
+      if (oldIndex < 0 || newIndex < 0) return;
+      onReorderFiles(arrayMove(enabledFiles, oldIndex, newIndex));
+    },
+    [enabledFiles, onReorderFiles],
   );
 
   const renderProfile = () => (
@@ -207,33 +308,31 @@ export default function FilesNavigator({
       {files.length === 0 ? (
         <div className={styles.navigatorEmpty}>{t("workspace.noFiles")}</div>
       ) : (
-        files.map((file) => {
-          const enabled = enabledFiles.includes(file.filename);
-          const selected = activeTabPath === file.filename;
-          return (
-            <div
-              key={file.filename}
-              className={`${styles.profileRow} ${
-                selected ? styles.memoryRowSelected : ""
-              }`}
-              onClick={() => onFileClick(file)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && onFileClick(file)}
-            >
-              <span className={styles.memoryRowName}>{file.filename}</span>
-              <Switch
-                size="small"
-                checked={enabled}
-                aria-label={t("workspace.systemPromptToggleTooltip")}
-                onClick={(_checked, event) => {
-                  event.stopPropagation();
-                  onToggleFileEnabled(file.filename);
-                }}
-              />
-            </div>
-          );
-        })
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleProfileDragEnd}
+        >
+          <SortableContext
+            items={enabledFiles}
+            strategy={verticalListSortingStrategy}
+          >
+            {files.map((file) => {
+              const enabled = enabledFiles.includes(file.filename);
+              const selected = activeTabPath === file.filename;
+              return (
+                <SortableProfileRow
+                  key={file.filename}
+                  file={file}
+                  enabled={enabled}
+                  selected={selected}
+                  onSelect={() => onFileClick(file)}
+                  onToggle={() => onToggleFileEnabled(file.filename)}
+                />
+              );
+            })}
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );

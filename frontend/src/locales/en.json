@@ -3344,6 +3344,7 @@
     "conflictOverwrite": "Overwrite",
     "conflictOverwriteDescription": "Replace existing files with the same names",
     "closeTab": "Close Tab",
-    "closeOtherTabs": "Close Other Tabs"
+    "closeOtherTabs": "Close Other Tabs",
+    "uploadToDirectory": "Upload to this directory"
   }
 }

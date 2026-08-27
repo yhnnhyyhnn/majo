@@ -872,9 +872,6 @@ public class ConsoleController {
         return Map.of("url", "", "file_name", "");
     }
 
-    @PostMapping("/fork/agent")
-    public Map<String, String> forkAgent() { return Map.of("id", UUID.randomUUID().toString()); }
-
     @GetMapping("/")
     public Map<String, String> root() { return Map.of("status", "ok"); }
 

@@ -106,6 +106,7 @@ const props = {
   onFileClick: vi.fn(),
   onDailyMemoryClick: vi.fn(),
   onToggleFileEnabled: vi.fn(),
+  onReorderFiles: vi.fn(),
   onWorkspaceFileSelect: vi.fn(),
   onRefresh: vi.fn(),
   fileTreeKey: 0,
@@ -202,5 +203,18 @@ describe("FilesNavigator", () => {
     renderWithSource("profile");
     fireEvent.click(screen.getByRole("button", { name: "workspace.systemPromptToggleTooltip" }));
     expect(props.onToggleFileEnabled).toHaveBeenCalledWith("AGENTS.md");
+  });
+
+  it("shows a drag handle only for enabled profile files", () => {
+    renderWithSource("profile");
+    expect(
+      screen.getByRole("button", { name: "reorder AGENTS.md" }),
+    ).toBeTruthy();
+  });
+
+  it("renders the enabled file inside a sortable context", () => {
+    const { container } = renderWithSource("profile");
+    expect(container.querySelector('[data-sortable="true"]') ?? container).toBeTruthy();
+    expect(container.querySelector('[role="button"][aria-roledescription="sortable"]')).toBeTruthy();
   });
 });

@@ -1734,6 +1734,7 @@
     "conflictOverwrite": "Ghi đè",
     "conflictOverwriteDescription": "Thay thế tệp hiện có cùng tên",
     "closeTab": "Đóng tab",
-    "closeOtherTabs": "Đóng các tab khác"
+    "closeOtherTabs": "Đóng các tab khác",
+    "uploadToDirectory": "Tải lên thư mục này"
   }
 }

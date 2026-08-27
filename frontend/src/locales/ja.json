@@ -3152,6 +3152,7 @@
     "conflictOverwrite": "上書き",
     "conflictOverwriteDescription": "同名の既存ファイルを置き換え",
     "closeTab": "タブを閉じる",
-    "closeOtherTabs": "他のタブを閉じる"
+    "closeOtherTabs": "他のタブを閉じる",
+    "uploadToDirectory": "このディレクトリにアップロード"
   }
 }

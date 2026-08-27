@@ -3363,6 +3363,7 @@
     "conflictOverwrite": "覆盖",
     "conflictOverwriteDescription": "用同名文件覆盖现有文件",
     "closeTab": "关闭标签页",
-    "closeOtherTabs": "关闭其他标签页"
+    "closeOtherTabs": "关闭其他标签页",
+    "uploadToDirectory": "上传到此目录"
   }
 }

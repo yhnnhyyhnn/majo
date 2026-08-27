@@ -121,6 +121,7 @@ export default function FilesPage() {
           onFileClick={handleMdFileSelect}
           onDailyMemoryClick={handleDailyMemorySelect}
           onToggleFileEnabled={agentsData.handleToggleFileEnabled}
+          onReorderFiles={agentsData.handleReorderFiles}
           onWorkspaceFileSelect={handleWorkspaceFileSelect}
           onRefresh={handleRefresh}
           fileTreeKey={fileTreeKey}

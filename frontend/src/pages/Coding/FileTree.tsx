@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Spin, Tooltip } from "antd";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Dropdown, Spin, Tooltip } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   FolderOpen,
   Folder,
@@ -197,6 +198,7 @@ interface NodeItemProps {
   gitMap: GitStatusMap;
   dirMap: Map<string, GitStatus>;
   onSelect: (path: string) => void;
+  onUploadToDir?: (dirPath: string) => void;
 }
 
 function NodeItem({
@@ -206,34 +208,56 @@ function NodeItem({
   gitMap,
   dirMap,
   onSelect,
+  onUploadToDir,
 }: NodeItemProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const isSelected = selectedPath === node.path;
 
   if (node.type === "dir") {
     const dirStatus = dirMap.get(node.path);
+    const directoryRow = (
+      <div
+        className={`${styles.node} ${
+          dirStatus ? styles[`node_${dirStatus}`] : ""
+        }`}
+        style={{ paddingLeft: depth * 14 + 8 }}
+        onClick={() => setExpanded((v) => !v)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && setExpanded((v) => !v)}
+      >
+        <span className={styles.nodeIcon}>
+          {expanded ? (
+            <FolderOpen size={13} className={styles.folderIcon} />
+          ) : (
+            <Folder size={13} className={styles.folderIcon} />
+          )}
+        </span>
+        <span className={styles.nodeName}>{node.name}</span>
+        {dirStatus && <GitBadge status={dirStatus} />}
+      </div>
+    );
     return (
       <>
-        <div
-          className={`${styles.node} ${
-            dirStatus ? styles[`node_${dirStatus}`] : ""
-          }`}
-          style={{ paddingLeft: depth * 14 + 8 }}
-          onClick={() => setExpanded((v) => !v)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && setExpanded((v) => !v)}
-        >
-          <span className={styles.nodeIcon}>
-            {expanded ? (
-              <FolderOpen size={13} className={styles.folderIcon} />
-            ) : (
-              <Folder size={13} className={styles.folderIcon} />
-            )}
-          </span>
-          <span className={styles.nodeName}>{node.name}</span>
-          {dirStatus && <GitBadge status={dirStatus} />}
-        </div>
+        {onUploadToDir ? (
+          <Dropdown
+            trigger={["contextMenu"]}
+            menu={{
+              items: [
+                {
+                  key: "uploadHere",
+                  label: t("files.uploadToDirectory"),
+                  onClick: () => onUploadToDir(node.path),
+                },
+              ],
+            }}
+          >
+            {directoryRow}
+          </Dropdown>
+        ) : (
+          directoryRow
+        )}
         {expanded &&
           node.children?.map((child) => (
             <NodeItem
@@ -244,6 +268,7 @@ function NodeItem({
               gitMap={gitMap}
               dirMap={dirMap}
               onSelect={onSelect}
+              onUploadToDir={onUploadToDir}
             />
           ))}
       </>
@@ -283,15 +308,28 @@ function NodeItem({
 
 interface FileTreeProps {
   onFileSelect: (path: string, content: string) => void;
+  /** Upload chosen files into the given workspace-relative directory. */
+  onUploadRequest?: (dirPath: string, files: File[]) => void;
 }
 
-export default function FileTree({ onFileSelect }: FileTreeProps) {
+export default function FileTree({ onFileSelect, onUploadRequest }: FileTreeProps) {
   const [nodes, setNodes] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPath, setSelectedPath] = useState("");
   const [gitStatusMap, setGitStatusMap] = useState<GitStatusMap>(new Map());
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [projectName, setProjectName] = useState<string>("workspace");
+  const uploadTargetDirRef = useRef("");
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadToDir = useCallback(
+    (dirPath: string) => {
+      if (!onUploadRequest) return;
+      uploadTargetDirRef.current = dirPath;
+      uploadInputRef.current?.click();
+    },
+    [onUploadRequest],
+  );
 
   const { projectDir, setProjectDir } = useProjectDir();
 
@@ -459,10 +497,29 @@ export default function FileTree({ onFileSelect }: FileTreeProps) {
               gitMap={gitStatusMap}
               dirMap={dirStatusMap}
               onSelect={handleSelect}
+              onUploadToDir={
+                onUploadRequest
+                  ? (dirPath) => handleUploadToDir(dirPath)
+                  : undefined
+              }
             />
           ))}
         </div>
       )}
+
+      <input
+        ref={uploadInputRef}
+        type="file"
+        multiple
+        hidden
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          event.target.value = "";
+          if (files.length > 0 && onUploadRequest) {
+            onUploadRequest(uploadTargetDirRef.current, files);
+          }
+        }}
+      />
 
       <ProjectSelectModal
         open={projectModalOpen}

@@ -3207,6 +3207,7 @@
     "conflictOverwrite": "Substituir",
     "conflictOverwriteDescription": "Substituir arquivos existentes com os mesmos nomes",
     "closeTab": "Fechar Aba",
-    "closeOtherTabs": "Fechar Outras Abas"
+    "closeOtherTabs": "Fechar Outras Abas",
+    "uploadToDirectory": "Enviar para este diretório"
   }
 }

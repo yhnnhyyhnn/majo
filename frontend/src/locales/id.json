@@ -2544,6 +2544,7 @@
     "conflictOverwrite": "Timpa",
     "conflictOverwriteDescription": "Ganti file yang ada dengan nama yang sama",
     "closeTab": "Tutup Tab",
-    "closeOtherTabs": "Tutup Tab Lain"
+    "closeOtherTabs": "Tutup Tab Lain",
+    "uploadToDirectory": "Unggah ke direktori ini"
   }
 }

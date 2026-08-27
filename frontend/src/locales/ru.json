@@ -3167,6 +3167,7 @@
     "conflictOverwrite": "Перезаписать",
     "conflictOverwriteDescription": "Заменить существующие файлы с теми же именами",
     "closeTab": "Закрыть вкладку",
-    "closeOtherTabs": "Закрыть другие вкладки"
+    "closeOtherTabs": "Закрыть другие вкладки",
+    "uploadToDirectory": "Загрузить в эту папку"
   }
 }
