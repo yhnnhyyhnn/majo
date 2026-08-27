@@ -2545,6 +2545,11 @@
     "conflictOverwriteDescription": "Ganti file yang ada dengan nama yang sama",
     "closeTab": "Tutup Tab",
     "closeOtherTabs": "Tutup Tab Lain",
-    "uploadToDirectory": "Unggah ke direktori ini"
+    "uploadToDirectory": "Unggah ke direktori ini",
+    "memoryGraph": "Graf Memori",
+    "memoryGraphCounts": "{{nodes}} simpul · {{edges}} tautan",
+    "memoryGraphLoadFailed": "Gagal memuat graf memori.",
+    "openMemoryFile": "Buka file",
+    "memoryIndexedFiles": "file terindeks"
   }
 }

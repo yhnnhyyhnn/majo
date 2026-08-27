@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -207,6 +208,128 @@ public class AgentsController {
             throw new SkillNotFoundException("Agent '" + agentId + "' not found");
         }
         return memoryIndexService.rebuild(agentId);
+    }
+
+    /**
+     * Wikilink graph over the agent's memory markdown files: nodes are
+     * category roots (digest subdirectories), indexed files and unresolved
+     * [[targets]]; edges are directed [[wikilinks]] between them.
+     */
+    @GetMapping("/{agentId}/memory/graph")
+    public Map<String, Object> memoryGraph(@PathVariable String agentId) {
+        Map<String, Object> profile = AgentStore.getProfile(agentId);
+        if (profile == null) {
+            throw new SkillNotFoundException("Agent '" + agentId + "' not found");
+        }
+        Path memoryDir = com.agent.coding.skill.SkillRegistry
+                .workspaceDirForAgent(agentId).resolve("memory");
+        return buildMemoryGraph(memoryDir);
+    }
+
+    static Map<String, Object> buildMemoryGraph(Path memoryDir) {
+        record Node(String id, String path, String name, String description,
+                    boolean indexed, boolean virtual, String section) {}
+        java.util.regex.Pattern WIKILINK =
+                java.util.regex.Pattern.compile("\\[\\[([^\\]\\|#]+)(?:#[^\\]]*)?(?:\\|([^\\]]*))?\\]\\]");
+
+        Map<String, Node> nodes = new LinkedHashMap<>();
+        List<Map<String, Object>> edges = new ArrayList<>();
+        if (!Files.isDirectory(memoryDir)) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("version", 1);
+            empty.put("nodes", List.of());
+            empty.put("edges", List.of());
+            return empty;
+        }
+
+        // Index every markdown file; digest roots double as category nodes.
+        List<Path> files = new ArrayList<>();
+        try (var stream = Files.walk(memoryDir)) {
+            stream.filter(Files::isRegularFile)
+                    .filter(p -> p.getFileName().toString().endsWith(".md"))
+                    .sorted()
+                    .forEach(files::add);
+        } catch (IOException ignored) {
+        }
+        Map<String, Path> byRelative = new LinkedHashMap<>();
+        for (Path file : files) {
+            String rel = memoryDir.relativize(file).toString().replace('\\', '/');
+            String section = rel.startsWith("digest/") ? "digest" : "daily";
+            byRelative.put(rel.toLowerCase(), file);
+
+            String description = "";
+            try {
+                description = Files.readString(file).lines()
+                        .filter(l -> !l.isBlank() && !l.startsWith("#") && !l.startsWith("---"))
+                        .findFirst().orElse("").trim();
+                if (description.length() > 120) description = description.substring(0, 117) + "...";
+            } catch (IOException ignored) {
+            }
+            nodes.put("file:" + rel.toLowerCase(), new Node(
+                    "file:" + rel.toLowerCase(), rel, file.getFileName().toString(),
+                    description, true, false, section));
+
+            String[] parts = rel.split("/");
+            if (parts.length >= 2 && parts[0].equals("digest")) {
+                String rootId = "root:digest/" + parts[1];
+                if (!nodes.containsKey(rootId)) {
+                    nodes.put(rootId, new Node(rootId, parts[1], parts[1], "",
+                            false, false, "digest"));
+                }
+            }
+        }
+
+        // Resolve [[wikilinks]] into directed edges.
+        for (Path file : files) {
+            String rel = memoryDir.relativize(file).toString().replace('\\', '/');
+            String sourceId = "file:" + rel.toLowerCase();
+            String content;
+            try {
+                content = Files.readString(file);
+            } catch (IOException e) {
+                continue;
+            }
+            var matcher = WIKILINK.matcher(content);
+            Set<String> seen = new LinkedHashSet<>();
+            while (matcher.find()) {
+                String targetRaw = matcher.group(1).trim();
+                if (!targetRaw.isEmpty()) {
+                    seen.add(targetRaw.toLowerCase());
+                }
+            }
+            for (String target : seen) {
+                String targetRel = target.endsWith(".md") ? target : target + ".md";
+                String targetId = byRelative.containsKey(targetRel)
+                        ? "file:" + targetRel
+                        : "unresolved:" + target;
+                if (!nodes.containsKey(targetId)) {
+                    nodes.put(targetId, new Node(targetId, target, target,
+                            "", false, true, null));
+                }
+                Map<String, Object> edge = new LinkedHashMap<>();
+                edge.put("source", sourceId);
+                edge.put("target", targetId);
+                edges.add(edge);
+            }
+        }
+
+        List<Map<String, Object>> nodeList = new ArrayList<>();
+        for (Node n : nodes.values()) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", n.id());
+            m.put("path", n.path());
+            m.put("name", n.name());
+            m.put("description", n.description());
+            m.put("indexed", n.indexed());
+            m.put("virtual", n.virtual());
+            m.put("section", n.section());
+            nodeList.add(m);
+        }
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("version", 1);
+        snapshot.put("nodes", nodeList);
+        snapshot.put("edges", edges);
+        return snapshot;
     }
 
     // ------------------------------------------------------------------

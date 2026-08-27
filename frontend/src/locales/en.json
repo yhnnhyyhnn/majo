@@ -3345,6 +3345,11 @@
     "conflictOverwriteDescription": "Replace existing files with the same names",
     "closeTab": "Close Tab",
     "closeOtherTabs": "Close Other Tabs",
-    "uploadToDirectory": "Upload to this directory"
+    "uploadToDirectory": "Upload to this directory",
+    "memoryGraph": "Memory Graph",
+    "memoryGraphCounts": "{{nodes}} nodes · {{edges}} links",
+    "memoryGraphLoadFailed": "Failed to load the memory graph.",
+    "openMemoryFile": "Open file",
+    "memoryIndexedFiles": "indexed files"
   }
 }

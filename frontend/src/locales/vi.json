@@ -1735,6 +1735,11 @@
     "conflictOverwriteDescription": "Thay thế tệp hiện có cùng tên",
     "closeTab": "Đóng tab",
     "closeOtherTabs": "Đóng các tab khác",
-    "uploadToDirectory": "Tải lên thư mục này"
+    "uploadToDirectory": "Tải lên thư mục này",
+    "memoryGraph": "Đồ thị bộ nhớ",
+    "memoryGraphCounts": "{{nodes}} nút · {{edges}} liên kết",
+    "memoryGraphLoadFailed": "Không thể tải đồ thị bộ nhớ.",
+    "openMemoryFile": "Mở tệp",
+    "memoryIndexedFiles": "tệp đã lập chỉ mục"
   }
 }

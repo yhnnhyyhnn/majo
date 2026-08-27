@@ -1,0 +1,123 @@
+.graphWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.graphMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 8px;
+  font-size: 12px;
+  color: rgba(20, 20, 19, 0.55);
+}
+
+.graphBack {
+  border: none;
+  background: transparent;
+  color: rgba(20, 20, 19, 0.6);
+  cursor: pointer;
+  font-size: 14px;
+
+  &:hover {
+    color: #615cec;
+  }
+}
+
+.graphSvg {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: rgba(128, 128, 128, 0.04);
+  border-radius: 8px;
+}
+
+.graphEdge {
+  stroke: rgba(97, 92, 237, 0.35);
+  stroke-width: 1.2;
+}
+
+.graphNode {
+  cursor: pointer;
+
+  circle {
+    fill: rgba(97, 92, 237, 0.75);
+    stroke: transparent;
+  }
+
+  &[class*="graphNodeSelected"] circle {
+    fill: #ff7f16;
+    stroke: rgba(255, 127, 22, 0.3);
+  }
+
+  text {
+    font-size: 9px;
+    fill: rgba(20, 20, 19, 0.7);
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: rgba(255, 255, 255, 0.8);
+    stroke-width: 2px;
+
+    :global(.dark-mode) & {
+      fill: rgba(255, 255, 255, 0.75);
+      stroke: rgba(0, 0, 0, 0.6);
+    }
+  }
+}
+
+.graphDetail {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(128, 128, 128, 0.18);
+  border-radius: 8px;
+  font-size: 12px;
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+
+    button {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: rgba(20, 20, 19, 0.5);
+    }
+  }
+
+  p {
+    margin: 0 0 6px;
+    color: rgba(20, 20, 19, 0.6);
+  }
+}
+
+.graphOpen {
+  border: 1px solid rgba(97, 92, 237, 0.5);
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: transparent;
+  color: #615cec;
+  cursor: pointer;
+  font-size: 12px;
+
+  &:hover {
+    background: rgba(97, 92, 237, 0.08);
+  }
+}
+
+.graphState {
+  padding: 24px 8px;
+  text-align: center;
+  color: rgba(20, 20, 19, 0.45);
+  font-size: 13px;
+}
+
+.graphFootnote {
+  margin: 8px 4px 0;
+  font-size: 11px;
+  color: rgba(20, 20, 19, 0.4);
+}

@@ -3208,6 +3208,11 @@
     "conflictOverwriteDescription": "Substituir arquivos existentes com os mesmos nomes",
     "closeTab": "Fechar Aba",
     "closeOtherTabs": "Fechar Outras Abas",
-    "uploadToDirectory": "Enviar para este diretório"
+    "uploadToDirectory": "Enviar para este diretório",
+    "memoryGraph": "Grafo de Memória",
+    "memoryGraphCounts": "{{nodes}} nós · {{edges}} conexões",
+    "memoryGraphLoadFailed": "Falha ao carregar o grafo de memória.",
+    "openMemoryFile": "Abrir arquivo",
+    "memoryIndexedFiles": "arquivos indexados"
   }
 }

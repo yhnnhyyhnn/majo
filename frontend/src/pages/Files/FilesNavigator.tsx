@@ -37,6 +37,7 @@ import type {
   MarkdownFile,
 } from "../../api/types";
 import FileTree from "../Coding/FileTree";
+import MemoryGraphView from "./MemoryGraphView";
 import styles from "./index.module.less";
 
 export type FilesSource = "workspace" | "profile" | "daily" | "digest";
@@ -53,8 +54,10 @@ interface FilesNavigatorProps {
   onToggleFileEnabled: (filename: string) => void;
   onReorderFiles: (newOrder: string[]) => void;
   onWorkspaceFileSelect: (path: string, content: string) => void;
+  onOpenGraphFile: (source: "daily" | "digest", path: string) => void;
   onRefresh: () => void;
   fileTreeKey: number;
+  agentId: string;
 }
 
 function MemoryRow({
@@ -218,8 +221,10 @@ export default function FilesNavigator({
   onToggleFileEnabled,
   onReorderFiles,
   onWorkspaceFileSelect,
+  onOpenGraphFile,
   onRefresh,
   fileTreeKey,
+  agentId,
 }: FilesNavigatorProps) {
   const { t } = useTranslation();
   const { message } = useAppMessage();
@@ -229,9 +234,14 @@ export default function FilesNavigator({
   );
   const [workspacePath, setWorkspacePath] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [showMemoryGraph, setShowMemoryGraph] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<File[] | null>(null);
   const [conflictingNames, setConflictingNames] = useState<string[]>([]);
   const uploadRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setShowMemoryGraph(false);
+  }, [agentId, source]);
 
   useEffect(() => {
     let cancelled = false;
@@ -392,16 +402,43 @@ export default function FilesNavigator({
 
   const renderDigest = () => {
     const selectedPath = activeTabPath;
+    if (showMemoryGraph) {
+      return (
+        <div className={styles.memoryGraphHost}>
+          <MemoryGraphView
+            agentId={agentId}
+            onOpenFile={(source, path) => {
+              if (!path) {
+                setShowMemoryGraph(false);
+                return;
+              }
+              const file = dailyMemories.find((f) => f.filename === path);
+              if (file) onDailyMemoryClick(file);
+              else onOpenGraphFile(source, path);
+            }}
+          />
+        </div>
+      );
+    }
     return (
-      <DigestNode
-        node={memoryTree.digestRoot}
-        level={0}
-        selectedPath={selectedPath}
-        onSelect={(path) => {
-          const file = dailyMemories.find((f) => f.filename === path);
-          if (file) onDailyMemoryClick(file);
-        }}
-      />
+      <div>
+        <button
+          type="button"
+          className={styles.graphToggle}
+          onClick={() => setShowMemoryGraph(true)}
+        >
+          {t("files.memoryGraph")}
+        </button>
+        <DigestNode
+          node={memoryTree.digestRoot}
+          level={0}
+          selectedPath={selectedPath}
+          onSelect={(path) => {
+            const file = dailyMemories.find((f) => f.filename === path);
+            if (file) onDailyMemoryClick(file);
+          }}
+        />
+      </div>
     );
   };
 

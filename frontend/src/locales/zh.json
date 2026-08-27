@@ -3364,6 +3364,11 @@
     "conflictOverwriteDescription": "用同名文件覆盖现有文件",
     "closeTab": "关闭标签页",
     "closeOtherTabs": "关闭其他标签页",
-    "uploadToDirectory": "上传到此目录"
+    "uploadToDirectory": "上传到此目录",
+    "memoryGraph": "记忆图谱",
+    "memoryGraphCounts": "{{nodes}} 节点 · {{edges}} 连接",
+    "memoryGraphLoadFailed": "记忆图谱加载失败。",
+    "openMemoryFile": "打开文件",
+    "memoryIndexedFiles": "个已索引文件"
   }
 }

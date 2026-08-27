@@ -867,11 +867,6 @@ public class ConsoleController {
         return result;
     }
 
-    @PostMapping("/console/upload")
-    public Map<String, Object> consoleUpload() {
-        return Map.of("url", "", "file_name", "");
-    }
-
     @GetMapping("/")
     public Map<String, String> root() { return Map.of("status", "ok"); }
 
@@ -1373,7 +1368,4 @@ public class ConsoleController {
 
     @GetMapping("/agents/{agentId}/console/push-messages")
     public Object agentPushMessages(@PathVariable String agentId) { return pushMessages(); }
-
-    @PostMapping("/agents/{agentId}/console/upload")
-    public Object agentUpload(@PathVariable String agentId) { return consoleUpload(); }
 }

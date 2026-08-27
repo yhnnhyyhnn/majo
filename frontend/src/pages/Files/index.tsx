@@ -72,6 +72,14 @@ export default function FilesPage() {
     [openInEditor],
   );
 
+  const handleGraphFileSelect = useCallback(
+    (_graphSource: "daily" | "digest", path: string) => {
+      if (!path) return;
+      void openInEditor(`memory/${path}`, "");
+    },
+    [openInEditor],
+  );
+
   const handleTabSelect = useCallback(
     (path: string) => setActiveTab(selectedAgent, path),
     [selectedAgent, setActiveTab],
@@ -123,8 +131,10 @@ export default function FilesPage() {
           onToggleFileEnabled={agentsData.handleToggleFileEnabled}
           onReorderFiles={agentsData.handleReorderFiles}
           onWorkspaceFileSelect={handleWorkspaceFileSelect}
+          onOpenGraphFile={handleGraphFileSelect}
           onRefresh={handleRefresh}
           fileTreeKey={fileTreeKey}
+          agentId={selectedAgent}
         />
         <div className={styles.editor}>
           {tabs.length > 0 ? (

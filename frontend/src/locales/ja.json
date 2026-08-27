@@ -3153,6 +3153,11 @@
     "conflictOverwriteDescription": "同名の既存ファイルを置き換え",
     "closeTab": "タブを閉じる",
     "closeOtherTabs": "他のタブを閉じる",
-    "uploadToDirectory": "このディレクトリにアップロード"
+    "uploadToDirectory": "このディレクトリにアップロード",
+    "memoryGraph": "メモリグラフ",
+    "memoryGraphCounts": "{{nodes}} ノード · {{edges}} リンク",
+    "memoryGraphLoadFailed": "メモリグラフを読み込めませんでした。",
+    "openMemoryFile": "ファイルを開く",
+    "memoryIndexedFiles": "件のインデックス済みファイル"
   }
 }

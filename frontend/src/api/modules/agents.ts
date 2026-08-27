@@ -8,6 +8,27 @@ import type {
   ReorderAgentsResponse,
 } from "../types/agents";
 
+export interface MemoryGraphNode {
+  id: string;
+  path: string;
+  name: string;
+  description: string;
+  indexed: boolean;
+  virtual: boolean;
+  section: "daily" | "digest" | null;
+}
+
+export interface MemoryGraphEdge {
+  source: string;
+  target: string;
+}
+
+export interface MemoryGraphSnapshot {
+  version: number;
+  nodes: MemoryGraphNode[];
+  edges: MemoryGraphEdge[];
+}
+
 // Multi-agent management API
 export const agentsApi = {
   // List all agents
@@ -52,6 +73,9 @@ export const agentsApi = {
       method: "POST",
       timeout: 10 * 60 * 1000,
     }),
+
+  memoryGraph: (agentId: string) =>
+    request<MemoryGraphSnapshot>(`/agents/${agentId}/memory/graph`),
 
   // Delete agent
   deleteAgent: (agentId: string) =>

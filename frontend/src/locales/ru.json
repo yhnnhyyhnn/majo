@@ -3168,6 +3168,11 @@
     "conflictOverwriteDescription": "Заменить существующие файлы с теми же именами",
     "closeTab": "Закрыть вкладку",
     "closeOtherTabs": "Закрыть другие вкладки",
-    "uploadToDirectory": "Загрузить в эту папку"
+    "uploadToDirectory": "Загрузить в эту папку",
+    "memoryGraph": "Граф памяти",
+    "memoryGraphCounts": "{{nodes}} узлов · {{edges}} связей",
+    "memoryGraphLoadFailed": "Не удалось загрузить граф памяти.",
+    "openMemoryFile": "Открыть файл",
+    "memoryIndexedFiles": "проиндексированных файлов"
   }
 }

@@ -226,6 +226,30 @@
   padding: 24px 8px;
 }
 
+.memoryGraphHost {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.graphToggle {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(97, 92, 237, 0.4);
+  border-radius: 6px;
+  background: rgba(97, 92, 237, 0.06);
+  color: #615cec;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(97, 92, 237, 0.12);
+  }
+}
+
 /* ── Memory rows (daily / digest) ───────────────────────────────────────── */
 
 .memoryRow {

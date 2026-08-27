@@ -107,6 +107,8 @@ const props = {
   onDailyMemoryClick: vi.fn(),
   onToggleFileEnabled: vi.fn(),
   onReorderFiles: vi.fn(),
+  onOpenGraphFile: vi.fn(),
+  agentId: "default",
   onWorkspaceFileSelect: vi.fn(),
   onRefresh: vi.fn(),
   fileTreeKey: 0,
