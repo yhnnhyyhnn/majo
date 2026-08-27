@@ -1,4 +1,4 @@
-# Java
+﻿# Java
 target/
 *.class
 *.jar
@@ -75,3 +75,14 @@ hs_err_pid*
 /backend/default/
 /builtin-skills/
 /backend/builtin-skills/
+
+# Test residue: file-lock sidecars created by concurrent test JVMs
+**/.agents.json.lock
+*.json.lock
+
+# Desktop build artifacts
+desktop-dist/
+frontend/dist-desktop-bootstrap/
+
+# Desktop packaging artifacts (jlink JRE + backend jar, gitignored)
+frontend/local-binaries/

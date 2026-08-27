@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: "dist-tauri",
+      outDir: "dist-desktop-bootstrap",
       emptyOutDir: true,
       sourcemap: false,
       cssCodeSplit: true,

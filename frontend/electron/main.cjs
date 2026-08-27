@@ -64,10 +64,10 @@ function baseDir() {
 
 function bootstrapPagePath() {
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, "dist-tauri", "tauri.html");
+    return path.join(process.resourcesPath, "dist-desktop-bootstrap", "tauri.html");
   }
-  // Dev: built by `npm run build:tauri-bootstrap` into frontend/dist-tauri.
-  return path.join(process.cwd(), "dist-tauri", "tauri.html");
+  // Dev: built by `npm run build:tauri-bootstrap` into frontend/dist-desktop-bootstrap.
+  return path.join(process.cwd(), "dist-desktop-bootstrap", "tauri.html");
 }
 
 function backendJarPath() {
@@ -277,10 +277,9 @@ function trayTitle() {
 }
 
 function createTray() {
-  // Use the app icon; falls back to an empty image if unavailable.
   const iconPath = app.isPackaged
     ? path.join(process.resourcesPath, "icon.png")
-    : path.join(__dirname, "../scripts/pack/assets/icon.png");
+    : path.join(process.cwd(), "..", "scripts", "pack-electron", "icons", "icon.png");
   const icon = fs.existsSync(iconPath)
     ? nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
     : undefined;

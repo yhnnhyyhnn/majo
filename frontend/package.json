@@ -90,43 +90,5 @@
     "vite": "^6.3.5",
     "vitest": "^3.2.7"
   },
-  "repository": "https://github.com/agentscope-ai/agentscope-runtime.git",
-  "desktopBuild": {
-    "appId": "io.majo.desktop",
-    "productName": "Majo Desktop",
-    "directories": {
-      "output": "../desktop-dist"
-    },
-    "files": [
-      "electron/**"
-    ],
-    "extraResources": [
-      {
-        "from": "../scripts/pack-electron/binaries/jre",
-        "to": "binaries/jre"
-      },
-      {
-        "from": "../scripts/pack-electron/binaries/majo-backend.jar",
-        "to": "binaries/majo-backend.jar"
-      },
-      {
-        "from": "../scripts/pack/assets/icon.png",
-        "to": "icon.png"
-      },
-      {
-        "from": "dist-tauri",
-        "to": "dist-tauri"
-      }
-    ],
-    "win": {
-      "icon": "../scripts/pack/assets/icon.ico",
-      "target": ["nsis"]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "../scripts/pack/assets/icon.ico",
-      "uninstallerIcon": "../scripts/pack/assets/icon.ico"
-    }
-  }
+  "repository": "https://github.com/agentscope-ai/agentscope-runtime.git"
 }
