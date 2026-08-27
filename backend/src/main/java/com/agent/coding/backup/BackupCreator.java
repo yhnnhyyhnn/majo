@@ -45,11 +45,25 @@ public class BackupCreator {
         void emit(Map<String, Object> event) throws Exception;
     }
 
+    /** Optional cooperative-cancellation probe checked between agents. */
+    public interface CancelProbe {
+        boolean isCancelRequested();
+    }
+
     public static void create(BackupMeta.Scope scope,
                               List<String> agentIds,
                               String name,
                               String description,
                               EventSink sink) throws Exception {
+        create(scope, agentIds, name, description, sink, null);
+    }
+
+    public static void create(BackupMeta.Scope scope,
+                              List<String> agentIds,
+                              String name,
+                              String description,
+                              EventSink sink,
+                              CancelProbe cancelProbe) throws Exception {
         BackupMeta meta = new BackupMeta(
             BackupStore.generateBackupId(),
             name,
@@ -89,6 +103,10 @@ public class BackupCreator {
             int backedUp = 0;
             if (scope.include_agents) {
                 for (int i = 0; i < validAgents.size(); i++) {
+                    if (cancelProbe != null && cancelProbe.isCancelRequested()) {
+                        cancelled = true;
+                        break;
+                    }
                     Map<String, Object> profile = validAgents.get(i);
                     String aid = String.valueOf(profile.get("id"));
                     String workspaceDir = String.valueOf(profile.get("workspace_dir"));
@@ -148,6 +166,11 @@ public class BackupCreator {
         } catch (Exception e) {
             Files.deleteIfExists(tmp);
             throw e;
+        }
+
+        if (cancelled) {
+            Files.deleteIfExists(tmp);
+            throw new BackupJobManager.BackupCancelledException();
         }
 
         // Sign with local key and atomically move into place.

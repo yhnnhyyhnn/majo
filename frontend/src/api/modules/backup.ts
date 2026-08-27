@@ -63,6 +63,101 @@ export const backupApi = {
     return meta;
   },
 
+  /** Start an application-owned backup job; resolves with the initial snapshot. */
+  startBackupJob: async (
+    data: CreateBackupRequest,
+  ): Promise<{ job_id: string }> => {
+    const res = await fetch(getApiUrl("/backups/jobs"), {
+      method: "POST",
+      headers: { ...buildAuthHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (res.status === 409) {
+      throw new Error("A backup job is already running");
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(text || `Request failed: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  cancelBackupJob: async (jobId: string): Promise<void> => {
+    await request(`/backups/jobs/${encodeURIComponent(jobId)}/cancel`, {
+      method: "POST",
+    }).catch(() => undefined);
+  },
+
+  /**
+   * Observe a backup job via the reconnectable SSE snapshot stream.
+   * Resolves with the final meta on completion; rejects on failure/cancel.
+   */
+  streamBackupJobEvents: (
+    jobId: string,
+    onEvent: (event: BackupProgressEvent) => void,
+    signal?: AbortSignal,
+  ): Promise<BackupMeta> =>
+    new Promise((resolve, reject) => {
+      const url = getApiUrl(
+        `/backups/jobs/${encodeURIComponent(jobId)}/events`,
+      );
+      const eventSource = new EventSource(url);
+      const cleanup = () => eventSource.close();
+      signal?.addEventListener("abort", () => {
+        cleanup();
+        reject(new DOMException("Aborted", "AbortError"));
+      });
+      eventSource.onmessage = (messageEvent) => {
+        try {
+          const snapshot = JSON.parse(messageEvent.data) as {
+            status: string;
+            error?: string;
+            percent?: number;
+            current_agent?: string | null;
+            agent_index?: number;
+            total_agents?: number;
+            phase?: string;
+            result?: BackupMeta;
+          };
+          if (snapshot.status === "completed" && snapshot.result) {
+            cleanup();
+            resolve(snapshot.result);
+            return;
+          }
+          if (snapshot.status === "failed") {
+            cleanup();
+            reject(new Error(snapshot.error || "Backup failed"));
+            return;
+          }
+          if (snapshot.status === "cancelled") {
+            cleanup();
+            reject(new DOMException("Backup cancelled", "AbortError"));
+            return;
+          }
+          // Map the snapshot onto the legacy progress-event shape so the
+          // existing progress UI keeps working unchanged.
+          onEvent({
+            type:
+              snapshot.phase === "finalizing"
+                ? "saving"
+                : snapshot.phase === "agents"
+                  ? "agent"
+                  : "start",
+            percent: snapshot.percent ?? 0,
+            agent_id: snapshot.current_agent ?? undefined,
+            index: snapshot.agent_index,
+            total: snapshot.total_agents,
+          } as BackupProgressEvent);
+        } catch {
+          // Ignore malformed frames
+        }
+      };
+      eventSource.onerror = () => {
+        cleanup();
+        reject(new Error("Backup job stream disconnected"));
+      };
+    }),
+
   restoreBackup: (id: string, data: RestoreBackupRequest) =>
     request<RestoreBackupResponse>(`/backups/${id}/restore`, {
       method: "POST",

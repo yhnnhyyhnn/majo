@@ -4,7 +4,9 @@ import type { CreateBackupRequest } from "@/api/types/backup";
 
 const hoisted = vi.hoisted(() => ({
   apiMocks: {
-    createBackupStream: vi.fn(),
+    startBackupJob: vi.fn(),
+    streamBackupJobEvents: vi.fn(),
+    cancelBackupJob: vi.fn(),
   },
   messageMock: {
     success: vi.fn(),
@@ -43,17 +45,16 @@ const data: CreateBackupRequest = {
 
 describe("useBackupRunner", () => {
   beforeEach(() => {
-    apiMocks.createBackupStream.mockReset();
+    apiMocks.startBackupJob.mockReset();
+    apiMocks.streamBackupJobEvents.mockReset();
+    apiMocks.cancelBackupJob.mockReset();
     messageMock.success.mockReset();
     messageMock.error.mockReset();
   });
 
   it("start succeeds: loading toggles, message.success + onSuccess/onClose called", async () => {
-    apiMocks.createBackupStream.mockImplementation(
-      async (_data: unknown, onEvent: (e: { type: string }) => void) => {
-        onEvent({ type: "done" });
-      },
-    );
+    apiMocks.startBackupJob.mockResolvedValue({ job_id: "bkjob-1" });
+    apiMocks.streamBackupJobEvents.mockResolvedValue({ id: "b1" });
     const onSuccess = vi.fn();
     const onClose = vi.fn();
 
@@ -65,6 +66,7 @@ describe("useBackupRunner", () => {
       await result.current.start(data);
     });
 
+    expect(apiMocks.startBackupJob).toHaveBeenCalledWith(data);
     expect(result.current.loading).toBe(false);
     expect(messageMock.success).toHaveBeenCalledWith("backup.createSuccess");
     expect(onSuccess).toHaveBeenCalledTimes(1);
@@ -74,7 +76,8 @@ describe("useBackupRunner", () => {
   it("start with AbortError stays silent (no message.error)", async () => {
     const abortErr = new Error("aborted");
     abortErr.name = "AbortError";
-    apiMocks.createBackupStream.mockRejectedValue(abortErr);
+    apiMocks.startBackupJob.mockResolvedValue({ job_id: "bkjob-2" });
+    apiMocks.streamBackupJobEvents.mockRejectedValue(abortErr);
 
     const { result } = renderHook(() =>
       useBackupRunner({ onSuccess: vi.fn(), onClose: vi.fn() }),
@@ -89,7 +92,7 @@ describe("useBackupRunner", () => {
   });
 
   it("start with other error calls message.error('backup.createFailed')", async () => {
-    apiMocks.createBackupStream.mockRejectedValue(new Error("boom"));
+    apiMocks.startBackupJob.mockRejectedValue(new Error("boom"));
 
     const { result } = renderHook(() =>
       useBackupRunner({ onSuccess: vi.fn(), onClose: vi.fn() }),
@@ -103,10 +106,12 @@ describe("useBackupRunner", () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it("cancel calls onClose and resets state", async () => {
-    apiMocks.createBackupStream.mockImplementation(
-      async () => new Promise(() => {}),
+  it("cancel notifies the server-side job and closes the modal", async () => {
+    apiMocks.startBackupJob.mockResolvedValue({ job_id: "bkjob-3" });
+    apiMocks.streamBackupJobEvents.mockImplementation(
+      () => new Promise(() => {}),
     );
+    apiMocks.cancelBackupJob.mockResolvedValue(undefined);
     const onClose = vi.fn();
     const { result } = renderHook(() =>
       useBackupRunner({ onSuccess: vi.fn(), onClose }),
@@ -124,6 +129,7 @@ describe("useBackupRunner", () => {
       result.current.cancel();
     });
 
+    expect(apiMocks.cancelBackupJob).toHaveBeenCalledWith("bkjob-3");
     expect(onClose).toHaveBeenCalled();
     expect(result.current.loading).toBe(false);
     expect(result.current.progress).toBe(0);
@@ -131,11 +137,8 @@ describe("useBackupRunner", () => {
   });
 
   it("reset clears progress state without calling onClose", async () => {
-    apiMocks.createBackupStream.mockImplementation(
-      async (_d: unknown, onEvent: (e: { type: string }) => void) => {
-        onEvent({ type: "done" });
-      },
-    );
+    apiMocks.startBackupJob.mockResolvedValue({ job_id: "bkjob-4" });
+    apiMocks.streamBackupJobEvents.mockResolvedValue({ id: "b4" });
     const onClose = vi.fn();
     const { result } = renderHook(() =>
       useBackupRunner({ onSuccess: vi.fn(), onClose }),

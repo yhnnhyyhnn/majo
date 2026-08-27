@@ -31,6 +31,7 @@ export function useBackupRunner({
   const [progress, setProgress] = useState(0);
   const [progressMsg, setProgressMsg] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
+  const jobIdRef = useRef<string | null>(null);
 
   /** Resets visual progress state; called when the modal reopens for a fresh session. */
   const reset = () => {
@@ -39,7 +40,7 @@ export function useBackupRunner({
     setProgressMsg("");
   };
 
-  /** Starts the backup stream. Resolves when the server sends the "done" event. */
+  /** Starts a backup job and observes its snapshot stream until completion. */
   const start = async (data: CreateBackupRequest) => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -48,8 +49,10 @@ export function useBackupRunner({
     setProgressMsg(t("backup.progressStarting"));
 
     try {
-      await api.createBackupStream(
-        data,
+      const job = await api.startBackupJob(data);
+      jobIdRef.current = job.job_id;
+      const meta = await api.streamBackupJobEvents(
+        job.job_id,
         (event) => {
           const { progress: p, msg } = handleBackupProgressEvent(event, t);
           setProgress(p);
@@ -57,6 +60,7 @@ export function useBackupRunner({
         },
         controller.signal,
       );
+      void meta;
       message.success(t("backup.createSuccess"));
       onSuccess?.();
       onClose?.();
@@ -66,11 +70,16 @@ export function useBackupRunner({
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
+      jobIdRef.current = null;
     }
   };
 
-  /** Aborts the in-flight SSE request, resets state, and closes the modal. */
+  /** Cancels the server-side job (cooperative) and resets local state. */
   const cancel = () => {
+    const jobId = jobIdRef.current;
+    if (jobId) {
+      void api.cancelBackupJob(jobId);
+    }
     abortControllerRef.current?.abort();
     reset();
     onClose?.();

@@ -86,6 +86,93 @@ public class BackupController {
 
     // ===== Create (SSE stream, matches Majo format) =====
 
+    // ── Async backup creation jobs (qwenpaw /backups/jobs model) ─────────
+
+    @PostMapping("/backups/jobs")
+    public ResponseEntity<?> startJob(@RequestBody Map<String, Object> body) {
+        BackupMeta.Scope scope = parseScope(body);
+        @SuppressWarnings("unchecked")
+        List<String> agents = (List<String>) body.getOrDefault("agents", List.of());
+        String name = String.valueOf(body.getOrDefault("name", ""));
+        String description = String.valueOf(body.getOrDefault("description", ""));
+        try {
+            var snapshot = com.agent.coding.backup.BackupJobManager.get()
+                    .startJob(scope, agents, name, description);
+            return ResponseEntity.status(202).body(snapshot.toMap());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("detail", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/backups/jobs/active")
+    public Map<String, Object> activeJob() {
+        var snapshot = com.agent.coding.backup.BackupJobManager.get().getActiveJob();
+        return snapshot == null ? Map.of() : snapshot.toMap();
+    }
+
+    @GetMapping("/backups/jobs/{job_id}")
+    public ResponseEntity<?> getJob(@PathVariable String job_id) {
+        var snapshot = com.agent.coding.backup.BackupJobManager.get().getJob(job_id);
+        return snapshot == null
+                ? ResponseEntity.status(404).body(Map.of("detail", "Backup job not found"))
+                : ResponseEntity.ok(snapshot.toMap());
+    }
+
+    /** SSE stream of job snapshots until the job reaches a terminal state. */
+    @GetMapping(value = "/backups/jobs/{job_id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<StreamingResponseBody> jobEvents(@PathVariable String job_id) {
+        var manager = com.agent.coding.backup.BackupJobManager.get();
+        if (manager.getJob(job_id) == null) {
+            return ResponseEntity.status(404).build();
+        }
+        StreamingResponseBody stream = out -> {
+            String lastStatus = "";
+            try {
+                while (true) {
+                    var snapshot = manager.getJob(job_id);
+                    if (snapshot == null) break;
+                    Map<String, Object> payload = snapshot.toMap();
+                    writeSse(out, payload);
+                    String status = snapshot.status;
+                    boolean terminal = "completed".equals(status)
+                            || "failed".equals(status)
+                            || "cancelled".equals(status);
+                    lastStatus = status;
+                    if (terminal) break;
+                    Thread.sleep(500);
+                }
+                log.info("backup job events: finished for {} status={}", job_id, lastStatus);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (IOException e) {
+                log.debug("backup job events: client disconnected {}", job_id);
+            } finally {
+                try { out.close(); } catch (IOException ignored) { }
+            }
+        };
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .body(stream);
+    }
+
+    @PostMapping("/backups/jobs/{job_id}/cancel")
+    public ResponseEntity<?> cancelJob(@PathVariable String job_id) {
+        var snapshot = com.agent.coding.backup.BackupJobManager.get().cancelJob(job_id);
+        return snapshot == null
+                ? ResponseEntity.status(404).body(Map.of("detail", "Backup job not found"))
+                : ResponseEntity.ok(snapshot.toMap());
+    }
+
+    private static BackupMeta.Scope parseScope(Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> scopeMap = (Map<String, Object>) body.getOrDefault("scope", Map.of());
+        return new BackupMeta.Scope(
+                bool(scopeMap.get("include_agents"), true),
+                bool(scopeMap.get("include_global_config"), true),
+                bool(scopeMap.get("include_secrets"), false),
+                bool(scopeMap.get("include_skill_pool"), true));
+    }
+
     @PostMapping(value = "/backups/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<StreamingResponseBody> createBackupStream(@RequestBody Map<String, Object> body) {
         String name = String.valueOf(body.getOrDefault("name", ""));
