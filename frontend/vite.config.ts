@@ -44,6 +44,11 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        // Electron shell shims: keep frontend modules importing the Tauri API
+        // surface while routing to the Electron preload bridge at runtime.
+        "@tauri-apps/api/core": path.resolve(__dirname, "./src/shims/tauri-core.ts"),
+        "@tauri-apps/api/event": path.resolve(__dirname, "./src/shims/tauri-event.ts"),
+        "@tauri-apps/plugin-dialog": path.resolve(__dirname, "./src/shims/tauri-dialog.ts"),
       },
     },
     server: {
