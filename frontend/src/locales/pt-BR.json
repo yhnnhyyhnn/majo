@@ -3213,6 +3213,9 @@
     "memoryGraphCounts": "{{nodes}} nós · {{edges}} conexões",
     "memoryGraphLoadFailed": "Falha ao carregar o grafo de memória.",
     "openMemoryFile": "Abrir arquivo",
-    "memoryIndexedFiles": "arquivos indexados"
+    "memoryIndexedFiles": "arquivos indexados",
+    "projectDirectory": "Projeto",
+    "workspaceDirectory": "Dir. Workspace",
+    "switchDirectory": "Alternar diretório"
   }
 }

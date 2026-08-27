@@ -201,8 +201,10 @@ export const workspaceApi = {
   },
 
   // Coding Mode – full file tree (all file types)
-  listCodeFiles: () =>
-    request<MdFileInfo[]>("/workspace/code-files").then((files) =>
+  listCodeFiles: (root?: "project" | "workspace") =>
+    request<MdFileInfo[]>(
+      root ? `/workspace/code-files?root=${root}` : "/workspace/code-files",
+    ).then((files) =>
       files.map((file) => ({
         ...file,
         updated_at: new Date(file.modified_time).getTime(),
@@ -219,6 +221,7 @@ export const workspaceApi = {
    */
   loadCodeFile: async (
     filePath: string,
+    root?: "project" | "workspace",
   ): Promise<{ path: string; content: string }> => {
     const cache = useCodeFileCacheStore.getState();
     const cached = cache.get(filePath);
@@ -230,7 +233,7 @@ export const workspaceApi = {
       `/workspace/code-files/${filePath
         .split("/")
         .map(encodeURIComponent)
-        .join("/")}`,
+        .join("/")}${root ? `?root=${root}` : ""}`,
     );
     const headers = new Headers();
     for (const [k, v] of Object.entries(buildAuthHeaders())) {
@@ -253,12 +256,12 @@ export const workspaceApi = {
     return data;
   },
 
-  saveCodeFile: (filePath: string, content: string) =>
+  saveCodeFile: (filePath: string, content: string, root?: "project" | "workspace") =>
     request<{ path: string; size: number }>(
       `/workspace/code-files/${filePath
         .split("/")
         .map(encodeURIComponent)
-        .join("/")}`,
+        .join("/")}${root ? `?root=${root}` : ""}`,
       {
         method: "PUT",
         body: JSON.stringify({ content }),
@@ -277,11 +280,11 @@ export const workspaceApi = {
    * Returns the URL for a binary file (image, PDF, CSV) preview.
    * The browser can use this URL directly in <img>, <embed>, or fetch().
    */
-  getBinaryFileUrl: (filePath: string) =>
+  getBinaryFileUrl: (filePath: string, root?: "project" | "workspace") =>
     getApiUrl(
       `/workspace/binary-files/${filePath
         .split("/")
         .map(encodeURIComponent)
-        .join("/")}`,
+        .join("/")}${root ? `?root=${root}` : ""}`,
     ),
 };

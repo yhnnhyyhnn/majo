@@ -70,6 +70,9 @@ public class ProviderModelEntity {
     @Column(name = "extra_fields", columnDefinition = "CLOB")
     private String extraFields;
 
+    @Column(name = "hidden", nullable = false)
+    private Boolean hidden = false;
+
     public ProviderModelEntity() {}
 
     public Long getId() { return id; }
@@ -114,4 +117,6 @@ public class ProviderModelEntity {
     public void setThinkingBudgetRange(String thinkingBudgetRange) { this.thinkingBudgetRange = thinkingBudgetRange; }
     public String getExtraFields() { return extraFields; }
     public void setExtraFields(String extraFields) { this.extraFields = extraFields; }
+    public Boolean getHidden() { return hidden; }
+    public void setHidden(Boolean hidden) { this.hidden = hidden; }
 }

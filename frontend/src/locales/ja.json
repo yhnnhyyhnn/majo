@@ -3158,6 +3158,9 @@
     "memoryGraphCounts": "{{nodes}} ノード · {{edges}} リンク",
     "memoryGraphLoadFailed": "メモリグラフを読み込めませんでした。",
     "openMemoryFile": "ファイルを開く",
-    "memoryIndexedFiles": "件のインデックス済みファイル"
+    "memoryIndexedFiles": "件のインデックス済みファイル",
+    "projectDirectory": "プロジェクト",
+    "workspaceDirectory": "ワークスペース",
+    "switchDirectory": "ディレクトリを切り替え"
   }
 }

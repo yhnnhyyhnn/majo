@@ -99,6 +99,7 @@ public class ModelProviderController {
             d.setThinkingParamStyle(m.getThinkingParamStyle());
             d.setReasoningEffortOptions(parseJson(m.getReasoningEffortOptions()));
             d.setThinkingBudgetRange(parseJson(m.getThinkingBudgetRange()));
+            d.setHidden(m.getHidden());
             list.add(d);
         }
         return list;
@@ -212,6 +213,24 @@ public class ModelProviderController {
             slot = modelRouting.resolveGlobalModel();
         }
         return ResponseEntity.ok(buildActiveModelsInfo(slot));
+    }
+
+    @PutMapping("/models/{provider_id}/models/{model_id}/visibility")
+    public ResponseEntity<?> setModelVisibility(@PathVariable String provider_id,
+                                                @PathVariable String model_id,
+                                                @RequestBody Map<String, Object> body) {
+        var opt = providerModelRepo.findByProviderIdAndModelId(provider_id, model_id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("detail", "Model '" + model_id + "' not found in provider '" + provider_id + "'"));
+        }
+        var m = opt.get();
+        m.setHidden(Boolean.TRUE.equals(body.get("hidden")));
+        providerModelRepo.save(m);
+        var provider = providerRepo.findById(provider_id).orElse(null);
+        return provider != null
+                ? ResponseEntity.ok(toProviderDto(provider))
+                : ResponseEntity.ok(Map.of("hidden", m.getHidden()));
     }
 
     private boolean modelExists(String providerId, String modelId) {

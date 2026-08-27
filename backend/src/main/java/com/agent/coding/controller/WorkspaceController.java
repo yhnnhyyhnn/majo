@@ -60,8 +60,9 @@ public class WorkspaceController {
     // === File Tree ===
 
     @GetMapping("/workspace/code-files")
-    public List<Map<String, Object>> listCodeFiles(HttpServletRequest request) {
-        return listCodeFiles(resolveWorkspace(request));
+    public List<Map<String, Object>> listCodeFiles(HttpServletRequest request,
+            @RequestParam(required = false) String root) {
+        return listCodeFiles(resolveBrowseRoot(request, root));
     }
 
     public List<Map<String, Object>> listCodeFiles(Path workspace) {
@@ -95,8 +96,9 @@ public class WorkspaceController {
     }
 
     @GetMapping("/workspace/code-files/**")
-    public ResponseEntity<?> readCodeFile(HttpServletRequest req) {
-        return readCodeFile(resolveWorkspace(req), req);
+    public ResponseEntity<?> readCodeFile(HttpServletRequest req,
+            @RequestParam(required = false) String root) {
+        return readCodeFile(resolveBrowseRoot(req, root), req);
     }
 
     public ResponseEntity<?> readCodeFile(Path workspace, HttpServletRequest req) {
@@ -133,8 +135,9 @@ public class WorkspaceController {
     }
 
     @PutMapping("/workspace/code-files/**")
-    public ResponseEntity<?> writeCodeFile(HttpServletRequest req, @RequestBody Map<String, String> body) {
-        return writeCodeFile(resolveWorkspace(req), req, body);
+    public ResponseEntity<?> writeCodeFile(HttpServletRequest req, @RequestBody Map<String, String> body,
+            @RequestParam(required = false) String root) {
+        return writeCodeFile(resolveBrowseRoot(req, root), req, body);
     }
 
     public ResponseEntity<?> writeCodeFile(Path workspace, HttpServletRequest req, Map<String, String> body) {
@@ -688,6 +691,34 @@ public class WorkspaceController {
         return WORKSPACE;
     }
 
+    /**
+     * Resolve the file-browsing root: root=workspace is the agent workspace
+     * dir, root=project is the active coding project (falling back to the
+     * workspace when no project is set). Mirrors qwenpaw's dual roots.
+     */
+    private Path resolveBrowseRoot(HttpServletRequest request, String root) {
+        Path workspace = resolveWorkspace(request);
+        if ("workspace".equals(root)) {
+            return workspace;
+        }
+        String projectDir = AgentStore.getProjectDir(resolveAgentId(request));
+        if (projectDir != null && !projectDir.isBlank()) {
+            try {
+                Path p = Path.of(projectDir).toAbsolutePath().normalize();
+                if (Files.isDirectory(p)) {
+                    return p;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return workspace;
+    }
+
+    private static boolean sameDirectory(Path a, Path b) {
+        return a.toAbsolutePath().normalize().toString()
+                .equalsIgnoreCase(b.toAbsolutePath().normalize().toString());
+    }
+
 
     // === Audio / Transcription ===
 
@@ -1025,9 +1056,14 @@ public class WorkspaceController {
         Map.entry("pdf", "application/pdf"), Map.entry("csv", "text/csv"));
 
     @GetMapping("/workspace/binary-files/**")
-    public ResponseEntity<Resource> binaryFile(HttpServletRequest req) {
-        String filePath = req.getRequestURI().replace("/api/workspace/binary-files/", "");
-        return binaryFile(resolveWorkspace(req), filePath);
+    public ResponseEntity<Resource> binaryFile(HttpServletRequest req,
+            @RequestParam(required = false) String root) {
+        String uri = req.getRequestURI();
+        String filePath = uri.replace("/api/workspace/binary-files/", "");
+        if (req.getQueryString() != null && filePath.endsWith("?" + req.getQueryString())) {
+            filePath = filePath.substring(0, filePath.length() - req.getQueryString().length() - 1);
+        }
+        return binaryFile(resolveBrowseRoot(req, root), filePath);
     }
 
     @GetMapping("/agents/{agentId}/workspace/binary-files/**")

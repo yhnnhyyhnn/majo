@@ -310,9 +310,15 @@ interface FileTreeProps {
   onFileSelect: (path: string, content: string) => void;
   /** Upload chosen files into the given workspace-relative directory. */
   onUploadRequest?: (dirPath: string, files: File[]) => void;
+  /** Which directory root to browse: active project or agent workspace. */
+  root?: "project" | "workspace";
 }
 
-export default function FileTree({ onFileSelect, onUploadRequest }: FileTreeProps) {
+export default function FileTree({
+  onFileSelect,
+  onUploadRequest,
+  root,
+}: FileTreeProps) {
   const [nodes, setNodes] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPath, setSelectedPath] = useState("");
@@ -369,8 +375,8 @@ export default function FileTree({ onFileSelect, onUploadRequest }: FileTreeProp
     setLoading(true);
     try {
       const [files] = await Promise.all([
-        workspaceApi.listCodeFiles(),
-        loadGitStatus(),
+        workspaceApi.listCodeFiles(root),
+        root === "workspace" ? Promise.resolve([]) : loadGitStatus(),
       ]);
       setNodes(buildTree(files));
     } catch {
@@ -378,7 +384,7 @@ export default function FileTree({ onFileSelect, onUploadRequest }: FileTreeProp
     } finally {
       setLoading(false);
     }
-  }, [loadGitStatus]);
+  }, [loadGitStatus, root]);
 
   // Reload file tree when project switches (projectDir from store).
   // The cached file contents belong to the previous project root and would
@@ -421,7 +427,7 @@ export default function FileTree({ onFileSelect, onUploadRequest }: FileTreeProp
     async (path: string) => {
       setSelectedPath(path);
       try {
-        const result = await workspaceApi.loadCodeFile(path);
+        const result = await workspaceApi.loadCodeFile(path, root);
         onFileSelect(path, result.content ?? "");
       } catch (err: unknown) {
         const status =
@@ -436,7 +442,7 @@ export default function FileTree({ onFileSelect, onUploadRequest }: FileTreeProp
         onFileSelect(path, placeholder);
       }
     },
-    [onFileSelect],
+    [onFileSelect, root],
   );
 
   const { selectedAgent } = useAgentStore();

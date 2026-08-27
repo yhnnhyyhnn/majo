@@ -3369,6 +3369,9 @@
     "memoryGraphCounts": "{{nodes}} 节点 · {{edges}} 连接",
     "memoryGraphLoadFailed": "记忆图谱加载失败。",
     "openMemoryFile": "打开文件",
-    "memoryIndexedFiles": "个已索引文件"
+    "memoryIndexedFiles": "个已索引文件",
+    "projectDirectory": "项目目录",
+    "workspaceDirectory": "工作区目录",
+    "switchDirectory": "切换目录"
   }
 }

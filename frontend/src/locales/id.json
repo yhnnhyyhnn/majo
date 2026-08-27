@@ -2550,6 +2550,9 @@
     "memoryGraphCounts": "{{nodes}} simpul · {{edges}} tautan",
     "memoryGraphLoadFailed": "Gagal memuat graf memori.",
     "openMemoryFile": "Buka file",
-    "memoryIndexedFiles": "file terindeks"
+    "memoryIndexedFiles": "file terindeks",
+    "projectDirectory": "Proyek",
+    "workspaceDirectory": "Dir. Workspace",
+    "switchDirectory": "Ganti direktori"
   }
 }

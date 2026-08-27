@@ -3173,6 +3173,9 @@
     "memoryGraphCounts": "{{nodes}} узлов · {{edges}} связей",
     "memoryGraphLoadFailed": "Не удалось загрузить граф памяти.",
     "openMemoryFile": "Открыть файл",
-    "memoryIndexedFiles": "проиндексированных файлов"
+    "memoryIndexedFiles": "проиндексированных файлов",
+    "projectDirectory": "Проект",
+    "workspaceDirectory": "Рабочее простр.",
+    "switchDirectory": "Переключить каталог"
   }
 }

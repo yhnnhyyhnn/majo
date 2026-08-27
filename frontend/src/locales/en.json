@@ -3350,6 +3350,9 @@
     "memoryGraphCounts": "{{nodes}} nodes · {{edges}} links",
     "memoryGraphLoadFailed": "Failed to load the memory graph.",
     "openMemoryFile": "Open file",
-    "memoryIndexedFiles": "indexed files"
+    "memoryIndexedFiles": "indexed files",
+    "projectDirectory": "Project",
+    "workspaceDirectory": "Workspace Dir",
+    "switchDirectory": "Switch directory"
   }
 }

@@ -4,6 +4,7 @@ import {
   FolderOpenOutlined,
   FolderOutlined,
   ReloadOutlined,
+  SwapOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
 import { Modal, Switch } from "antd";
@@ -232,9 +233,11 @@ export default function FilesNavigator({
     () => buildMemoryTree(dailyMemories),
     [dailyMemories],
   );
-  const [workspacePath, setWorkspacePath] = useState("");
   const [uploading, setUploading] = useState(false);
   const [showMemoryGraph, setShowMemoryGraph] = useState(false);
+  const [browseRoot, setBrowseRoot] = useState<"project" | "workspace">("project");
+  const [projectPath, setProjectPath] = useState("");
+  const [workspaceDirPath, setWorkspaceDirPath] = useState("");
   const [pendingUploads, setPendingUploads] = useState<File[] | null>(null);
   const [conflictingNames, setConflictingNames] = useState<string[]>([]);
   const uploadRef = useRef<HTMLInputElement>(null);
@@ -249,10 +252,14 @@ export default function FilesNavigator({
       .get()
       .then((info) => {
         if (cancelled) return;
-        setWorkspacePath(info.workspace_dir ?? info.path);
+        setWorkspaceDirPath(info.workspace_dir ?? info.path);
+        setProjectPath(info.path);
       })
       .catch(() => {
-        if (!cancelled) setWorkspacePath("");
+        if (!cancelled) {
+          setWorkspaceDirPath("");
+          setProjectPath("");
+        }
       });
     return () => {
       cancelled = true;
@@ -288,7 +295,8 @@ export default function FilesNavigator({
 
   const renderWorkspace = () => (
     <FileTree
-      key={fileTreeKey}
+      key={`${fileTreeKey}:${browseRoot}`}
+      root={source === "workspace" ? browseRoot : undefined}
       onFileSelect={onWorkspaceFileSelect}
       onUploadRequest={(dirPath: string, files: File[]) => {
         uploadPathRef.current = dirPath;
@@ -449,16 +457,42 @@ export default function FilesNavigator({
     { id: "digest", label: t("files.digest") },
   ];
 
+  const normalizeDir = (p: string) => p.trim().replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  const rootsDiffer =
+    Boolean(projectPath) &&
+    Boolean(workspaceDirPath) &&
+    normalizeDir(projectPath) !== normalizeDir(workspaceDirPath);
+  const currentRootPath = browseRoot === "project" ? projectPath : workspaceDirPath;
+
   return (
     <aside className={styles.navigator} aria-label={t("files.navigator")}>
       <div className={styles.directoryBar}>
         <span
-          className={styles.directoryPath}
-          title={workspacePath || undefined}
+          className={styles.directoryRootLabel}
+          data-root={browseRoot}
         >
-          {workspacePath || t("workspace.workspacePath")}
+          {t(`files.${browseRoot}Directory`)}
+        </span>
+        <span
+          className={styles.directoryPath}
+          title={currentRootPath || undefined}
+        >
+          {currentRootPath || t("workspace.workspacePath")}
         </span>
         <div className={styles.directoryActions}>
+          {rootsDiffer && source === "workspace" && (
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={() =>
+                setBrowseRoot((cur) => (cur === "project" ? "workspace" : "project"))
+              }
+              aria-label={t("files.switchDirectory")}
+              title={t("files.switchDirectory")}
+            >
+              <SwapOutlined />
+            </button>
+          )}
           <button
             type="button"
             className={styles.iconButton}

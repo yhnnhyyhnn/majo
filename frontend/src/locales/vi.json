@@ -1740,6 +1740,9 @@
     "memoryGraphCounts": "{{nodes}} nút · {{edges}} liên kết",
     "memoryGraphLoadFailed": "Không thể tải đồ thị bộ nhớ.",
     "openMemoryFile": "Mở tệp",
-    "memoryIndexedFiles": "tệp đã lập chỉ mục"
+    "memoryIndexedFiles": "tệp đã lập chỉ mục",
+    "projectDirectory": "Dự án",
+    "workspaceDirectory": "Thư mục làm việc",
+    "switchDirectory": "Chuyển thư mục"
   }
 }
