@@ -29,7 +29,12 @@ public class AgentConfig {
         Map.entry("set_user_timezone", "set_user_timezone"),
         Map.entry("web_fetch", "web_fetch"),
         Map.entry("web_search", "web_search"),
-        Map.entry("get_token_usage", "get_token_usage")
+        Map.entry("get_token_usage", "get_token_usage"),
+        Map.entry("send_file_to_user", "send_file_to_user"),
+        Map.entry("spawn_subagent", "spawn_subagent"),
+        Map.entry("chat_with_agent", "chat_with_agent"),
+        Map.entry("submit_to_agent", "submit_to_agent"),
+        Map.entry("check_agent_task", "check_agent_task")
     );
 
     @Bean
@@ -44,7 +49,9 @@ public class AgentConfig {
             ListDirectoryTool listDir, FindSymbolTool findSymbol, GitTools git,
             GetCurrentTimeTool getCurrentTime, SetUserTimezoneTool setUserTimezone,
             WebFetchTool webFetch, WebSearchTool webSearch,
-            TokenUsageTool tokenUsage) {
+            TokenUsageTool tokenUsage, SendFileToUserTool sendFileToUser,
+            SpawnSubagentTool spawnSubagent, ChatWithAgentTool chatWithAgent,
+            SubmitToAgentTool submitToAgent, CheckAgentTaskTool checkAgentTask) {
         var t = new Toolkit();
         t.registerTool(readFile);
         t.registerTool(writeFile);
@@ -60,6 +67,11 @@ public class AgentConfig {
         t.registerTool(webFetch);
         t.registerTool(webSearch);
         t.registerTool(tokenUsage);
+        t.registerTool(sendFileToUser);
+        t.registerTool(spawnSubagent);
+        t.registerTool(chatWithAgent);
+        t.registerTool(submitToAgent);
+        t.registerTool(checkAgentTask);
         return t;
     }
 }
