@@ -42,15 +42,18 @@ public class WorkspaceController {
     private final ProviderRepository providerRepo;
     private final ModelConfigRepository modelConfigRepo;
     private final PluginRegistry pluginRegistry;
+    private final com.agent.coding.channel.ChannelsConfigController channelsConfig;
 
     public WorkspaceController(SettingsService settingsService,
                                 ProviderRepository providerRepo,
                                 ModelConfigRepository modelConfigRepo,
-                                PluginRegistry pluginRegistry) {
+                                PluginRegistry pluginRegistry,
+                                com.agent.coding.channel.ChannelsConfigController channelsConfig) {
         this.settingsService = settingsService;
         this.providerRepo = providerRepo;
         this.modelConfigRepo = modelConfigRepo;
         this.pluginRegistry = pluginRegistry;
+        this.channelsConfig = channelsConfig;
     }
 
     private boolean isSkipped(String name) {
@@ -1177,73 +1180,6 @@ public class WorkspaceController {
         return ResponseEntity.ok(Map.of("audio_mode", settingsService.getAudioMode()));
     }
 
-    // ── Channels config (.py /channels) ────────────────
-    private static final List<String> BUILTIN_CHANNEL_KEYS = List.of(
-        "imessage", "discord", "dingtalk", "feishu", "qq", "telegram",
-        "mattermost", "mqtt", "console", "matrix", "slack", "voice",
-        "sip", "wecom", "xiaoyi", "yuanbao", "wechat", "onebot"
-    );
-
-    @GetMapping("/config/channels/types")
-    public List<String> channelTypes() {
-        var all = new ArrayList<>(BUILTIN_CHANNEL_KEYS);
-        all.addAll(pluginRegistry.getRegisteredChannels().keySet());
-        return all;
-    }
-
-    @GetMapping("/config/channels")
-    public Map<String, Object> listChannels() {
-        var result = new LinkedHashMap<String, Object>();
-        for (String key : BUILTIN_CHANNEL_KEYS) {
-            result.put(key, Map.of("enabled", "console".equals(key), "bot_prefix", "", "isBuiltin", true));
-        }
-        for (var entry : pluginRegistry.getRegisteredChannels().entrySet()) {
-            result.put(entry.getKey(), Map.of("enabled", false, "bot_prefix", "", "isBuiltin", false));
-        }
-        return result;
-    }
-
-    @GetMapping("/config/channels/schemas")
-    public Map<String, Map<String, Object>> channelSchemas() {
-        return pluginRegistry.getRegisteredChannels();
-    }
-
-    @PutMapping("/config/channels")
-    public Map<String, Object> updateChannels(@RequestBody Map<String, Object> body) {
-        return body;
-    }
-
-    @GetMapping("/config/channels/{channelName}")
-    public Map<String, Object> getChannel(@PathVariable String channelName) {
-        return Map.of("enabled", true, "bot_prefix", "", "isBuiltin", true);
-    }
-
-    @PutMapping("/config/channels/{channelName}")
-    public Map<String, Object> updateChannel(@PathVariable String channelName,
-                                              @RequestBody Map<String, Object> body) {
-        return body;
-    }
-
-    @GetMapping("/config/channels/{channel}/qrcode")
-    public ResponseEntity<?> channelQrcode(@PathVariable String channel) {
-        return ResponseEntity.status(404).body(Map.of("detail", "QR code not supported for channel: " + channel));
-    }
-
-    @GetMapping("/config/channels/{channel}/qrcode/status")
-    public ResponseEntity<?> channelQrcodeStatus(@PathVariable String channel, @RequestParam String token) {
-        return ResponseEntity.status(404).body(Map.of("detail", "QR code not supported for channel: " + channel));
-    }
-
-    @GetMapping("/config/channels/{channelName}/health")
-    public Map<String, Object> channelHealth(@PathVariable String channelName) {
-        return Map.of("channel", channelName, "status", "healthy", "detail", "");
-    }
-
-    @PostMapping("/config/channels/{channelName}/restart")
-    public Map<String, Object> channelRestart(@PathVariable String channelName) {
-        return Map.of("channel", channelName, "status", "restarted", "detail", "");
-    }
-
     // ── Heartbeat config (.py /heartbeat) ──────────────
     @GetMapping("/config/heartbeat")
     public Map<String, Object> getHeartbeat() {
@@ -1348,40 +1284,40 @@ public class WorkspaceController {
         }
     }
 
-    // ── Agent-scoped channels config  ──
+    // ── Agent-scoped channels config (delegates to the real controller)  ──
     @GetMapping("/agents/{agentId}/config/channels/{channel_name}")
     public Object agentChannelDetail(@PathVariable String agentId, @PathVariable String channel_name) {
-        return getChannel(channel_name);
+        return channelsConfig.getChannel(channel_name).getBody();
     }
     @PutMapping("/agents/{agentId}/config/channels/{channel_name}")
     public Object agentChannelUpdate(@PathVariable String agentId, @PathVariable String channel_name,
                                      @RequestBody Map<String, Object> body) {
-        return updateChannel(channel_name, body);
+        return channelsConfig.updateChannel(channel_name, body).getBody();
     }
     @GetMapping("/agents/{agentId}/config/channels/{channel_name}/health")
     public Object agentChannelHealth(@PathVariable String agentId, @PathVariable String channel_name) {
-        return channelHealth(channel_name);
+        return channelsConfig.channelHealth(channel_name);
     }
     @PostMapping("/agents/{agentId}/config/channels/{channel_name}/restart")
     public Object agentChannelRestart(@PathVariable String agentId, @PathVariable String channel_name) {
-        return channelRestart(channel_name);
+        return channelsConfig.channelRestart(channel_name);
     }
     @GetMapping("/agents/{agentId}/config/channels/{channel}/qrcode")
     public Object agentChannelQrcode(@PathVariable String agentId, @PathVariable String channel) {
-        return channelQrcode(channel);
+        return channelsConfig.qrcode(channel).getBody();
     }
     @GetMapping("/agents/{agentId}/config/channels/{channel}/qrcode/status")
     public Object agentChannelQrcodeStatus(@PathVariable String agentId, @PathVariable String channel,
                                            @RequestParam String token) {
-        return channelQrcodeStatus(channel, token);
+        return channelsConfig.qrcodeStatus(channel).getBody();
     }
     @GetMapping("/agents/{agentId}/config/channels/schemas")
-    public Object agentChannelSchemas(@PathVariable String agentId) { return channelSchemas(); }
+    public Object agentChannelSchemas(@PathVariable String agentId) { return channelsConfig.schemas(); }
     @GetMapping("/agents/{agentId}/config/channels/types")
-    public Object agentChannelTypes(@PathVariable String agentId) { return channelTypes(); }
+    public Object agentChannelTypes(@PathVariable String agentId) { return channelsConfig.types(); }
     @PutMapping("/agents/{agentId}/config/channels")
     public Object agentChannelsUpdate(@PathVariable String agentId,
-                                      @RequestBody Map<String, Object> body) { return updateChannels(body); }
+                                      @RequestBody Map<String, Object> body) { return channelsConfig.updateChannels(body); }
 
     // ── Agent-scoped heartbeat  ──
     @PostMapping("/agents/{agentId}/config/heartbeat/run")
