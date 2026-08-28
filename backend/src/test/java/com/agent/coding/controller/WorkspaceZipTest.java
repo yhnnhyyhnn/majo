@@ -85,7 +85,7 @@ class WorkspaceZipTest {
         Path ws = Files.createTempDirectory("majo-zip-mock");
         MockMultipartFile mpf = new MockMultipartFile(
                 "file", "ws.zip", "application/zip", buf.toByteArray());
-        WorkspaceController controller = new WorkspaceController(null, null, null, null);
+        WorkspaceController controller = new WorkspaceController(null, null, null, null, null);
         var response = controller.uploadWorkspace(mpf, ws);
         assertTrue(response.getStatusCode().is2xxSuccessful());
         assertTrue(Files.exists(ws.resolve("file.txt")));

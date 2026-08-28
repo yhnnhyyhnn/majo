@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class WorkspaceBinaryTest {
 
-    private final WorkspaceController controller = new WorkspaceController(null, null, null, null);
+    private final WorkspaceController controller = new WorkspaceController(null, null, null, null, null);
 
     @Test
     void servesPngWithImageMime() throws IOException {
