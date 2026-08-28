@@ -25,7 +25,7 @@ public final class ShellEvasionGuardian {
     // ── Detectors (compile-once) ─────────────────────────────────────
 
     /** Null byte / NUL smuggling — always fatal. */
-    private static final Pattern NULL_BYTE = Pattern.compile("\\x00");
+    private static final Pattern NULL_BYTE = Pattern.compile("\u0000");
 
     /** Command substitution: $(...) or backticks. */
     private static final Pattern COMMAND_SUBSTITUTION = Pattern.compile(

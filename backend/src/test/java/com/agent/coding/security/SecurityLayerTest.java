@@ -21,7 +21,7 @@ class SecurityLayerTest {
 
     @Test
     void nullByteIsCritical() {
-        var findings = ShellEvasionGuardian.scan("cat foo\\0bar", Map.of());
+        var findings = ShellEvasionGuardian.scan("cat foo\u0000bar", Map.of());
         assertTrue(findings.stream().anyMatch(f ->
                 f.category().equals("null_byte") && ShellEvasionGuardian.isBlocking(f)));
     }

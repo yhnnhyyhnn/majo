@@ -156,7 +156,7 @@ public class ToolGuardService {
             new BuiltinRule(
                     "SHELL_EVASION", "evasion", "HIGH",
                     SHELL_TOOLS, List.of("command"),
-                    List.of("\\x00", "\\$\\([^)]*\\)", "`[^`]*`"),
+                    List.of("\u0000", "\\$\\([^)]*\\)", "`[^`]*`"),
                     List.of(),
                     "Shell evasion primitives (NUL byte, command substitution)",
                     "Never obfuscate commands; run them verbatim with user approval")
