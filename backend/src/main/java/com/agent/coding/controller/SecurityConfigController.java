@@ -23,6 +23,12 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class SecurityConfigController {
 
+    private final com.agent.coding.security.ToolGuardService toolGuardService;
+
+    public SecurityConfigController(com.agent.coding.security.ToolGuardService toolGuardService) {
+        this.toolGuardService = toolGuardService;
+    }
+
     // ── storage helpers ─────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")
@@ -87,7 +93,7 @@ public class SecurityConfigController {
 
     @GetMapping("/tool-guard/builtin-rules")
     public List<Map<String, Object>> builtinRules() {
-        return new ArrayList<>();
+        return toolGuardService.builtinRules();
     }
 
     // ── Sandbox ─────────────────────────────────────────────────────

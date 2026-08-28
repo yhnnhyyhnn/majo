@@ -38,14 +38,17 @@ public class ChatController {
     private final ModelConfigRepository modelConfigRepo;
     private final ModelRoutingService modelRouting;
     private final Toolkit toolkit;
+    private final com.agent.coding.security.ToolGuardHook toolGuardHook;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public ChatController(SettingsService settingsService, ModelConfigRepository modelConfigRepo,
-                          ModelRoutingService modelRouting, Toolkit toolkit) {
+                          ModelRoutingService modelRouting, Toolkit toolkit,
+                          com.agent.coding.security.ToolGuardHook toolGuardHook) {
         this.settingsService = settingsService;
         this.modelConfigRepo = modelConfigRepo;
         this.modelRouting = modelRouting;
         this.toolkit = toolkit;
+        this.toolGuardHook = toolGuardHook;
     }
 
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -110,6 +113,7 @@ public class ChatController {
             .model(resolveModel(modelId))
             .toolkit(toolkit)
             .workspace(wsPath)
+            .hook(toolGuardHook)
             .build();
     }
 

@@ -61,7 +61,7 @@ public class ConsoleController {
     private final SettingsService settingsService;
     private final InboxStore inboxStore;
     private final com.agent.coding.approval.ApprovalStore approvalStore;
-    private final com.agent.coding.approval.ApprovalHook approvalHook;
+    private final com.agent.coding.security.ToolGuardHook toolGuardHook;
     private final LoopSessionManager loopSessionManager;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
@@ -71,7 +71,7 @@ public class ConsoleController {
                               SettingsService settingsService,
                               InboxStore inboxStore,
                               com.agent.coding.approval.ApprovalStore approvalStore,
-                              com.agent.coding.approval.ApprovalHook approvalHook,
+                              com.agent.coding.security.ToolGuardHook toolGuardHook,
                               LoopSessionManager loopSessionManager) {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
@@ -82,7 +82,7 @@ public class ConsoleController {
         this.settingsService = settingsService;
         this.inboxStore = inboxStore;
         this.approvalStore = approvalStore;
-        this.approvalHook = approvalHook;
+        this.toolGuardHook = toolGuardHook;
         this.loopSessionManager = loopSessionManager;
     }
 
@@ -915,7 +915,7 @@ public class ConsoleController {
             .model(createModel(agentId))
             .toolkit(toolkit)
             .workspace(wsPath)
-            .hook(approvalHook)
+            .hook(toolGuardHook)
             .build();
     }
 

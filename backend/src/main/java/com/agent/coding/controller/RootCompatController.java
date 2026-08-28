@@ -32,13 +32,16 @@ public class RootCompatController {
     private final SettingsService settingsService;
     private final Toolkit toolkit;
     private final CronController cronController;
+    private final com.agent.coding.security.ToolGuardHook toolGuardHook;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public RootCompatController(SettingsService settingsService, Toolkit toolkit,
-                                CronController cronController) {
+                                CronController cronController,
+                                com.agent.coding.security.ToolGuardHook toolGuardHook) {
         this.settingsService = settingsService;
         this.toolkit = toolkit;
         this.cronController = cronController;
+        this.toolGuardHook = toolGuardHook;
     }
 
     // ── Legacy plural cron path (the original migrated /crons/jobs → /cron/jobs).
@@ -98,7 +101,7 @@ public class RootCompatController {
 
         HarnessAgent agent = HarnessAgent.builder().name(agentName).sysPrompt(SYS_PROMPT)
             .model(OpenAIChatModel.builder().apiKey(settingsService.getApiKey()).baseUrl(settingsService.getBaseUrl()).modelName(settingsService.getModelName()).build())
-            .toolkit(toolkit).workspace(wsPath).build();
+            .toolkit(toolkit).workspace(wsPath).hook(toolGuardHook).build();
         var ctx = RuntimeContext.builder().sessionId(sessionId).userId("web-user").build();
         return agent.streamEvents(new UserMessage(prompt), ctx)
             .map(evt -> { try { var n = mapper.createObjectNode(); n.put("type", evt.getClass().getSimpleName()); n.put("timestamp", System.currentTimeMillis()); n.set("data", mapper.valueToTree(evt)); return mapper.writeValueAsString(n); } catch (Exception e) { return event("error", e.getMessage()); } })
