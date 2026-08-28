@@ -34,7 +34,10 @@ public class AgentConfig {
         Map.entry("spawn_subagent", "spawn_subagent"),
         Map.entry("chat_with_agent", "chat_with_agent"),
         Map.entry("submit_to_agent", "submit_to_agent"),
-        Map.entry("check_agent_task", "check_agent_task")
+        Map.entry("check_agent_task", "check_agent_task"),
+        Map.entry("view_image", "view_image"),
+        Map.entry("view_video", "view_video"),
+        Map.entry("desktop_screenshot", "desktop_screenshot")
     );
 
     @Bean
@@ -51,7 +54,9 @@ public class AgentConfig {
             WebFetchTool webFetch, WebSearchTool webSearch,
             TokenUsageTool tokenUsage, SendFileToUserTool sendFileToUser,
             SpawnSubagentTool spawnSubagent, ChatWithAgentTool chatWithAgent,
-            SubmitToAgentTool submitToAgent, CheckAgentTaskTool checkAgentTask) {
+            SubmitToAgentTool submitToAgent, CheckAgentTaskTool checkAgentTask,
+            ViewImageTool viewImage, ViewVideoTool viewVideo,
+            DesktopScreenshotTool desktopScreenshot) {
         var t = new Toolkit();
         t.registerTool(readFile);
         t.registerTool(writeFile);
@@ -72,6 +77,9 @@ public class AgentConfig {
         t.registerTool(chatWithAgent);
         t.registerTool(submitToAgent);
         t.registerTool(checkAgentTask);
+        t.registerTool(viewImage);
+        t.registerTool(viewVideo);
+        t.registerTool(desktopScreenshot);
         return t;
     }
 }

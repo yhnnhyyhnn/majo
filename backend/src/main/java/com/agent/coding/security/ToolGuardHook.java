@@ -2,8 +2,10 @@ package com.agent.coding.security;
 
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.approval.ApprovalHook;
+import com.agent.coding.tool.MediaPromotionHook;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
+import io.agentscope.core.hook.PostActingEvent;
 import io.agentscope.core.hook.PreActingEvent;
 import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
@@ -16,21 +18,13 @@ import java.nio.file.Path;
 import java.util.Map;
 
 /**
- * Tool execution security hook, wired into every HarnessAgent build.
- *
- * <p>Intercepts PRE_ACTING events and enforces, in order:
- * <ol>
- *   <li>{@link ToolGuardService} — denied tools, built-in/custom rules,
- *       shell-evasion heuristics;</li>
- *   <li>{@link FileGuardService} — workspace containment + protected paths
- *       for file tools;</li>
- *   <li>{@link ApprovalHook} — human approval for guarded tools (delegated,
- *       preserving the existing approval flow).</li>
- * </ol>
- *
- * <p>Blocked calls are replaced with a FINISHED tool result carrying the
- * guard message, so the agent sees why the call was rejected (same pattern
- * as ApprovalHook's denial).
+ * Composite agent hook, wired into every HarnessAgent build. Routes events:
+ * <ul>
+ *   <li>PRE_ACTING → {@link ToolGuardService} + {@link FileGuardService} +
+ *       {@link ApprovalHook} (security gate, then human approval);</li>
+ *   <li>POST_ACTING → {@link MediaPromotionHook} (promote tool images into
+ *       the multimodal context).</li>
+ * </ul>
  */
 @Component
 public class ToolGuardHook implements Hook {
@@ -40,17 +34,24 @@ public class ToolGuardHook implements Hook {
     private final ToolGuardService toolGuardService;
     private final FileGuardService fileGuardService;
     private final ApprovalHook approvalHook;
+    private final MediaPromotionHook mediaPromotionHook;
 
     public ToolGuardHook(ToolGuardService toolGuardService,
                          FileGuardService fileGuardService,
-                         ApprovalHook approvalHook) {
+                         ApprovalHook approvalHook,
+                         MediaPromotionHook mediaPromotionHook) {
         this.toolGuardService = toolGuardService;
         this.fileGuardService = fileGuardService;
         this.approvalHook = approvalHook;
+        this.mediaPromotionHook = mediaPromotionHook;
     }
 
     @Override
     public <T extends HookEvent> Mono<T> onEvent(T event) {
+        // Media promotion (after tool execution)
+        if (event instanceof PostActingEvent) {
+            return mediaPromotionHook.onEvent(event);
+        }
         if (!(event instanceof PreActingEvent acting)) {
             return Mono.just(event);
         }
