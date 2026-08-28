@@ -11,6 +11,15 @@ import CloseWindowPrompt from "./CloseWindowPrompt";
 window.addEventListener("dragover", (e) => e.preventDefault());
 window.addEventListener("drop", (e) => e.preventDefault());
 
+// Surface any render-time exception in the shell log — a silent throw here
+// leaves the window blank with no other diagnostic trail.
+window.addEventListener("error", (event) => {
+  console.error("[bootstrap] uncaught error:", event.message, event.filename, event.lineno);
+});
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("[bootstrap] unhandled rejection:", String(event.reason));
+});
+
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider>
     <CloseWindowPrompt />

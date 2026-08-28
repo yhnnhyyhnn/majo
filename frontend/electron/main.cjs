@@ -13,7 +13,7 @@
  * The renderer has no Node access; native capabilities are exposed through
  * preload.cjs contextBridge (`window.majoDesktop`).
  */
-const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, protocol, net } = require("electron");
 const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -68,6 +68,63 @@ function bootstrapPagePath() {
   }
   // Dev: built by `npm run build:tauri-bootstrap` into frontend/dist-desktop-bootstrap.
   return path.join(process.cwd(), "dist-desktop-bootstrap", "tauri.html");
+}
+
+function bootstrapDir() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "dist-desktop-bootstrap");
+  }
+  return path.join(process.cwd(), "dist-desktop-bootstrap");
+}
+
+/**
+ * Register the app:// scheme serving the bootstrap page from disk.
+ *
+ * The bootstrap page uses <script type="module" crossorigin>, and Chromium
+ * blocks module scripts under file:// (null origin fails the CORS check),
+ * which renders a permanently blank window. A privileged custom protocol
+ * with standard: true + supportFetchAPI: true gives the page a proper
+ * http-like origin so ES modules load — the same role Tauri's custom
+ * protocol played in the previous shell.
+ */
+function registerBootstrapScheme() {
+  const root = bootstrapDir();
+  protocol.handle("app", (request) => {
+    // app://bootstrap/tauri.html -> <root>/tauri.html
+    let rel = decodeURIComponent(new URL(request.url).pathname);
+    if (rel.startsWith("/")) rel = rel.slice(1);
+    const filePath = path.join(root, rel).normalize();
+    if (!filePath.startsWith(root)) {
+      return new Response("Forbidden", {
+        status: 403,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
+    }
+    return net.fetch("file://" + filePath.split("\\").join("/")).then(
+      (response) => {
+        // crossorigin module scripts require CORS headers on the response —
+        // file:// fetches carry none, so add them explicitly.
+        response.headers.set("Access-Control-Allow-Origin", "*");
+        return response;
+      },
+      (err) =>
+        new Response(String(err), {
+          status: 404,
+          headers: { "Access-Control-Allow-Origin": "*" },
+        }),
+    );
+  });
+}
+
+// Must run before app ready: privileged scheme registration is only read at
+// startup. standard:true gives app:// a real origin so ES modules and
+// crossorigin stylesheets pass CORS (a null origin renders a blank window).
+protocol.registerSchemesAsPrivileged([
+  { scheme: "app", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+]);
+
+function loadBootstrapPage() {
+  mainWindow.loadURL("app://bootstrap/tauri.html");
 }
 
 function backendJarPath() {
@@ -236,6 +293,14 @@ async function stopBackend(gracefulMs = SHUTDOWN_HTTP_TIMEOUT_MS) {
 
 function logMain(message) {
   console.log(message);
+  try {
+    fs.appendFileSync(
+      path.join(app.getPath("userData"), "majo-shell.log"),
+      `${new Date().toISOString()} ${message}\n`,
+    );
+  } catch {
+    /* logging must never crash the shell */
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -458,29 +523,52 @@ function createWindow() {
   });
 
   // Native drag-drop interception: OS drags arrive as HTML5 events.
-  mainWindow.webContents.on("will-navigate", (event, url) => {
+  const willNavigate = (event, url) => {
+    logMain(`[nav] will-navigate -> ${url}`);
     // Only the bootstrap page may navigate the window itself; everything
     // else (external links) goes to the system browser via our handler.
     const devUrl = process.env.VITE_DEV_SERVER_URL;
     const allowedPrefixes = [
+      "app://bootstrap/",
       "http://127.0.0.1:",
       "http://localhost:",
       devUrl ?? "",
     ].filter(Boolean);
-    const currentOriginAllowed = allowedPrefixes.some(
-      (prefix) => url.startsWith(prefix),
-    );
-    const isFileBootstrap = app.isPackaged
-      ? url.startsWith("file://")
-      : false;
-    if (!currentOriginAllowed && !isFileBootstrap) {
+    const allowed = allowedPrefixes.some((prefix) => url.startsWith(prefix));
+    if (!allowed) {
+      logMain(`[nav] blocked navigation to ${url}`);
       event.preventDefault();
     }
+  };
+  mainWindow.webContents.on("will-navigate", willNavigate);
+
+  mainWindow.webContents.on("did-fail-load", (_e, code, desc, url) => {
+    logMain(`[page] did-fail-load code=${code} desc=${desc} url=${url}`);
+  });
+  mainWindow.webContents.on("render-process-gone", (_e, details) => {
+    logMain(`[page] render-process-gone: ${JSON.stringify(details)}`);
+  });
+  mainWindow.webContents.on("console-message", (_e, level, message, line, source) => {
+    logMain(`[renderer:${level}] ${message} (${source}:${line})`);
+  });
+  mainWindow.webContents.on("did-finish-load", () => {
+    logMain("[page] did-finish-load");
+    // React 18 renders asynchronously — dump the DOM 2s later so the tree
+    // has actually mounted.
+    setTimeout(() => {
+      mainWindow?.webContents
+        .executeJavaScript(
+          "JSON.stringify({title: document.title, rootChildren: document.getElementById('root')?.children.length ?? -1, rootHtml: (document.getElementById('root')?.innerHTML ?? '').slice(0, 120), hasBridge: !!window.majoDesktop, bodyText: document.body.innerText.slice(0, 120)})",
+        )
+        .then((s) => logMain(`[page] dom(late): ${s}`))
+        .catch((err) => logMain(`[page] dom dump failed: ${err}`));
+    }, 2000);
+  });
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     // Prevent renderer-initiated windows; vetted links go through the bridge.
-    void url;
+    logMain(`[nav] window-open denied: ${url}`);
     return { action: "deny" };
   });
 
@@ -493,7 +581,8 @@ function createWindow() {
   if (isDev()) {
     mainWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}/tauri.html`);
   } else {
-    mainWindow.loadFile(bootstrapPagePath());
+    logMain(`[page] loading bootstrap from app://bootstrap/tauri.html (root=${bootstrapDir()})`);
+    loadBootstrapPage();
   }
 
   mainWindow.once("ready-to-show", () => mainWindow.show());
@@ -509,6 +598,8 @@ if (!gotSingleInstanceLock) {
   app.on("second-instance", () => showMainWindow());
 
   app.whenReady().then(() => {
+    // Must register before any window loads the app:// URL.
+    registerBootstrapScheme();
     registerIpcHandlers();
     createWindow();
     createTray();

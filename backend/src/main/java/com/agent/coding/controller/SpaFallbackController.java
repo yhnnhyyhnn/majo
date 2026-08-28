@@ -21,9 +21,21 @@ public class SpaFallbackController {
      * Serve index.html for /console and /console/... so React Router handles
      * deep links (e.g. /console/settings). The forward preserves the original
      * URL, keeping the basename detection in App.tsx working.
+     *
+     * <p>Asset requests (e.g. /console/assets/index-*.js — the React Router
+     * basename prefixes every hashed bundle URL) must resolve to the real
+     * files under static /assets/, not to index.html: a text/html response
+     * for a module script fails strict MIME checking and blanks the window.
+     * Forwarding them (minus the /console prefix) lets Spring's static
+     * resource handler serve the actual bundles.
      */
     @GetMapping(value = {"/console", "/console/**"})
-    public String consoleSpa() {
+    public String consoleSpa(jakarta.servlet.http.HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (path.startsWith("/console/assets/") || path.startsWith("/console/online.svg")
+                || path.startsWith("/console/logo-")) {
+            return "forward:" + path.substring("/console".length());
+        }
         return "forward:/index.html";
     }
 }
