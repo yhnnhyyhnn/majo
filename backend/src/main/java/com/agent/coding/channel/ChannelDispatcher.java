@@ -171,7 +171,8 @@ public class ChannelDispatcher {
             name = String.valueOf(profile.get("name"));
         }
         return HarnessAgent.builder()
-                .name(name)
+                .name(agentId)
+                .agentId(agentId)
                 .sysPrompt(SYS_PROMPT)
                 .model(model)
                 .toolkit(toolkit)

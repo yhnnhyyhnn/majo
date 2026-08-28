@@ -910,7 +910,8 @@ public class ConsoleController {
         log.info("Resolved agent '{}' workspace: {}, name: {}", agentId, wsPath, agentName);
 
         return HarnessAgent.builder()
-            .name(agentName)
+            .name(agentId)
+            .agentId(agentId)
             .sysPrompt(SYS_PROMPT)
             .model(createModel(agentId))
             .toolkit(toolkit)

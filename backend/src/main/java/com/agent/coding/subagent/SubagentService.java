@@ -174,7 +174,8 @@ public class SubagentService {
             return null;
         }
         return HarnessAgent.builder()
-                .name(name)
+                .name(agentId)
+                .agentId(agentId)
                 .sysPrompt(SYS_PROMPT)
                 .model(model)
                 .toolkit(toolkit)

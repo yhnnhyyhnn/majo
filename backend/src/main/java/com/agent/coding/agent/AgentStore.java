@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -175,6 +176,44 @@ public class AgentStore {
     /** True if the agent id exists in the registry. */
     public static boolean hasAgent(String agentId) {
         return getProfile(agentId) != null;
+    }
+
+    /**
+     * Find the agent id whose workspace_dir matches the given path (used to
+     * resolve the majo agent behind harness tool executions, which carry
+     * only the workspace path). Returns null when no agent matches.
+     */
+    public static String agentIdForWorkspace(Path workspace) {
+        if (workspace == null) {
+            return null;
+        }
+        Path target = workspace.toAbsolutePath().normalize();
+        for (Map.Entry<String, Object> e : loadConfigProfiles().entrySet()) {
+            Object v = e.getValue();
+            if (!(v instanceof Map<?, ?> m)) {
+                continue;
+            }
+            Object ws = m.get("workspace_dir");
+            if (ws == null) {
+                continue;
+            }
+            try {
+                Path p = Paths.get(String.valueOf(ws)).toAbsolutePath().normalize();
+                if (p.equals(target) || target.startsWith(p)) {
+                    return e.getKey();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> loadConfigProfiles() {
+        Map<String, Object> config = loadConfig();
+        Object profiles = config.get("profiles");
+        return profiles instanceof Map<?, ?> m
+                ? new LinkedHashMap<>((Map<String, Object>) m) : new LinkedHashMap<>();
     }
 
     /** Default agent workspace lives in its own subdirectory, like other agents. */

@@ -129,10 +129,10 @@ public class ToolGuardService {
             new BuiltinRule(
                     "PATH_TRAVERSAL", "path", "MEDIUM",
                     FILE_TOOLS, List.of("path"),
-                    List.of("\\.\\.(?:/|\\\\)", "^\\.\\.", "^[A-Za-z]:[\\\\/]"),
+                    List.of("\\.\\.(?:/|\\\\)", "^\\.\\."),
                     List.of(),
                     "Path escaping the workspace root",
-                    "Reject paths containing '..' or absolute drive paths"),
+                    "Reject paths containing '..' — workspace containment is enforced separately by File Guard"),
 
             new BuiltinRule(
                     "FILE_WRITE_SENSITIVE", "file", "HIGH",

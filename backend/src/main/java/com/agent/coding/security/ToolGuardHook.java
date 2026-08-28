@@ -3,10 +3,12 @@ package com.agent.coding.security;
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.approval.ApprovalHook;
 import com.agent.coding.tool.MediaPromotionHook;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
 import io.agentscope.core.hook.PostActingEvent;
 import io.agentscope.core.hook.PreActingEvent;
+import io.agentscope.core.hook.RuntimeContextAware;
 import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
 import org.slf4j.Logger;
@@ -25,9 +27,13 @@ import java.util.Map;
  *   <li>POST_ACTING → {@link MediaPromotionHook} (promote tool images into
  *       the multimodal context).</li>
  * </ul>
+ *
+ * <p>Implements {@link RuntimeContextAware} so the harness injects the
+ * per-run runtime context, forwarded to {@link ApprovalHook} (which needs
+ * the real majo session id for agent-level approval policy).
  */
 @Component
-public class ToolGuardHook implements Hook {
+public class ToolGuardHook implements Hook, RuntimeContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(ToolGuardHook.class);
 
@@ -47,6 +53,16 @@ public class ToolGuardHook implements Hook {
     }
 
     @Override
+    public void setRuntimeContext(RuntimeContext ctx) {
+        if (ctx != null) {
+            log.info("[hook] runtime context injected: sessionId={}", ctx.getSessionId());
+        } else {
+            log.info("[hook] runtime context unbound");
+        }
+        approvalHook.setRuntimeContext(ctx);
+    }
+
+    @Override
     public <T extends HookEvent> Mono<T> onEvent(T event) {
         // Media promotion (after tool execution)
         if (event instanceof PostActingEvent) {
@@ -54,6 +70,17 @@ public class ToolGuardHook implements Hook {
         }
         if (!(event instanceof PreActingEvent acting)) {
             return Mono.just(event);
+        }
+        // Ensure the workspace ThreadLocal is set on this (tool-execution)
+        // thread — the harness runs tools on its own scheduler where the
+        // controller-set ThreadLocal is not visible. File tools and File
+        // Guard rely on WorkspaceContext.
+        try {
+            String agentId = majoAgentIdOf(event);
+            if (agentId != null && !agentId.isBlank()) {
+                WorkspaceContext.set(com.agent.coding.agent.AgentStore.workspaceDirForAgent(agentId).toString());
+            }
+        } catch (Exception ignored) {
         }
         ToolUseBlock toolUse = acting.getToolUse();
         if (toolUse == null) {
@@ -99,5 +126,17 @@ public class ToolGuardHook implements Hook {
                 .content(message)
                 .state(ToolCallState.FINISHED)
                 .build();
+    }
+
+    /** Harness agent name is the majo agent id (set at build time). */
+    private static String majoAgentIdOf(io.agentscope.core.hook.HookEvent event) {
+        try {
+            io.agentscope.core.agent.Agent agent = event.getAgent();
+            if (agent != null && agent.getName() != null && !agent.getName().isBlank()) {
+                return agent.getName();
+            }
+        } catch (Exception ignored) {
+        }
+        return "default";
     }
 }

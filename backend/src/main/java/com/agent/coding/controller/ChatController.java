@@ -108,7 +108,8 @@ public class ChatController {
         }
         log.info("Using workspace: {}", wsPath);
         return HarnessAgent.builder()
-            .name("majo")
+            .name("default")
+            .agentId("default")
             .sysPrompt(SYS_PROMPT)
             .model(resolveModel(modelId))
             .toolkit(toolkit)
