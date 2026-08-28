@@ -37,7 +37,10 @@ public class AgentConfig {
         Map.entry("check_agent_task", "check_agent_task"),
         Map.entry("view_image", "view_image"),
         Map.entry("view_video", "view_video"),
-        Map.entry("desktop_screenshot", "desktop_screenshot")
+        Map.entry("desktop_screenshot", "desktop_screenshot"),
+        Map.entry("browser_use", "browser_use"),
+        Map.entry("materialize_skill", "materialize_skill"),
+        Map.entry("delegate_external_agent", "delegate_external_agent")
     );
 
     @Bean
@@ -56,7 +59,9 @@ public class AgentConfig {
             SpawnSubagentTool spawnSubagent, ChatWithAgentTool chatWithAgent,
             SubmitToAgentTool submitToAgent, CheckAgentTaskTool checkAgentTask,
             ViewImageTool viewImage, ViewVideoTool viewVideo,
-            DesktopScreenshotTool desktopScreenshot) {
+            DesktopScreenshotTool desktopScreenshot,
+            BrowserUseTool browserUse, MaterializeSkillTool materializeSkill,
+            DelegateExternalAgentTool delegateExternalAgent) {
         var t = new Toolkit();
         t.registerTool(readFile);
         t.registerTool(writeFile);
@@ -80,6 +85,9 @@ public class AgentConfig {
         t.registerTool(viewImage);
         t.registerTool(viewVideo);
         t.registerTool(desktopScreenshot);
+        t.registerTool(browserUse);
+        t.registerTool(materializeSkill);
+        t.registerTool(delegateExternalAgent);
         return t;
     }
 }
