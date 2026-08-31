@@ -30,4 +30,6 @@ RUN mkdir -p /app/data
 
 EXPOSE 18789
 
-ENTRYPOINT ["java", "-jar", "/opt/majo.jar"]
+# JAVA_OPTS is honored (e.g. -Xmx/-Xms tuning from docker-compose / env)
+ENV JAVA_OPTS="-Xmx1g -Xms256m"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /opt/majo.jar"]

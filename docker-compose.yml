@@ -11,3 +11,18 @@ services:
     restart: unless-stopped
     environment:
       - JAVA_OPTS=-Xmx2g -Xms512m
+    healthcheck:
+      # No curl/wget in the JRE alpine image; use the JVM's own HTTP client.
+      test:
+        - CMD
+        - java
+        - -cp
+        - /opt/majo.jar
+        - com.agent.coding.HealthCheckCli
+        - http://127.0.0.1:18789/api/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Wait for the app to be healthy before marking the container ready
+    # (useful for dependant services / orchestration).

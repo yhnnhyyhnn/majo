@@ -1,0 +1,39 @@
+# VCS
+.git
+.gitignore
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/dist-tauri
+frontend/dist-desktop-bootstrap
+frontend/local-binaries
+frontend/desktop-dist
+
+# Backend build output
+backend/target
+backend/data
+backend/agents
+backend/skill_pool
+backend/plugins
+
+# Runtime data
+data/
+default/
+
+# Desktop (Tauri) build artifacts
+frontend/src-tauri/target
+frontend/src-tauri/binaries
+
+# IDE / OS
+.idea
+.vscode
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs & misc
+*.log
+.omo
+.sisyphus
+.backups
