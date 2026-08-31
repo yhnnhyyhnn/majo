@@ -1,0 +1,15 @@
+# Desktop (Tauri shell) profile.
+# Activated by the Rust shell via SPRING_PROFILES_ACTIVE=desktop.
+# Goals: faster startup for the sidecar launch path.
+spring:
+  main:
+    # Defer non-critical bean creation until first use — cuts startup time
+    # significantly (SSE controllers init on first request).
+    lazy-initialization: true
+
+springdoc:
+  # Swagger UI / OpenAPI docs are not needed in the desktop app.
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

@@ -12,7 +12,6 @@ export default function BackendReadyGate({ children }: Props) {
     shouldGate,
     status,
     elapsed,
-    totalSec,
     errorMessage,
     readyUrl,
     retry,
@@ -33,7 +32,6 @@ export default function BackendReadyGate({ children }: Props) {
     <BackendLoadingPage
       status={status}
       elapsed={elapsed}
-      totalSec={totalSec}
       errorMessage={errorMessage}
       onRetry={retry}
     />

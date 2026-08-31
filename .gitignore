@@ -83,6 +83,7 @@ hs_err_pid*
 # Desktop build artifacts
 desktop-dist/
 frontend/dist-desktop-bootstrap/
+frontend/dist-tauri/
 
 # Desktop packaging artifacts (jlink JRE + backend jar, gitignored)
 frontend/local-binaries/

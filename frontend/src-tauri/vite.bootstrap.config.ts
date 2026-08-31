@@ -26,23 +26,13 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "../src"),
-        // Route Tauri API imports to the Electron shims — the bootstrap page
-        // runs in the Electron shell where window.majoDesktop is the bridge.
-        "@tauri-apps/api/core": path.resolve(__dirname, "../src/shims/tauri-core.ts"),
-        "@tauri-apps/api/event": path.resolve(__dirname, "../src/shims/tauri-event.ts"),
-        "@tauri-apps/plugin-dialog": path.resolve(__dirname, "../src/shims/tauri-dialog.ts"),
       },
     },
     build: {
-      outDir: "dist-desktop-bootstrap",
+      outDir: "dist-tauri",
       emptyOutDir: true,
       sourcemap: false,
       cssCodeSplit: true,
-      // Electron loads this page via loadFile (file:// protocol), so all
-      // asset references must be relative ("./assets/...") — absolute
-      // "/assets/..." resolves to the filesystem root and renders a blank
-      // window.
-      base: "./",
       rollupOptions: {
         input: {
           index: path.resolve(__dirname, "../tauri.html"),

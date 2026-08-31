@@ -1,4 +1,4 @@
-import { Progress } from "antd";
+import { useEffect, useState } from "react";
 import { type CSSProperties } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -7,11 +7,12 @@ import { type BackendReadyStatus } from "./useBackendReadyPolling";
 
 const BRAND_COLOR = "#ff7f16";
 const ERROR_COLOR = "#ff4d4f";
+/** How often (ms) the loading tip rotates. */
+const TIP_ROTATE_INTERVAL_MS = 5000;
 
 interface BackendLoadingPageProps {
   status: BackendReadyStatus;
   elapsed: number;
-  totalSec: number;
   errorMessage?: string;
   onRetry?: () => void;
 }
@@ -19,26 +20,41 @@ interface BackendLoadingPageProps {
 export default function BackendLoadingPage({
   status,
   elapsed,
-  totalSec,
   errorMessage,
   onRetry,
 }: BackendLoadingPageProps) {
   const { isDark } = useTheme();
   const { t } = useTranslation();
+
+  // Randomly pick an AI-related fun fact to show while waiting.
+  const tips = (t("startup.tips", { returnObjects: true }) as unknown) as
+    | string[]
+    | undefined;
+  const tipCount = Array.isArray(tips) ? tips.length : 0;
+  const [tipIndex, setTipIndex] = useState(() =>
+    Math.floor(Math.random() * Math.max(tipCount, 1)),
+  );
+  useEffect(() => {
+    if (tipCount <= 1) return undefined;
+    const id = setInterval(
+      () => setTipIndex((i) => (i + 1) % tipCount),
+      TIP_ROTATE_INTERVAL_MS,
+    );
+    return () => clearInterval(id);
+  }, [tipCount]);
   const hasFailed = status === "timeout" || status === "error";
   const statusText =
     status === "error"
       ? t("startup.error", "Backend failed to start.")
-      : status === "checking"
-      ? elapsed === 0
-        ? t("startup.starting", "Starting backend...")
-        : t("startup.checking", "Connecting to backend...")
-      : t("startup.timeout", {
+      : status === "timeout"
+      ? t("startup.timeout", {
           seconds: elapsed,
           defaultValue: "Backend failed to start within {{seconds}} seconds.",
-        });
+        })
+      : elapsed === 0
+      ? t("startup.starting", "Starting backend...")
+      : t("startup.checking", "Connecting to backend...");
 
-  const percent = Math.min(Math.round((elapsed / totalSec) * 100), 100);
   const style = {
     "--majo-brand-color": BRAND_COLOR,
     "--majo-error-color": ERROR_COLOR,
@@ -51,30 +67,35 @@ export default function BackendLoadingPage({
       }`}
       style={style}
     >
+      <span className={`${styles.ambient} ${styles.ambientA}`} aria-hidden="true" />
+      <span className={`${styles.ambient} ${styles.ambientB}`} aria-hidden="true" />
       <div className={styles.card}>
         <img src="/majo-icon.svg" alt="Majo" className={styles.logo} />
 
-        <Progress
-          type="dashboard"
-          percent={percent}
-          status={hasFailed ? "exception" : "active"}
-          strokeColor={BRAND_COLOR}
-          trailColor={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}
-          gapPosition="bottom"
-          format={() => (
-            <div className={styles.progressLabel}>{`${elapsed}s`}</div>
-          )}
-          size={160}
-          strokeWidth={8}
-        />
+        <div className={styles.barWrap}>
+          <div
+            className={`${styles.barTrack} ${hasFailed ? styles.failed : ""}`}
+            role="progressbar"
+            aria-label={hasFailed ? statusText : "loading"}
+          >
+            <div className={styles.barFill} />
+          </div>
+          <div className={styles.progressLabel}>{`${elapsed}s`}</div>
+        </div>
 
-        <p
-          className={`${styles.statusText} ${
-            hasFailed ? styles.failedText : ""
-          }`}
-        >
-          {statusText}
-        </p>
+        {!hasFailed && tipCount > 0 && (
+          <p key={`tip-${tipIndex}`} className={styles.tip}>
+            {tips![tipIndex % tipCount]}
+          </p>
+        )}
+
+        {hasFailed && (
+          <p
+            className={`${styles.statusText} ${styles.failedText}`}
+          >
+            {statusText}
+          </p>
+        )}
 
         {hasFailed && (
           <>

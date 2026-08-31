@@ -9,9 +9,8 @@
     "build:prod": "tsc -b && vite build --mode production",
     "build:tauri-bootstrap": "tsc -b && vite build --mode tauri --config src-tauri/vite.bootstrap.config.ts && node ../scripts/pack-tauri/finalize_tauri_bootstrap.mjs",
     "build:test": "tsc -b && vite build --mode test",
-    "desktop:dev": "electron electron/main.cjs",
-    "desktop:start": "npm run build:prod && npm run build:tauri-bootstrap && electron .",
-    "desktop:dist": "electron-builder --win nsis --config electron-builder.yml",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "npm run build:prod && npm run build:tauri-bootstrap && tauri build",
     "format": "tsc -b --noEmit && prettier --write --cache .",
     "format:check": "tsc -b --noEmit && prettier --check .",
     "lint": "eslint .",
@@ -22,7 +21,6 @@
     "test:run": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs run",
     "test:coverage": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs run --coverage"
   },
-  "main": "electron/main.cjs",
   "dependencies": {
     "@agentscope-ai/chat": "1.1.72-beta.1783494781362",
     "@agentscope-ai/design": "^1.0.14",
@@ -76,8 +74,6 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^4.4.1",
     "@vitest/coverage-v8": "^3.2.7",
-    "electron": "^44.0.0",
-    "electron-builder": "^26.15.3",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",

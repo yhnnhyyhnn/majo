@@ -1,7 +1,88 @@
 @keyframes backend-loading-fadein {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(16px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Ambient drifting light blobs in the background. */
+@keyframes backend-loading-blob-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(48px, -36px) scale(1.15);
+  }
+
+  66% {
+    transform: translate(-24px, 30px) scale(0.92);
+  }
+}
+
+@keyframes backend-loading-blob-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-52px, 24px) scale(1.08);
+  }
+
+  66% {
+    transform: translate(34px, -28px) scale(0.9);
+  }
+}
+
+/* Gentle floating for the logo. */
+@keyframes backend-loading-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+/* Sweeping light along the progress bar (moving gradient). */
+@keyframes backend-loading-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+/* Soft pulsing glow behind the bar track. */
+@keyframes backend-loading-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.99);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: scale(1.01);
+  }
+}
+
+/* Status text swap-in. */
+@keyframes backend-loading-text-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 
   to {
@@ -11,60 +92,190 @@
 }
 
 .page {
+  position: relative;
   height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .pageLight {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #f7f9fc 0%, #e4eaf3 100%);
 }
 
 .pageDark {
   background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
 }
 
+/* --- Ambient light blobs ------------------------------------------------ */
+
+.ambient {
+  position: absolute;
+  width: 440px;
+  height: 440px;
+  border-radius: 50%;
+  filter: blur(96px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambientA {
+  top: -130px;
+  left: -110px;
+  background: rgba(255, 127, 22, 0.3);
+  animation: backend-loading-blob-a 16s ease-in-out infinite;
+}
+
+.pageDark .ambientA {
+  background: rgba(255, 127, 22, 0.22);
+}
+
+.ambientB {
+  bottom: -150px;
+  right: -130px;
+  background: rgba(96, 125, 255, 0.22);
+  animation: backend-loading-blob-b 20s ease-in-out infinite;
+}
+
+.pageDark .ambientB {
+  background: rgba(96, 125, 255, 0.16);
+}
+
+/* --- Card ---------------------------------------------------------------- */
+
 .card {
+  position: relative;
+  z-index: 1;
   width: 400px;
   padding: 40px;
-  border-radius: 12px;
+  border-radius: 16px;
   text-align: center;
+  backdrop-filter: blur(10px);
   animation: backend-loading-fadein 0.6s ease-out;
 }
 
 .pageLight .card {
-  background: #fff;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 .pageDark .card {
-  background: #1f1f1f;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  background: rgba(31, 31, 31, 0.72);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .logo {
   height: 72px;
   margin-bottom: 28px;
+  animation: backend-loading-float 4.5s ease-in-out infinite;
+  filter: drop-shadow(0 8px 20px rgba(255, 127, 22, 0.28));
+}
+
+/* --- Progress bar ---------------------------------------------------------- */
+
+.barWrap {
+  position: relative;
+  width: 300px;
+  margin: 0 auto;
+}
+
+/* Pulsing glow behind the track. */
+.barWrap::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 12px;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 127, 22, 0.2),
+    transparent 72%
+  );
+  animation: backend-loading-glow 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Full-width track; the fill spans the entire bar and the gradient flows. */
+.barTrack {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.pageDark .barTrack {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.barFill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    #ff7f16 0%,
+    #ffb45e 20%,
+    #ff7f16 40%,
+    #ff5f6d 60%,
+    #ffa940 80%,
+    #ff7f16 100%
+  );
+  background-size: 300% 100%;
+  animation: backend-loading-gradient 2.2s linear infinite;
+}
+
+/* Failed state: solid error color, no animation. */
+.failed .barFill {
+  background: var(--majo-error-color);
+  animation: none;
 }
 
 .progressLabel {
-  color: #333;
+  margin-top: 10px;
+  color: #555;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
 }
 
 .pageDark .progressLabel {
   color: rgba(255, 255, 255, 0.85);
 }
 
+/* --- Status text ---------------------------------------------------------- */
+
 .statusText {
   color: #333;
   font-size: 16px;
   font-weight: 500;
   margin: 16px 0 0;
+  animation: backend-loading-text-in 0.35s ease-out;
 }
 
 .pageDark .statusText {
   color: rgba(255, 255, 255, 0.85);
+}
+
+/* Rotating AI fun-fact line shown while waiting. */
+.tip {
+  min-height: 44px;
+  margin: 18px 0 0;
+  padding: 0 8px;
+  color: #777;
+  font-size: 13px;
+  line-height: 1.6;
+  animation: backend-loading-text-in 0.5s ease-out;
+}
+
+.pageDark .tip {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .failedText,
