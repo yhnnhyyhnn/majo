@@ -9,7 +9,7 @@
     "build:prod": "tsc -b && vite build --mode production",
     "build:tauri-bootstrap": "tsc -b && vite build --mode tauri --config src-tauri/vite.bootstrap.config.ts && node ../scripts/pack-tauri/finalize_tauri_bootstrap.mjs",
     "build:test": "tsc -b && vite build --mode test",
-    "desktop:dev": "electron electron/main.js",
+    "desktop:dev": "electron electron/main.cjs",
     "desktop:start": "npm run build:prod && npm run build:tauri-bootstrap && electron .",
     "desktop:dist": "electron-builder --win nsis --config electron-builder.yml",
     "format": "tsc -b --noEmit && prettier --write --cache .",

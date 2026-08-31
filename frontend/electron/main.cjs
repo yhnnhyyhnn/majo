@@ -13,8 +13,9 @@
  * The renderer has no Node access; native capabilities are exposed through
  * preload.cjs contextBridge (`window.majoDesktop`).
  */
-const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, protocol, net } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage, protocol, net } = require("electron");
 const { spawn } = require("node:child_process");
+const http = require("node:http");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -563,7 +564,6 @@ function createWindow() {
         .then((s) => logMain(`[page] dom(late): ${s}`))
         .catch((err) => logMain(`[page] dom dump failed: ${err}`));
     }, 2000);
-  });
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
