@@ -2,6 +2,8 @@
 
 > **状态：✅ 完整** — 基于 [ADR-0006](../08-ADR/ADR-0006-java-agentscope.md)（推翻 ADR-0001，选 Java + AgentScope Java 2.0）。本文档覆盖：技术栈、AgentScope 覆盖度映射、分层设计、Maven 多模块结构、自研模块实现路径。
 
+> **⚠️ 实现现状说明**：本文档是**目标架构愿景**，部分选型与当前仓库的实际实现不同。当前仓库（majo）的实际状态：桌面端采用 **Tauri 2（Rust 壳）+ 内置 jlink JRE + React 前端**（见根目录 README「桌面应用」章节），数据库为 **H2（file）**，前端为 **React + Vite**。本文的 Compose/JavaFX 桌面、SQLite、GraalVM 原生、CLI/TUI 等属于远期规划，不构成当前代码的事实描述。
+
 ## 1. 技术栈
 
 | 领域 | 选型 | 说明 |

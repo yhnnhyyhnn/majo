@@ -57,16 +57,18 @@ Majo 可以打包成原生桌面应用：`frontend/src-tauri/` 是一套 Tauri 2
 .\scripts\pack-tauri\build-desktop.ps1
 ```
 
-脚本一条龙完成：前端构建 → dist 拷入后端 `static/` → `mvn package` → jlink 裁剪 JRE → 拷贝 jar 到 `src-tauri/binaries/` → `tauri build`。
+脚本一条龙完成：前端构建 → dist 拷入后端 `static/` → `mvn package` → jlink 裁剪 JRE → **AppCDS 训练生成 `app.jsa`** → 拷贝 jar 到 `src-tauri/binaries/` → `tauri build`。
 
 常用参数：
 
 ```powershell
-# 只准备产物（jre + jar + static），不跑 tauri build
+# 只准备产物（jre + jar + static + app.jsa），不跑 tauri build
 .\scripts\pack-tauri\build-desktop.ps1 -SkipTauriBuild
 ```
 
-产物输出到 `frontend/src-tauri/target/release/bundle/`（Windows 下为 NSIS 安装器 + 免安装目录）。
+产物输出到 `frontend/src-tauri/target/release/bundle/`（Windows 下为 NSIS 安装器 + 免安装目录），可直接双击的免安装版在 `frontend/src-tauri/target/release/majo-desktop.exe`。
+
+> ⚠️ 注意：`majo-desktop.exe` 依赖同级的 `binaries/` 目录（内置 jre + jar + app.jsa），分发给用户时请使用安装器或保持目录完整，不要单独拷 exe。
 
 ### 桌面开发（dev 模式）
 
@@ -76,6 +78,25 @@ npm run desktop:dev   # tauri dev，需先 mvn package 生成 backend/target/maj
 ```
 
 dev 模式壳直接 `java -jar backend/target/majo-backend.jar` 启动后端（jar 不存在时启动页会给出明确报错提示）。
+
+### 启动优化
+
+桌面版侧载时对启动速度做了三项优化，使后端从约 12s 就绪降至约 6s：
+
+1. **AppCDS 归档**：打包脚本在构建时用 jlink JRE 训练运行一次后端，生成 `app.jsa` 随应用分发。运行时 Rust 壳加 `-XX:SharedArchiveFile=app.jsa` 跳过应用类加载，减少类加载耗时。
+2. **JVM 参数**：`-XX:TieredStopAtLevel=1`（只用 C1 编译器，加快启动）+ `-Xmx1g`（限制堆大小）。
+3. **桌面 profile 懒加载**：后端启动时通过 `SPRING_PROFILES_ACTIVE=desktop` 激活 `application-desktop.yml`，开启 `spring.main.lazy-initialization=true` 并关闭 springdoc，非关键 Bean 延迟到首次请求才初始化。
+
+> 浏览器/Docker 部署不受影响（不激活 desktop profile）。
+
+### 桌面加载页
+
+桌面版启动等待期展示一个品牌化加载页（`frontend/src/tauri/BackendLoadingPage.tsx`）：
+
+- **流动渐变进度条**：整条进度条以橙→亮橙→粉→金的渐变色循环流动（不确定进度条，不按百分比），直到后端就绪进入界面
+- **AI 趣味内容轮播**：等待时每 5 秒随机切换一条 AI 相关趣味内容（中英双语各 25 条，文案在 `src/locales/*.json` 的 `startup.tips` 数组）
+- 环境光斑、logo 浮动、卡片毛玻璃入场等动画，营造品牌化启动体验
+- 加载失败/超时时显示错误提示与重试按钮（正常加载不显示状态文字）
 
 ## 数据目录（WORKING_DIR）
 
@@ -209,6 +230,7 @@ majo/
 │   │   └── repository/
 │   ├── src/main/resources/
 │   │   ├── application.yml                  # 服务端口 + DB 配置
+│   │   ├── application-desktop.yml          # 桌面 profile (lazy-init + 关 swagger)
 │   │   ├── builtin-skills/                  # 17 个内置技能 (classpath)
 │   │   └── db/migration/                    # Flyway 迁移脚本 (V1-V24)
 │   └── local-repo/                          # AgentScope jar (本地 Maven 仓库)
@@ -218,14 +240,18 @@ majo/
 │   │   ├── pages/Settings/                  # 设置页面
 │   │   ├── stores/agentStore.ts             # 多Agent 前端状态
 │   │   ├── api/modules/                     # API 客户端
-│   │   └── tauri/                           # 桌面引导/轮询/更新 (仅桌面构建)
+│   │   └── tauri/                           # 桌面引导/加载页/更新 (仅桌面构建)
+│   │       ├── BackendLoadingPage.tsx       # 加载页 (流动渐变进度条 + AI 趣味内容)
+│   │       ├── BackendReadyGate.tsx         # 后端就绪门控
+│   │       └── backendRuntime.ts            # Tauri invoke/URL 解析
 │   ├── src-tauri/                          # Tauri 2 桌面壳 (Rust)
 │   │   ├── src/                            # sidecar 生命周期/托盘/更新/优雅停机
+│   │   ├── icons/                          # 应用图标 (tauri icon 生成)
 │   │   ├── tauri.conf.json                 # 窗口/打包/安全配置
 │   │   └── capabilities/ permissions/      # Tauri 2 权限声明
 ├── scripts/pack-tauri/
-│   ├── build-desktop.ps1                   # 桌面打包一条龙 (前端+jlink+tauri build)
-│   └── finalize_tauri_bootstrap.mjs        # bootstrap 产物收尾 (no-op)
+│   ├── build-desktop.ps1                   # 桌面打包一条龙 (前端+jlink+AppCDS+tauri build)
+│   └── finalize_tauri_bootstrap.mjs        # 构建后把 tauri.html 复制为 index.html
 ├── data/majo/                               # 运行时数据目录 (自动创建)
 ├── Dockerfile
 ├── docker-compose.yml
@@ -336,6 +362,8 @@ Flyway 会自动在 PostgreSQL 上执行已有迁移脚本。
 | 迁移工具 | Flyway 10 |
 | ORM | Spring Data JPA + Hibernate 6 |
 | 前端 | React + Vite + @agentscope-ai/chat |
-| 桌面壳（可选） | Tauri 2（Rust，sidecar 模式，内置 jlink JRE） |
+| 桌面壳（可选） | Tauri 2（Rust，sidecar 模式，内置 jlink JRE + AppCDS 归档） |
+| 桌面打包 | scripts/pack-tauri/build-desktop.ps1（jlink + AppCDS + NSIS） |
 | 部署 | Docker + Docker Compose + GitHub Actions |
 | Java | 21 |
+| Rust | 1.77+（rust-version = 1.77.2） |
