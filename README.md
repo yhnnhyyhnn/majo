@@ -1,5 +1,7 @@
 # Majo — AI Coding Agent
 
+[中文](README.md) | [English](README.en.md)
+
 Spring Boot + AgentScope + React + H2 + Flyway + Tauri（桌面可选）
 
 ## 架构
