@@ -173,7 +173,7 @@ public class ChannelDispatcher {
         return HarnessAgent.builder()
                 .name(agentId)
                 .agentId(agentId)
-                .sysPrompt(SYS_PROMPT)
+                .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
                 .model(model)
                 .toolkit(toolkit)
                 .workspace(workspaceFor(agentId))

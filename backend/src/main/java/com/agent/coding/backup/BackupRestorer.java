@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -190,6 +191,29 @@ public class BackupRestorer {
                     Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
                 }
             }
+        }
+        // Restored secrets (.master_key, provider keys) must not keep the
+        // archive's umask-derived bits: dirs 0700, files 0600. Ported from
+        // QwenPaw backup restore (_harden_secret_dir). No-op without POSIX.
+        hardenSecretDir(dest);
+    }
+
+    private static void hardenSecretDir(Path dir) {
+        if (!dir.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+            return;
+        }
+        try (var stream = Files.walk(dir)) {
+            for (Path p : (Iterable<Path>) stream::iterator) {
+                if (p.equals(dir)) {
+                    continue;
+                }
+                Files.setPosixFilePermissions(p, p.toFile().isDirectory()
+                        ? PosixFilePermissions.fromString("rwx------")
+                        : PosixFilePermissions.fromString("rw-------"));
+            }
+            Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("rwx------"));
+        } catch (Exception e) {
+            // Best effort — never fail the restore over permission hardening.
         }
     }
 

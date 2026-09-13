@@ -129,6 +129,7 @@ public class SubagentService {
                     registry.fail(entry.taskId, "Agent '" + agentId + "' 未配置有效的活动模型");
                     return;
                 }
+                entry.agent = agent;
                 String result = runAgent(agent, task, "task-" + entry.taskId);
                 registry.complete(entry.taskId, result);
             } catch (Exception e) {
@@ -176,7 +177,7 @@ public class SubagentService {
         return HarnessAgent.builder()
                 .name(agentId)
                 .agentId(agentId)
-                .sysPrompt(SYS_PROMPT)
+                .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
                 .model(model)
                 .toolkit(toolkit)
                 .workspace(workspace)

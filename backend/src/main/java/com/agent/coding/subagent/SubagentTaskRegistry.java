@@ -28,6 +28,8 @@ public class SubagentTaskRegistry {
         public volatile String status;   // running | completed | failed | cancelled
         public volatile String result;
         public volatile String error;
+        /** Live agent while running — cancelled/interrupted on stop. */
+        public volatile io.agentscope.harness.agent.HarnessAgent agent;
 
         public Task(String taskId, String agentId) {
             this.taskId = taskId;
@@ -73,6 +75,15 @@ public class SubagentTaskRegistry {
             return false;
         }
         task.status = "cancelled";
+        // Propagate cancellation into the running agent instead of only
+        // flipping the status flag (QwenPaw #7349 semantics).
+        io.agentscope.harness.agent.HarnessAgent agent = task.agent;
+        if (agent != null) {
+            try {
+                agent.interrupt();
+            } catch (Exception ignored) {
+            }
+        }
         return true;
     }
 

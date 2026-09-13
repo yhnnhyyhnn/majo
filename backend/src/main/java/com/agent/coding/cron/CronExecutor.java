@@ -238,7 +238,7 @@ public class CronExecutor {
         }
         return HarnessAgent.builder()
             .name(agentName)
-            .sysPrompt(SYS_PROMPT)
+            .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
             .model(createModel(agentId))
             .toolkit(toolkit)
             .workspace(wsPath)

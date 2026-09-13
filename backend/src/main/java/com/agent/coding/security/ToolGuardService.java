@@ -246,6 +246,23 @@ public class ToolGuardService {
 
         Map<String, Object> inputSafe = input == null ? Map.of() : input;
 
+        // POSIX removes backslash-newline continuations before tokenization.
+        // Give every check the same effective command so path and regex rules
+        // cannot be bypassed by splitting a sensitive token across physical
+        // lines. The original input stays in logs for faithful auditing.
+        // Ported from QwenPaw tool_guard engine (shell line-continuation fix).
+        Map<String, Object> matchInput = inputSafe;
+        if (SHELL_TOOLS.contains(toolName) && ShellNormalization.isPosixHost()) {
+            Object command = inputSafe.get("command");
+            if (command instanceof String cmd) {
+                String normalized = ShellNormalization.normalizePosixLineContinuations(cmd);
+                if (!normalized.equals(cmd)) {
+                    matchInput = new LinkedHashMap<>(inputSafe);
+                    matchInput.put("command", normalized);
+                }
+            }
+        }
+
         // 3) Built-in rules (minus disabled_rules)
         List<String> disabled = toStringList(cfg.get("disabled_rules"));
         for (CompiledRule rule : COMPILED) {
@@ -255,7 +272,7 @@ public class ToolGuardService {
             if (!rule.def().tools().contains(toolName)) {
                 continue;
             }
-            if (rule.matches(inputSafe)) {
+            if (rule.matches(matchInput)) {
                 log.warn("[tool-guard] rule '{}' blocked tool '{}' input={}",
                         rule.def().id(), toolName, inputSafe);
                 return "Tool Guard: " + rule.def().description()
@@ -281,7 +298,7 @@ public class ToolGuardService {
                     continue;
                 }
                 for (String param : params) {
-                    Object v = inputSafe.get(param);
+                    Object v = matchInput.get(param);
                     if (v == null) {
                         continue;
                     }
@@ -300,7 +317,7 @@ public class ToolGuardService {
 
         // 5) Shell evasion heuristics for shell tools
         if (SHELL_TOOLS.contains(toolName)) {
-            Object command = inputSafe.get("command");
+            Object command = matchInput.get("command");
             if (command instanceof String cmd && !cmd.isBlank()) {
                 Object checks = cfg.get("shell_evasion_checks");
                 Map<String, Object> checkMap = checks instanceof Map<?, ?> cm

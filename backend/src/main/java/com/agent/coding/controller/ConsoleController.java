@@ -63,6 +63,7 @@ public class ConsoleController {
     private final com.agent.coding.approval.ApprovalStore approvalStore;
     private final com.agent.coding.security.ToolGuardHook toolGuardHook;
     private final LoopSessionManager loopSessionManager;
+    private final com.agent.coding.service.ActiveTurnRegistry turnRegistry;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
                               ChatService chatService, Toolkit toolkit,
@@ -72,7 +73,8 @@ public class ConsoleController {
                               InboxStore inboxStore,
                               com.agent.coding.approval.ApprovalStore approvalStore,
                               com.agent.coding.security.ToolGuardHook toolGuardHook,
-                              LoopSessionManager loopSessionManager) {
+                              LoopSessionManager loopSessionManager,
+                              com.agent.coding.service.ActiveTurnRegistry turnRegistry) {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
         this.chatService = chatService;
@@ -84,6 +86,7 @@ public class ConsoleController {
         this.approvalStore = approvalStore;
         this.toolGuardHook = toolGuardHook;
         this.loopSessionManager = loopSessionManager;
+        this.turnRegistry = turnRegistry;
     }
 
     @PostMapping(value = "/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -116,6 +119,7 @@ public class ConsoleController {
         taskTracker.setRunning(chatId);
 
         HarnessAgent agent = resolveAgent(workspace, agentId);
+        turnRegistry.register(chatId, agent);
 
         var ctx = RuntimeContext.builder()
             .sessionId(sessionId)
@@ -228,6 +232,7 @@ public class ConsoleController {
                 sseEvent(QwenEvents.turnUsage(sessionId, seq, usageHolder.inputTokens, usageHolder.outputTokens))
             ))
         ).doFinally(sig -> {
+            turnRegistry.unregister(chatId);
             taskTracker.setDone(chatId);
             saveConsoleMessages(chatId, prompt, completedMessages);
             chatService.setStatus(chatId, "idle");
@@ -338,6 +343,7 @@ public class ConsoleController {
         taskTracker.setRunning(chatId);
 
         HarnessAgent agent = resolveAgent(workspace, agentId);
+        turnRegistry.register(chatId, agent);
         var ctx = RuntimeContext.builder()
             .sessionId(sessionId)
             .userId(Objects.toString(body.getOrDefault("user_id", "web-user"), "web-user"))
@@ -362,6 +368,7 @@ public class ConsoleController {
             runLoopTurns(agent, cmd.goal().isBlank() ? rawPrompt : cmd.goal(),
                     ctx, sessionId, seq, usageHolder, completedMessages, session, responseId, cmd.modeId())
         ).doFinally(sig -> {
+            turnRegistry.unregister(chatId);
             loopSessionManager.end(sessionId);
             taskTracker.setDone(chatId);
             saveConsoleMessages(chatId, firstUserText, completedMessages);
@@ -650,8 +657,25 @@ public class ConsoleController {
     }
 
     @PostMapping("/console/chat/stop")
-    public StatusResponse stopChat() {
-        return StatusResponse.ok();
+    public Map<String, Object> stopChat(
+            @RequestParam(value = "chat_id", required = false) String chatId) {
+        boolean stopped = false;
+        if (chatId != null && !chatId.isBlank()) {
+            // Interrupt the live agent turn — the harness unwinds the model
+            // call and tool executions (stop-cancellation propagation,
+            // QwenPaw #7349). doFinally on the stream then runs cleanup.
+            stopped = turnRegistry.stop(chatId);
+            if (stopped) {
+                try {
+                    chatService.setStatus(chatId, "idle");
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("status", "ok");
+        resp.put("stopped", stopped);
+        return resp;
     }
 
     @GetMapping("/loops/status")
@@ -912,7 +936,7 @@ public class ConsoleController {
         return HarnessAgent.builder()
             .name(agentId)
             .agentId(agentId)
-            .sysPrompt(SYS_PROMPT)
+            .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
             .model(createModel(agentId))
             .toolkit(toolkit)
             .workspace(wsPath)

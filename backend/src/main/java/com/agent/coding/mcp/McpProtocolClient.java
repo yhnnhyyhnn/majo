@@ -43,7 +43,9 @@ public class McpProtocolClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String PROTOCOL_VERSION = "2024-11-05";
-    private static final int TIMEOUT_MS = 10_000;
+    /** Default request timeout for stdio RPC waits and HTTP/SSE calls. */
+    public static final long DEFAULT_HTTP_TIMEOUT_MS = 10_000;
+
 
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -52,6 +54,10 @@ public class McpProtocolClient {
 
     /**
      * Resolved endpoint description ready for a protocol call.
+     *
+     * @param httpTimeoutMs  per-endpoint timeout for the HTTP/SSE transports
+     *                       ({@code http_timeout} config, seconds → ms);
+     *                       stdio waits use {@link #DEFAULT_HTTP_TIMEOUT_MS}
      */
     public record ClientEndpoint(
             String transport,
@@ -60,7 +66,16 @@ public class McpProtocolClient {
             String command,
             List<String> args,
             Map<String, String> env,
-            String cwd) {}
+            String cwd,
+            long httpTimeoutMs) {
+
+        /** Convenience constructor using the client default timeout. */
+        public ClientEndpoint(String transport, String url, Map<String, String> headers,
+                              String command, List<String> args,
+                              Map<String, String> env, String cwd) {
+            this(transport, url, headers, command, args, env, cwd, DEFAULT_HTTP_TIMEOUT_MS);
+        }
+    }
 
     /**
      * Connect and list tools. Each returned map has keys
@@ -148,7 +163,7 @@ public class McpProtocolClient {
         reader.start();
 
         try {
-            out.addAll(result.get(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+            out.addAll(result.get(DEFAULT_HTTP_TIMEOUT_MS, TimeUnit.MILLISECONDS));
         } finally {
             process.destroy();
             if (!process.waitFor(2, TimeUnit.SECONDS)) process.destroyForcibly();
@@ -201,7 +216,7 @@ public class McpProtocolClient {
                 jsonRpc(1, "initialize", initParams()));
 
         HttpRequest.Builder initReq = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofSeconds(TIMEOUT_MS))
+                .timeout(Duration.ofMillis(ep.httpTimeoutMs()))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json, text/event-stream");
         applyHeaders(initReq, ep.headers());
@@ -216,7 +231,7 @@ public class McpProtocolClient {
 
         String toolsJson = MAPPER.writeValueAsString(jsonRpc(2, "tools/list", null));
         HttpRequest.Builder toolsReq = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofSeconds(TIMEOUT_MS))
+                .timeout(Duration.ofMillis(ep.httpTimeoutMs()))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json, text/event-stream");
         applyHeaders(toolsReq, ep.headers());
@@ -279,7 +294,7 @@ public class McpProtocolClient {
         // 1. Open the SSE stream and wait for the `endpoint` event.
         URI sseUri = URI.create(ep.url());
         HttpRequest.Builder sseReq = HttpRequest.newBuilder(sseUri)
-                .timeout(Duration.ofSeconds(TIMEOUT_MS))
+                .timeout(Duration.ofMillis(ep.httpTimeoutMs()))
                 .header("Accept", "text/event-stream");
         applyHeaders(sseReq, ep.headers());
         sseReq.GET();

@@ -126,11 +126,27 @@ public class McpService {
                 stringList(endpoint.get("args")),
                 env,
                 str(endpoint.get("cwd")),
+                httpTimeoutSecondsOrNull(endpoint.get("http_timeout")),
                 config.containsKey("tools") ? stringListOrNull(config.get("tools")) : null,
                 oauthStatusOf(oauthCredential),
                 new McpModels.McpAccessSummary(
                         McpPolicy.defaultEffectOf(asMap(card.get("policy"))),
                         McpPolicy.countToolAccessOverrides(asMap(card.get("policy")))));
+    }
+
+    /** Normalized http_timeout (seconds) for the info payload, null = default. */
+    private static Double httpTimeoutSecondsOrNull(Object value) {
+        if (value instanceof Number n && n.doubleValue() > 0) {
+            return n.doubleValue();
+        }
+        if (value instanceof String s && !s.isBlank()) {
+            try {
+                double v = Double.parseDouble(s.trim());
+                if (v > 0) return v;
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
     }
 
     /** Port of card_builder._oauth_status. */
@@ -226,8 +242,26 @@ public class McpService {
                 str(endpoint.get("command")),
                 stringList(endpoint.get("args")),
                 env,
-                str(endpoint.get("cwd")));
+                str(endpoint.get("cwd")),
+                httpTimeoutMs(endpoint.get("http_timeout")));
         return protocolClient.listTools(resolved);
+    }
+
+    /** Per-endpoint HTTP/SSE timeout in ms (config in seconds, > 0). */
+    static long httpTimeoutMs(Object httpTimeout) {
+        double seconds = 0;
+        if (httpTimeout instanceof Number n) {
+            seconds = n.doubleValue();
+        } else if (httpTimeout instanceof String s && !s.isBlank()) {
+            try {
+                seconds = Double.parseDouble(s.trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        if (seconds <= 0) {
+            return McpProtocolClient.DEFAULT_HTTP_TIMEOUT_MS;
+        }
+        return Math.max(1, Math.round(seconds * 1000));
     }
 
     private Map<String, String> resolveBindingMap(
@@ -473,6 +507,7 @@ public class McpService {
         applyIfNotNull(data, "args", updates.args());
         applyIfNotNull(data, "env", updates.env());
         applyIfNotNull(data, "cwd", updates.cwd());
+        applyIfNotNull(data, "http_timeout", updates.httpTimeout());
         applyIfNotNull(data, "tools", updates.tools());
 
         return new McpModels.McpClientData(
@@ -486,6 +521,7 @@ public class McpService {
                 asStringList(data.get("args")),
                 asStringMap(data.get("env")),
                 str(data.get("cwd")),
+                httpTimeoutSecondsOrNull(data.get("http_timeout")),
                 asStringListOrNull(data.get("tools")));
     }
 
@@ -597,6 +633,17 @@ public class McpService {
                     split.getKey(), secretRefs, CREDENTIAL_ALIAS_STATIC));
             preserveOauthAuthorizationBinding(existing, endpoint);
         }
+        // Configurable HTTP/SSE timeout in seconds (QwenPaw #7649); > 0 only.
+        Object httpTimeout = data.get("http_timeout");
+        if (httpTimeout instanceof Number n && n.doubleValue() > 0) {
+            endpoint.put("http_timeout", n.doubleValue());
+        } else if (httpTimeout instanceof String s && !s.isBlank()) {
+            try {
+                double v = Double.parseDouble(s.trim());
+                if (v > 0) endpoint.put("http_timeout", v);
+            } catch (NumberFormatException ignored) {
+            }
+        }
 
         Map<String, Object> credentials = new LinkedHashMap<>();
         if (existing != null) credentials.putAll(asMap(existing.get("credentials")));
@@ -660,6 +707,7 @@ public class McpService {
         result.put("env", McpBinding.bindingPlainKeys(
                 asMap(endpoint.get("env")), CREDENTIAL_ALIAS_STATIC));
         result.put("cwd", str(endpoint.get("cwd")));
+        result.put("http_timeout", endpoint.get("http_timeout"));
         return result;
     }
 
@@ -693,6 +741,7 @@ public class McpService {
         map.put("args", client.args());
         map.put("env", client.env());
         map.put("cwd", client.cwd());
+        map.put("http_timeout", client.httpTimeout());
         map.put("tools", client.tools());
         return map;
     }

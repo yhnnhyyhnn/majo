@@ -1,6 +1,7 @@
 package com.agent.coding.tool;
 
 import com.agent.coding.WorkspaceContext;
+import com.agent.coding.security.ShellNormalization;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import org.springframework.stereotype.Component;
@@ -16,8 +17,13 @@ public class ExecuteCommandTool {
         @ToolParam(name = "timeoutSeconds", description = "超时秒数(可选)") Integer timeoutSeconds
     ) {
         int timeout = timeoutSeconds != null ? Math.min(timeoutSeconds, 120) : 60;
+        var os = System.getProperty("os.name").toLowerCase();
+        // POSIX shells drop backslash-newline continuations before parsing;
+        // execute the same spelling the Tool Guard checks saw.
+        if (!os.contains("win")) {
+            command = ShellNormalization.normalizePosixLineContinuations(command);
+        }
         try {
-            var os = System.getProperty("os.name").toLowerCase();
             var pb = os.contains("win")
                 ? new ProcessBuilder("cmd.exe", "/c", command)
                 : new ProcessBuilder("sh", "-c", command);

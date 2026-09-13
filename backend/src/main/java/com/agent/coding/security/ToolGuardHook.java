@@ -3,6 +3,7 @@ package com.agent.coding.security;
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.approval.ApprovalHook;
 import com.agent.coding.tool.MediaPromotionHook;
+import com.agent.coding.tool.ToolCallCoercion;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
@@ -41,15 +42,18 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
     private final FileGuardService fileGuardService;
     private final ApprovalHook approvalHook;
     private final MediaPromotionHook mediaPromotionHook;
+    private final com.agent.coding.agent.ModelRequestNormalizerHook modelRequestNormalizerHook;
 
     public ToolGuardHook(ToolGuardService toolGuardService,
                          FileGuardService fileGuardService,
                          ApprovalHook approvalHook,
-                         MediaPromotionHook mediaPromotionHook) {
+                         MediaPromotionHook mediaPromotionHook,
+                         com.agent.coding.agent.ModelRequestNormalizerHook modelRequestNormalizerHook) {
         this.toolGuardService = toolGuardService;
         this.fileGuardService = fileGuardService;
         this.approvalHook = approvalHook;
         this.mediaPromotionHook = mediaPromotionHook;
+        this.modelRequestNormalizerHook = modelRequestNormalizerHook;
     }
 
     @Override
@@ -67,6 +71,10 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
         // Media promotion (after tool execution)
         if (event instanceof PostActingEvent) {
             return mediaPromotionHook.onEvent(event);
+        }
+        // Media stripping for text-only models (before each model call)
+        if (event instanceof io.agentscope.core.hook.PreReasoningEvent) {
+            return modelRequestNormalizerHook.onEvent(event);
         }
         if (!(event instanceof PreActingEvent acting)) {
             return Mono.just(event);
@@ -90,6 +98,13 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
         @SuppressWarnings("unchecked")
         Map<String, Object> input = toolUse.getInput() instanceof Map<?, ?> m
                 ? (Map<String, Object>) m : Map.of();
+
+        // 0) Schema-guided input coercion (QwenPaw #6839): models sometimes
+        //    emit unquoted numbers/booleans for string-typed parameters,
+        //    which strict validation (notably MCP servers) rejects. Repair
+        //    the input before guards/approval see it, and write the repaired
+        //    block back so the fixed input travels with the context.
+        input = coerceInput(event, toolUse, input);
 
         // 1) Tool Guard
         String toolGuardReason = toolGuardService.check(toolName, input);
@@ -126,6 +141,50 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
                 .content(message)
                 .state(ToolCallState.FINISHED)
                 .build();
+    }
+
+    /**
+     * Coerce the tool input against the tool's registered parameter schema.
+     * No-op when the schema is unavailable or nothing needed coercion.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> coerceInput(HookEvent event, ToolUseBlock toolUse,
+                                                   Map<String, Object> input) {
+        try {
+            Map<String, Object> schema = null;
+            if (event.getAgent() != null && event.getAgent().getToolkit() != null) {
+                for (io.agentscope.core.model.ToolSchema ts : event.getAgent().getToolkit().getToolSchemas()) {
+                    if (toolUse.getName().equals(ts.getName())) {
+                        schema = ts.getParameters();
+                        break;
+                    }
+                }
+            }
+            if (schema == null || schema.isEmpty()) {
+                return input;
+            }
+            ToolCallCoercion.Coerced result = ToolCallCoercion.coerceStringFields(input, schema);
+            if (!result.changed()) {
+                return input;
+            }
+            log.info("[coerce] repaired tool '{}' input to match string-typed schema fields", toolUse.getName());
+            acting(event).setToolUse(ToolUseBlock.builder()
+                    .id(toolUse.getId())
+                    .name(toolUse.getName())
+                    .input(result.input())
+                    .content(toolUse.getContent())
+                    .metadata(toolUse.getMetadata())
+                    .state(toolUse.getState())
+                    .build());
+            return result.input();
+        } catch (Exception e) {
+            log.debug("[coerce] skipped for '{}': {}", toolUse.getName(), e.getMessage());
+            return input;
+        }
+    }
+
+    private static PreActingEvent acting(HookEvent event) {
+        return (PreActingEvent) event;
     }
 
     /** Harness agent name is the majo agent id (set at build time). */

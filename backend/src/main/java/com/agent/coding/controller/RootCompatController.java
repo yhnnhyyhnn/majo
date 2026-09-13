@@ -99,7 +99,7 @@ public class RootCompatController {
             log.warn("Failed to resolve agent '{}', using defaults: {}", agentId, e.getMessage());
         }
 
-        HarnessAgent agent = HarnessAgent.builder().name(agentId).agentId(agentId).sysPrompt(SYS_PROMPT)
+        HarnessAgent agent = HarnessAgent.builder().name(agentId).agentId(agentId).sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
             .model(OpenAIChatModel.builder().apiKey(settingsService.getApiKey()).baseUrl(settingsService.getBaseUrl()).modelName(settingsService.getModelName()).build())
             .toolkit(toolkit).workspace(wsPath).hook(toolGuardHook).build();
         var ctx = RuntimeContext.builder().sessionId(sessionId).userId("web-user").build();

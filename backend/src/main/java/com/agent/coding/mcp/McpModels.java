@@ -69,6 +69,7 @@ public final class McpModels {
             List<String> args,
             Map<String, String> env,
             String cwd,
+            Double httpTimeout,
             List<String> tools,
             McpClientOAuthStatus oauthStatus,
             McpAccessSummary accessSummary) {}
@@ -86,6 +87,7 @@ public final class McpModels {
             List<String> args,
             Map<String, String> env,
             String cwd,
+            Double httpTimeout,
             List<String> tools) {
 
         public McpClientData {
@@ -118,6 +120,7 @@ public final class McpModels {
             List<String> args,
             Map<String, String> env,
             String cwd,
+            Double httpTimeout,
             List<String> tools) {}
 
     // ---- MCPToolInfo ----

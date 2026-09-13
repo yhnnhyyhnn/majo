@@ -110,7 +110,7 @@ public class ChatController {
         return HarnessAgent.builder()
             .name("default")
             .agentId("default")
-            .sysPrompt(SYS_PROMPT)
+            .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
             .model(resolveModel(modelId))
             .toolkit(toolkit)
             .workspace(wsPath)
