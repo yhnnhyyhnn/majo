@@ -1,6 +1,7 @@
 package com.agent.coding.tool;
 
 import com.agent.coding.WorkspaceContext;
+import com.agent.coding.skill.SkillDependencyChecker;
 import com.agent.coding.skill.SkillService;
 import com.agent.coding.skill.SkillStore;
 import io.agentscope.core.tool.Tool;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,8 +40,21 @@ public class MaterializeSkillTool {
             Files.createDirectories(skillDir);
             Path target = skillDir.resolve("SKILL.md");
             Files.writeString(target, skillContent);
+
+            // Validate declared prerequisites (requires.bins/env/mcp) so the
+            // model immediately learns what is missing (QwenPaw #7609).
+            StringBuilder note = new StringBuilder();
+            SkillStore.ParsedSkillRequirements parsed = SkillStore.parseSkillRequirements(fm);
+            for (String error : parsed.errors()) {
+                note.append("\n警告: 声明的 requirements 无效 — ").append(error);
+            }
+            List<String> missing = SkillDependencyChecker.check(parsed.requirements(), System.getenv(), ws);
+            for (String miss : missing) {
+                note.append("\n警告: 前置条件未满足 — ").append(miss);
+            }
+
             return "技能已物化到工作区: " + target + " (" + skillContent.length() + " bytes)\n"
-                    + "技能名: " + name + " — 可在后续任务中按需加载。";
+                    + "技能名: " + name + " — 可在后续任务中按需加载。" + note;
         } catch (com.agent.coding.skill.SkillsError e) {
             return "错误: " + e.getMessage();
         } catch (Exception e) {

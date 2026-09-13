@@ -62,11 +62,15 @@ public final class SkillModels {
         @JsonProperty("source") public String source;
         @JsonProperty("enabled") public Boolean enabled;
         @JsonProperty("channels") public List<String> channels;
+        /** Preload full content without an activation step (QwenPaw #7183). */
+        @JsonProperty("preload") public Boolean preload;
         @JsonProperty("tags") public List<String> tags;
         @JsonProperty("config") public Map<String, Object> config;
         @JsonProperty("last_updated") public String lastUpdated;
         @JsonProperty("emoji") public String emoji;
         @JsonProperty("installed_from") public String installedFrom;
+        /** Declared prerequisites (requires.bins/env/mcp), QwenPaw #7609. */
+        @JsonProperty("requirements") public Map<String, Object> requirements;
     }
 
     // ------------------------------------------------------------------

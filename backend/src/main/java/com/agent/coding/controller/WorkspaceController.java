@@ -38,6 +38,86 @@ public class WorkspaceController {
     );
     private static final DateTimeFormatter ISO = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
+    // ── Import-local source restrictions (QwenPaw #6487 port) ───────
+    // Prevents data exfiltration via import-local. Intentionally separate
+    // from sandbox/file-guard deny lists: this guards the copy-in path.
+
+    /** Import-specific sensitive directory names (case-insensitive). */
+    private static final Set<String> SENSITIVE_DIR_NAMES = Set.of(
+            ".ssh", ".aws", ".gnupg", ".kube", ".docker", ".azure",
+            ".claude", ".password-store");
+
+    /** Sensitive file basenames skipped during copy. */
+    private static final Set<String> SENSITIVE_FILE_NAMES = Set.of(
+            ".env", ".netrc", ".npmrc", ".yarnrc", ".pypirc",
+            ".gitconfig", ".git-credentials", ".terraformrc", ".vault-token");
+
+    /** Multi-component sensitive directory sequences (lowercase). */
+    private static final List<List<String>> SENSITIVE_DIR_SEQUENCES = List.of(
+            List.of(".config", "gcloud"),
+            List.of(".config", "nix"),
+            List.of(".config", "gh"),
+            List.of("library", "keychains"),
+            List.of("library", "cookies"),
+            List.of("library", "application support", "google", "chrome"),
+            List.of("library", "application support", "firefox"),
+            List.of("appdata", "roaming", "gcloud"),
+            List.of("appdata", "roaming", "github cli"),
+            List.of("appdata", "local", "google", "chrome", "user data"),
+            List.of("appdata", "roaming", "mozilla", "firefox"));
+
+    /** Extra artifact dirs ignored during import copy (QwenPaw ignore set). */
+    private static final Set<String> IMPORT_SKIP_NAMES = Set.of(
+            "node_modules", ".next", "dist");
+
+    private static boolean isSensitiveName(String name) {
+        String low = name.toLowerCase(Locale.ROOT);
+        return SENSITIVE_DIR_NAMES.contains(low) || SENSITIVE_FILE_NAMES.contains(low);
+    }
+
+    /** Contiguous subsequence match on already-lowercased part lists. */
+    private static boolean matchesDirSequence(List<String> parts, List<String> seq) {
+        for (int i = 0; i + seq.size() <= parts.size(); i++) {
+            if (parts.subList(i, i + seq.size()).equals(seq)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Reject import source paths outside home or inside sensitive locations.
+     *
+     * @return rejection detail, or {@code null} to allow
+     */
+    static String validateImportSourceForTest(Path source) {
+        return validateImportSource(source);
+    }
+
+    private static String validateImportSource(Path source) {
+        Path home = Path.of(System.getProperty("user.home")).toAbsolutePath().normalize();
+        if (!source.startsWith(home)) {
+            return "Source must be under home directory: " + home;
+        }
+        if (source.equals(home)) {
+            return "Cannot import the entire home directory";
+        }
+        List<String> relParts = new ArrayList<>();
+        home.relativize(source).forEach(p -> relParts.add(p.toString().toLowerCase(Locale.ROOT)));
+        for (String part : relParts) {
+            if (isSensitiveName(part)) {
+                return "Path contains sensitive component: " + part;
+            }
+        }
+        for (List<String> seq : SENSITIVE_DIR_SEQUENCES) {
+            if (matchesDirSequence(relParts, seq)) {
+                return "Path contains sensitive directory sequence: " + String.join("/", seq);
+            }
+        }
+        return null;
+    }
+
+
     private final SettingsService settingsService;
     private final ProviderRepository providerRepo;
     private final ModelConfigRepository modelConfigRepo;
@@ -584,6 +664,12 @@ public class WorkspaceController {
         if (!Files.isDirectory(source)) {
             return ResponseEntity.badRequest().body(Map.of("detail", "Not a directory: " + source));
         }
+        // Restrict the source to prevent arbitrary directory exfiltration
+        // (QwenPaw #6487): under home, not home itself, no sensitive parts.
+        String rejection = validateImportSource(source);
+        if (rejection != null) {
+            return ResponseEntity.status(403).body(Map.of("detail", rejection));
+        }
         String destName = str(body.get("name")).trim();
         if (destName.isEmpty()) {
             destName = source.getFileName().toString();
@@ -667,16 +753,50 @@ public class WorkspaceController {
 
     private static void copyDirectoryExcluding(Path source, Path dest) throws IOException {
         Files.walkFileTree(source, new SimpleFileVisitor<>() {
+            /** Lowercased components of {@code dir} relative to the source root. */
+            private List<String> relPartsLower(Path dir) {
+                List<String> parts = new ArrayList<>();
+                source.relativize(dir).forEach(p -> parts.add(p.toString().toLowerCase(java.util.Locale.ROOT)));
+                return parts;
+            }
+
+            private boolean skipSensitive(Path dir, String name) {
+                if (isSensitiveName(name)) {
+                    return true;
+                }
+                List<String> parts = relPartsLower(dir);
+                parts.add(name.toLowerCase(java.util.Locale.ROOT));
+                for (List<String> seq : SENSITIVE_DIR_SEQUENCES) {
+                    if (matchesDirSequence(parts, seq)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                if (!dir.equals(source) && SKIP_NAMES.contains(dir.getFileName().toString())) {
+                if (attrs.isSymbolicLink()) {
                     return FileVisitResult.SKIP_SUBTREE;
+                }
+                if (!dir.equals(source)) {
+                    String name = dir.getFileName().toString();
+                    if (SKIP_NAMES.contains(name) || IMPORT_SKIP_NAMES.contains(name)
+                            || skipSensitive(dir, name)) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
                 }
                 return FileVisitResult.CONTINUE;
             }
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                if (attrs.isSymbolicLink() || isSensitiveName(file.getFileName().toString())) {
+                    return FileVisitResult.CONTINUE;
+                }
+                if (skipSensitive(file.getParent(), file.getFileName().toString())) {
+                    return FileVisitResult.CONTINUE;
+                }
                 Path rel = source.relativize(file);
                 Path target = dest.resolve(rel);
                 Files.createDirectories(target.getParent());

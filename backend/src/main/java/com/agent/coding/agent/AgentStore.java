@@ -260,7 +260,7 @@ public class AgentStore {
      * directory (default {@code WORKING_DIR/workspaces/{id}}), and persists
      * the profile atomically.  Returns the created profile.
      */
-    public static Map<String, Object> createAgent(Map<String, Object> spec) {
+    public static synchronized Map<String, Object> createAgent(Map<String, Object> spec) {
         ensureAgentsInitialized();
         String id = SkillService.str(spec.get("id"));
         validateNewAgentId(id);
@@ -303,7 +303,7 @@ public class AgentStore {
 
     /** Update mutable fields of an existing agent profile. */
     @SuppressWarnings("unchecked")
-    public static Map<String, Object> updateAgent(String agentId, Map<String, Object> updates) {
+    public static synchronized Map<String, Object> updateAgent(String agentId, Map<String, Object> updates) {
         ensureAgentsInitialized();
         Map<String, Object> config = loadConfig();
         Map<String, Object> profiles = SkillService.asMap(config.get("profiles"));
@@ -471,7 +471,7 @@ public class AgentStore {
     }
 
     /** Set (or clear) the agent's active project directory. */
-    public static void setProjectDir(String agentId, String projectDir) {
+    public static synchronized void setProjectDir(String agentId, String projectDir) {
         ensureAgentsInitialized();
         Map<String, Object> config = loadConfig();
         Map<String, Object> profiles = SkillService.asMap(config.get("profiles"));
@@ -503,7 +503,7 @@ public class AgentStore {
     }
 
     /** Persist the global offload default policy. */
-    public static void setOffloadPolicy(String policy) {
+    public static synchronized void setOffloadPolicy(String policy) {
         ensureAgentsInitialized();
         Map<String, Object> config = loadConfig();
         config.put("offload_policy", policy);
@@ -522,7 +522,7 @@ public class AgentStore {
     }
 
     /** Persist the global ACP node_path at the agents.json root. */
-    public static void setGlobalACPNodePath(String nodePath) {
+    public static synchronized void setGlobalACPNodePath(String nodePath) {
         ensureAgentsInitialized();
         Map<String, Object> config = loadConfig();
         @SuppressWarnings("unchecked")
@@ -537,7 +537,7 @@ public class AgentStore {
      * Used by global config sections (e.g. {@code security}) that live
      * alongside the profile map.
      */
-    public static void updateRoot(String key, Object value) {
+    public static synchronized void updateRoot(String key, Object value) {
         ensureAgentsInitialized();
         Map<String, Object> config = loadConfig();
         if (value == null) {
@@ -571,7 +571,7 @@ public class AgentStore {
 
     /** Delete an agent profile (default agent cannot be deleted). */
     @SuppressWarnings("unchecked")
-    public static void deleteAgent(String agentId) {
+    public static synchronized void deleteAgent(String agentId) {
         ensureAgentsInitialized();
         if (agentId == null || agentId.equals(DEFAULT_AGENT_ID)) {
             throw new SkillsError("Cannot delete the default agent");
@@ -591,7 +591,7 @@ public class AgentStore {
     }
 
     /** Persist the full ordered agent id list. */
-    public static void setAgentOrder(List<String> agentIds) {
+    public static synchronized void setAgentOrder(List<String> agentIds) {
         ensureAgentsInitialized();
         if (agentIds == null) {
             throw new SkillsError("agent_ids must not be null");

@@ -74,9 +74,18 @@ public class SkillService {
                 spec.tags = toStringList(entry.get("tags"));
                 spec.enabled = bool(entry.get("enabled"), false);
                 spec.channels = toStringListOrAll(entry.get("channels"));
+                spec.preload = bool(entry.get("preload"), false);
                 spec.config = asMap(entry.get("config"));
                 spec.lastUpdated = SkillStore.getSkillMtime(skillDir);
                 spec.installedFrom = str(entry.get("installed_from"));
+                Object requirements = skill.get("requirements");
+                if (requirements instanceof Map<?, ?> reqMap) {
+                    Map<String, Object> reqOut = new LinkedHashMap<>();
+                    for (Map.Entry<?, ?> e : reqMap.entrySet()) {
+                        if (e.getKey() != null) reqOut.put(String.valueOf(e.getKey()), e.getValue());
+                    }
+                    spec.requirements = reqOut;
+                }
                 Object emoji = skill.get("emoji");
                 spec.emoji = emoji == null ? null : String.valueOf(emoji);
                 specs.add(spec);
@@ -498,6 +507,25 @@ public class SkillService {
                     Map<String, Object> entry = asMap(ensureSkills(payload).get(skillName));
                     if (entry == null || entry.isEmpty()) return false;
                     entry.put("tags", normalized);
+                    return true;
+                });
+    }
+
+    /** Set whether the skill content is preloaded without an activation
+     *  step (QwenPaw skill preload configuration, #7183). */
+    public boolean setSkillPreload(String name, boolean preload) {
+        String skillName;
+        try {
+            skillName = SkillStore.normalizeSkillDirName(name);
+        } catch (SkillsError e) {
+            return false;
+        }
+        return SkillStore.mutateJson(SkillStore.getWorkspaceSkillManifestPath(workspaceDir),
+                defaultWorkspaceManifest(),
+                payload -> {
+                    Map<String, Object> entry = asMap(ensureSkills(payload).get(skillName));
+                    if (entry == null || entry.isEmpty()) return false;
+                    entry.put("preload", preload);
                     return true;
                 });
     }

@@ -70,13 +70,18 @@ public class ModelDiscoveryService {
                 ProviderModelEntity entity = providerModelRepo
                         .findByProviderIdAndModelId(providerId, id)
                         .orElseGet(ProviderModelEntity::new);
+                boolean isNew = entity.getId() == null;
                 entity.setProviderId(providerId);
                 entity.setModelId(id);
                 entity.setName(node.path("name").asText(id));
                 entity.setProbeSource("openai-models");
-                entity.setMaxTokens(8192);
-                entity.setMaxInputLength(131072);
-                entity.setMaxInputLengthConfigured(false);
+                if (isNew) {
+                    // Defaults only for new rows — preserve user-configured
+                    // limits on existing ones (QwenPaw #7652 semantics).
+                    entity.setMaxTokens(8192);
+                    entity.setMaxInputLength(131072);
+                    entity.setMaxInputLengthConfigured(false);
+                }
                 if (save) {
                     providerModelRepo.save(entity);
                 }

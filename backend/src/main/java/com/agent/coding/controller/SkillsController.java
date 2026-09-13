@@ -783,6 +783,21 @@ public class SkillsController {
         return r;
     }
 
+    /** Set skill preload (full content loaded without activation, #7183). */
+    @PutMapping("/skills/{skill_name}/preload")
+    public Map<String, Object> updateSkillPreload(@PathVariable("skill_name") String skillName,
+                                                  @RequestBody Map<String, Object> body,
+                                                  HttpServletRequest request) {
+        boolean preload = Boolean.TRUE.equals(body.get("preload"))
+                || "true".equalsIgnoreCase(String.valueOf(body.get("preload")));
+        boolean updated = new SkillService(resolveWorkspace(request)).setSkillPreload(skillName, preload);
+        if (!updated) throw new SkillNotFoundException("Skill not found");
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("updated", true);
+        r.put("preload", preload);
+        return r;
+    }
+
     @PutMapping("/skills/{skill_name}/tags")
     public Map<String, Object> updateSkillTags(@PathVariable("skill_name") String skillName,
                                                @RequestBody List<String> tags,
@@ -804,6 +819,29 @@ public class SkillsController {
         if (entry == null || entry.isEmpty()) throw new SkillNotFoundException("Skill not found");
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("config", entry.get("config") != null ? entry.get("config") : new LinkedHashMap<>());
+        return r;
+    }
+
+    /** Validate a skill's declared prerequisites (requires.bins/env/mcp).
+     *  Ported from QwenPaw skill dependency validation (#7609). */
+    @GetMapping("/skills/{skill_name}/dependencies")
+    public Map<String, Object> getSkillDependencies(@PathVariable("skill_name") String skillName,
+                                                    HttpServletRequest request) {
+        Path workspaceDir = resolveWorkspace(request);
+        Path skillDir = SkillStore.getWorkspaceSkillsDir(workspaceDir).resolve(skillName);
+        if (!java.nio.file.Files.isDirectory(skillDir)) {
+            throw new SkillNotFoundException("Skill not found: " + skillName);
+        }
+        Map<String, Object> post = SkillStore.readFrontmatterSafe(skillDir, skillName);
+        SkillStore.ParsedSkillRequirements parsed = SkillStore.parseSkillRequirements(post);
+        List<String> missing = SkillDependencyChecker.check(parsed.requirements(), System.getenv(), workspaceDir);
+
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("name", skillName);
+        r.put("requirements", parsed.requirements().toMap());
+        r.put("declaration_errors", parsed.errors());
+        r.put("missing_dependencies", missing);
+        r.put("dependencies_met", missing.isEmpty() && parsed.errors().isEmpty());
         return r;
     }
 

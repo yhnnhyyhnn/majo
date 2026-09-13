@@ -363,26 +363,97 @@ public class SkillStore {
     // Requirements extraction
     // ------------------------------------------------------------------
 
-    public static Map<String, Object> extractRequirements(Map<String, Object> post) {
-        Map<String, Object> requirements = new HashMap<>();
-        List<String> requireBins = new ArrayList<>();
-        List<String> requireEnvs = new ArrayList<>();
+    /** Declared prerequisites of a skill (QwenPaw SkillRequirements). */
+    public record SkillRequirements(List<String> requireBins, List<String> requireEnvs,
+                                    List<String> requireMcps) {
+        public static final SkillRequirements EMPTY =
+                new SkillRequirements(List.of(), List.of(), List.of());
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("require_bins", requireBins);
+            m.put("require_envs", requireEnvs);
+            m.put("require_mcps", requireMcps);
+            return m;
+        }
+    }
+
+    /** Parsed requirements plus all declaration errors found in frontmatter. */
+    public record ParsedSkillRequirements(SkillRequirements requirements, List<String> errors) {}
+
+    /**
+     * Parse the {@code requires} frontmatter into validated requirements.
+     * Accepted shapes: a bare list of binaries, or a mapping with
+     * {@code bins} (legacy alias {@code bin}), {@code env} and {@code mcp}
+     * lists of non-empty strings; values are stripped and de-duplicated.
+     * Declaration errors are returned instead of silently dropped.
+     * Ported from QwenPaw skill_system store.parse_skill_requirements.
+     */
+    public static ParsedSkillRequirements parseSkillRequirements(Map<String, Object> post) {
+        Object requires = null;
         Object metadata = post.get("metadata");
-        if (metadata instanceof Map<?, ?>) {
-            Object req = ((Map<?, ?>) metadata).get("qwenpaw");
-            if (req instanceof Map<?, ?>) {
-                Object rb = ((Map<?, ?>) req).get("requires");
-                if (rb instanceof Map<?, ?>) {
-                    Object bins = ((Map<?, ?>) rb).get("bin");
-                    Object envs = ((Map<?, ?>) rb).get("env");
-                    if (bins instanceof List<?>) for (Object o : (List<?>) bins) if (o != null) requireBins.add(String.valueOf(o));
-                    if (envs instanceof List<?>) for (Object o : (List<?>) envs) if (o != null) requireEnvs.add(String.valueOf(o));
-                }
+        if (metadata instanceof Map<?, ?> m) {
+            Object qp = m.get("qwenpaw");
+            if (qp instanceof Map<?, ?> q) {
+                requires = q.get("requires");
             }
         }
-        requirements.put("require_bins", requireBins);
-        requirements.put("require_envs", requireEnvs);
-        return requirements;
+        if (requires == null) {
+            requires = post.get("requires");
+        }
+        if (requires == null) {
+            return new ParsedSkillRequirements(SkillRequirements.EMPTY, List.of());
+        }
+        if (requires instanceof List<?> list) {
+            Map<String, Object> asMap = new LinkedHashMap<>();
+            asMap.put("bins", list);
+            requires = asMap;
+        }
+        if (!(requires instanceof Map<?, ?> reqMap)) {
+            return new ParsedSkillRequirements(SkillRequirements.EMPTY,
+                    List.of("requires must be a mapping or a list of binaries"));
+        }
+
+        Map<String, List<String>> normalized = new LinkedHashMap<>();
+        List<String> errors = new ArrayList<>();
+        for (String key : List.of("bins", "env", "mcp")) {
+            Object values = reqMap.get(key);
+            if (values == null && "bins".equals(key)) {
+                values = reqMap.get("bin"); // legacy singular alias
+            }
+            if (values == null) {
+                normalized.put(key, List.of());
+                continue;
+            }
+            if (!(values instanceof List<?> list)) {
+                errors.add("requires." + key + " must be a list of non-empty strings");
+                normalized.put(key, List.of());
+                continue;
+            }
+            List<String> accepted = new ArrayList<>();
+            boolean invalid = false;
+            for (Object value : list) {
+                if (!(value instanceof String s) || s.isBlank()) {
+                    invalid = true;
+                    break;
+                }
+                accepted.add(s.trim());
+            }
+            if (invalid) {
+                errors.add("requires." + key + " must be a list of non-empty strings");
+                normalized.put(key, List.of());
+                continue;
+            }
+            normalized.put(key, List.copyOf(new LinkedHashSet<>(accepted)));
+        }
+        return new ParsedSkillRequirements(
+                new SkillRequirements(normalized.get("bins"), normalized.get("env"), normalized.get("mcp")),
+                errors);
+    }
+
+    /** Manifest-facing requirements map for one skill. */
+    public static Map<String, Object> extractRequirements(Map<String, Object> post) {
+        return parseSkillRequirements(post).requirements().toMap();
     }
 
     /** Build the manifest-facing metadata for one skill directory. */

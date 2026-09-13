@@ -94,12 +94,21 @@ class WorkspaceControllerTest {
     @Test
     void codingProjectCreateMakesDir() throws Exception {
         String unique = "cp-test-" + System.currentTimeMillis();
-        mockMvc.perform(post("/api/workspace/coding-project/create")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"" + unique + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value(unique))
-                .andExpect(jsonPath("$.path").isString());
+        try {
+            mockMvc.perform(post("/api/workspace/coding-project/create")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\": \"" + unique + "\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value(unique))
+                    .andExpect(jsonPath("$.path").isString());
+        } finally {
+            // Create sets the agent's project_dir; clear it so the shared
+            // agents.json stays in its default state for other assertions.
+            mockMvc.perform(put("/api/workspace/coding-project")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"path\": null}"))
+                    .andExpect(status().isOk());
+        }
     }
 
     @Test
@@ -246,5 +255,16 @@ class WorkspaceControllerTest {
                         .header("X-Agent-Id", "default"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.files[0].status").value("uploaded"));
+    }
+
+    @Test
+    void importLocalRejectsSensitiveSourceDir() throws Exception {
+        // import-local must refuse sources containing sensitive components
+        // (QwenPaw #6487). Pure path logic — no filesystem interaction.
+        java.nio.file.Path home = java.nio.file.Path.of(System.getProperty("user.home"));
+        String rejection = WorkspaceController.validateImportSourceForTest(
+                home.resolve(".ssh").resolve("keys"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                rejection != null && rejection.contains("sensitive component"));
     }
 }

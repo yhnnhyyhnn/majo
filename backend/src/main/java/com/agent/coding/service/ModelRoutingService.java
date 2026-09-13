@@ -96,7 +96,10 @@ public class ModelRoutingService {
     // ── Context size (.get_context_size(model_id)) ───
 
     /** Get the effective max input length (context window) for a model.
-     *  Returns null when unresolvable —. */
+     *  Only real context metadata is consulted — the model's output limit
+     *  (max_tokens) is a different dimension and must not stand in for the
+     *  context window (QwenPaw output-vs-request-limit separation #7337).
+     *  Returns null when unresolvable. */
     public Integer getContextSize(String providerId, String modelId) {
         if (providerId == null || modelId == null) return null;
         var provider = providerRepo.findById(providerId).orElse(null);
@@ -106,8 +109,7 @@ public class ModelRoutingService {
                 Integer ctx = opt.get().getMaxInputLength();
                 if (ctx != null && ctx > 0) return ctx;
             }
-            // Fallback: resolve via max_tokens
-            return opt.map(ProviderModelEntity::getMaxTokens).orElse(null);
+            return null;
         }
         try {
             long id = Long.parseLong(providerId);
@@ -181,11 +183,17 @@ public class ModelRoutingService {
                 .build();
         }
         log.info("Building chat model for {}/{} via {}", providerId, modelId, conn.baseUrl);
-        return OpenAIChatModel.builder()
+        var builder = OpenAIChatModel.builder()
             .apiKey(conn.apiKey)
             .baseUrl(conn.baseUrl)
-            .modelName(modelId != null ? modelId : "gpt-4o-mini")
-            .build();
+            .modelName(modelId != null ? modelId : "gpt-4o-mini");
+        // Carry the provider-resolved context window onto the model instance
+        // instead of leaving the framework default in place (QwenPaw #7652).
+        Integer ctx = getContextSize(providerId, modelId);
+        if (ctx != null && ctx > 0) {
+            builder.contextWindowSize(ctx);
+        }
+        return builder.build();
     }
 
     // ── Active model persistence (+ agent scope) ─
