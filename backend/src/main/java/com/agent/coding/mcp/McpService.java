@@ -2,10 +2,12 @@ package com.agent.coding.mcp;
 
 import com.agent.coding.entity.ChatEntity;
 import com.agent.coding.repository.ChatRepository;
+import io.agentscope.harness.agent.tools.McpServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -44,9 +46,21 @@ public class McpService {
 
     private final ChatRepository chatRepository;
     private final McpProtocolClient protocolClient = new McpProtocolClient();
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
-    public McpService(ChatRepository chatRepository) {
+    public McpService(ChatRepository chatRepository,
+                      org.springframework.context.ApplicationEventPublisher eventPublisher) {
         this.chatRepository = chatRepository;
+        this.eventPublisher = eventPublisher;
+    }
+
+    /** Notify the tool bridge that a client card changed (ADR-0007). */
+    private void publishCardChanged(String clientKey) {
+        try {
+            eventPublisher.publishEvent(new McpCardChangedEvent(clientKey));
+        } catch (Exception e) {
+            log.debug("Failed to publish MCP card change for '{}': {}", clientKey, e.getMessage());
+        }
     }
 
     // ------------------------------------------------------------------
@@ -214,6 +228,7 @@ public class McpService {
         config.put("tools", tools);
         card.put("config", config);
         McpStore.saveCard(clientKey, card);
+        publishCardChanged(clientKey);
         try {
             return listTools(clientKey);
         } catch (McpException e) {
@@ -274,6 +289,98 @@ public class McpService {
             result.put(e.getKey(), value);
         }
         return result;
+    }
+
+    // ------------------------------------------------------------------
+    // Toolkit registration assembly (ADR-0007)
+    // ------------------------------------------------------------------
+
+    /**
+     * Assemble harness {@code McpServerConfig} for every enabled client card.
+     *
+     * @return configs keyed by client key; empty when nothing is enabled
+     */
+    public Map<String, McpServerConfig> buildServerConfigs() {
+        Map<String, McpServerConfig> result = new LinkedHashMap<>();
+        for (Map<String, Object> card : listCards()) {
+            String key = str(card.get("name"));
+            if (key.isEmpty() || !asBool(card.get("enabled"), true)) {
+                continue;
+            }
+            McpServerConfig cfg = buildServerConfig(key, card);
+            if (cfg != null) {
+                result.put(key, cfg);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Assemble the harness config for one client card.
+     *
+     * @return null when the card is missing or disabled
+     */
+    public McpServerConfig buildServerConfig(String clientKey) {
+        Map<String, Object> card = McpStore.loadCardOrNull(clientKey);
+        if (card == null || !asBool(card.get("enabled"), true)) {
+            return null;
+        }
+        return buildServerConfig(clientKey, card);
+    }
+
+    private McpServerConfig buildServerConfig(String clientKey, Map<String, Object> card) {
+        try {
+            Map<String, Object> endpoint = asMap(card.get("endpoint"));
+            Map<String, Object> config = asMap(card.get("config"));
+            Map<String, String> staticSecrets = secretsOf(McpStore.loadCredentialOrNull(
+                    McpStore.mcpCredentialRef(clientKey)));
+            Map<String, String> oauthSecrets = secretsOf(McpStore.loadCredentialOrNull(
+                    McpStore.mcpOauthCredentialRef(clientKey)));
+
+            McpServerConfig cfg = new McpServerConfig();
+            String transport = str(endpoint.get("transport"));
+            if (transport.isEmpty()) transport = TRANSPORT_STDIO;
+            cfg.setTransport(mapTransportForRegistrar(transport));
+            if (TRANSPORT_STDIO.equals(transport)) {
+                cfg.setCommand(str(endpoint.get("command")));
+                cfg.setArgs(stringList(endpoint.get("args")));
+                cfg.setEnv(resolveBindingMap(
+                        asMap(endpoint.get("env")), staticSecrets, oauthSecrets));
+                // Note: McpServerConfig has no working-directory support —
+                // stdio servers launch in the process CWD.
+            } else {
+                cfg.setUrl(str(endpoint.get("url")));
+                cfg.setHeaders(resolveBindingMap(
+                        asMap(endpoint.get("headers")), staticSecrets, oauthSecrets));
+            }
+            long timeoutMs = httpTimeoutMs(endpoint.get("http_timeout"));
+            if (endpoint.get("http_timeout") != null && timeoutMs != McpProtocolClient.DEFAULT_HTTP_TIMEOUT_MS) {
+                Duration timeout = Duration.ofMillis(timeoutMs);
+                cfg.setTimeout(timeout);
+                cfg.setInitializationTimeout(timeout);
+            }
+            // Registration-time whitelist: non-listed tools are never
+            // exposed to the model (QwenPaw #7504 semantics).
+            List<String> whitelist = config.containsKey("tools")
+                    ? stringListOrNull(config.get("tools")) : null;
+            if (whitelist != null && !whitelist.isEmpty()) {
+                cfg.setEnableTools(whitelist);
+            }
+            return cfg;
+        } catch (Exception e) {
+            log.warn("[mcp-bridge] failed to assemble config for '{}': {}", clientKey, e.getMessage());
+            return null;
+        }
+    }
+
+    /** Map card transport ids to the registrar's accepted spellings. */
+    static String mapTransportForRegistrar(String transport) {
+        return switch (transport) {
+            case "streamable_http", "streamablehttp" -> "streamable-http";
+            case "http" -> "http";
+            case "sse" -> "sse";
+            default -> "stdio";
+        };
     }
 
     // ------------------------------------------------------------------
@@ -406,6 +513,7 @@ public class McpService {
             McpStore.deleteCredential(McpStore.mcpCredentialRef(clientKey));
         }
         McpStore.saveCard(clientKey, card);
+        publishCardChanged(clientKey);
         return buildInfoFromCard(card);
     }
 
@@ -413,6 +521,7 @@ public class McpService {
         Map<String, Object> card = loadCard(clientKey);
         card.put("enabled", !asBool(card.get("enabled"), true));
         McpStore.saveCard(clientKey, card);
+        publishCardChanged(clientKey);
         return buildInfoFromCard(card);
     }
 
@@ -430,6 +539,7 @@ public class McpService {
         }
         McpStore.deleteCredential(McpStore.mcpOauthCredentialRef(clientKey));
         McpStore.deleteCard(clientKey);
+        publishCardChanged(clientKey);
         return new McpModels.McpMessageResponse(
                 "MCP client '" + clientKey + "' deleted successfully");
     }

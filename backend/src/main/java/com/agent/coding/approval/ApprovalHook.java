@@ -71,15 +71,39 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
         if (toolUse == null) {
             return Mono.just(event);
         }
-        String toolName = toolUse.getName();
         String agentId = majoAgentIdOf(event);
-        if (!needsApproval(agentId, toolName)) {
+        if (!needsApproval(agentId, toolUse.getName())) {
             return Mono.just(event);
         }
+        doApproval(acting, toolUse.getName());
+        return Mono.just(event);
+    }
+
+    /**
+     * Force the human-approval flow for a tool call, regardless of the
+     * agent's approval level. Used by the composite hook for MCP tools whose
+     * access policy resolves to "ask" (ADR-0007). Blocks until approved,
+     * denied or timed out; a non-approval rewrites the tool call into a
+     * finished rejection.
+     */
+    public Mono<io.agentscope.core.hook.PreActingEvent> enforceApproval(
+            io.agentscope.core.hook.PreActingEvent acting, String reason) {
+        io.agentscope.core.message.ToolUseBlock toolUse = acting.getToolUse();
+        if (toolUse == null) {
+            return Mono.just(acting);
+        }
+        doApproval(acting, toolUse.getName());
+        return Mono.just(acting);
+    }
+
+    /** Register the approval request, block for the decision, reject on deny. */
+    private void doApproval(io.agentscope.core.hook.PreActingEvent acting, String toolName) {
+        io.agentscope.core.message.ToolUseBlock toolUse = acting.getToolUse();
+        String agentId = majoAgentIdOf(acting);
 
         String sessionId = runtimeSessionId();
         if (sessionId == null || sessionId.isBlank()) {
-            sessionId = sessionIdOf(event);
+            sessionId = sessionIdOf(acting);
         }
         ApprovalStore.ApprovalRequest req = store.register(
                 sessionId, sessionId, agentId, toolName, toolName, "HIGH",
@@ -90,7 +114,7 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
         String decision = req.await(APPROVAL_TIMEOUT_MS);
         if ("approved".equals(decision)) {
             log.info("[approval] approved {} for tool '{}'", req.requestId, toolName);
-            return Mono.just(event);
+            return;
         }
         log.info("[approval] denied {} for tool '{}'", req.requestId, toolName);
         io.agentscope.core.message.ToolUseBlock rejected = io.agentscope.core.message.ToolUseBlock.builder()
@@ -101,7 +125,6 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
                 .state(io.agentscope.core.message.ToolCallState.FINISHED)
                 .build();
         acting.setToolUse(rejected);
-        return Mono.just(event);
     }
 
     @Override

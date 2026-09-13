@@ -43,17 +43,20 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
     private final ApprovalHook approvalHook;
     private final MediaPromotionHook mediaPromotionHook;
     private final com.agent.coding.agent.ModelRequestNormalizerHook modelRequestNormalizerHook;
+    private final com.agent.coding.mcp.McpToolBridge mcpToolBridge;
 
     public ToolGuardHook(ToolGuardService toolGuardService,
                          FileGuardService fileGuardService,
                          ApprovalHook approvalHook,
                          MediaPromotionHook mediaPromotionHook,
-                         com.agent.coding.agent.ModelRequestNormalizerHook modelRequestNormalizerHook) {
+                         com.agent.coding.agent.ModelRequestNormalizerHook modelRequestNormalizerHook,
+                         com.agent.coding.mcp.McpToolBridge mcpToolBridge) {
         this.toolGuardService = toolGuardService;
         this.fileGuardService = fileGuardService;
         this.approvalHook = approvalHook;
         this.mediaPromotionHook = mediaPromotionHook;
         this.modelRequestNormalizerHook = modelRequestNormalizerHook;
+        this.mcpToolBridge = mcpToolBridge;
     }
 
     @Override
@@ -105,6 +108,28 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
         //    the input before guards/approval see it, and write the repaired
         //    block back so the fixed input travels with the context.
         input = coerceInput(event, toolUse, input);
+
+        // 0.5) MCP access policy (ADR-0007): per-tool override → per-tool
+        //      default → client default. "deny" (or a card that was disabled
+        //      after registration) rejects the call; "ask" runs the human
+        //      approval flow; "allow" falls through to the guards below.
+        com.agent.coding.mcp.McpToolBridge.McpToolDecision mcpDecision =
+                mcpToolBridge.resolveToolDecision(toolName);
+        if (mcpDecision != null) {
+            String effect = mcpDecision.effect();
+            if ("deny".equals(effect)) {
+                String reason = "MCP access policy for server '" + mcpDecision.clientKey()
+                        + "' denied tool '" + toolName + "'";
+                log.warn("[mcp-policy] blocked tool '{}' ({})", toolName, reason);
+                acting.setToolUse(reject(toolUse, reason));
+                return Mono.just(event);
+            }
+            if ("ask".equals(effect)) {
+                approvalHook.enforceApproval(acting,
+                        "MCP server '" + mcpDecision.clientKey() + "' requires approval");
+                return Mono.just(event);
+            }
+        }
 
         // 1) Tool Guard
         String toolGuardReason = toolGuardService.check(toolName, input);
