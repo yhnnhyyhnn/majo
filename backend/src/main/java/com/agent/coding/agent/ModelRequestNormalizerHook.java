@@ -62,28 +62,67 @@ public class ModelRequestNormalizerHook implements Hook {
             return Mono.just(event);
         }
         try {
-            if (supportsMultimodal(agentIdOf(pre))) {
-                return Mono.just(event);
+            String agentId = agentIdOf(pre);
+            boolean multimodal;
+            try {
+                multimodal = supportsMultimodal(agentId);
+            } catch (Exception e) {
+                multimodal = true; // capability unknown → fail open
             }
             List<Msg> msgs = pre.getInputMessages();
             if (msgs == null || msgs.isEmpty()) {
                 return Mono.just(event);
             }
+
+            // 1) Bound oversized tool results (always; request copies only).
             List<Msg> rebuilt = new ArrayList<>(msgs.size());
             boolean changed = false;
             for (Msg msg : msgs) {
-                Msg stripped = stripMediaBlocks(msg);
-                if (stripped != msg) {
+                Msg bounded = ContextCompactor.boundToolResults(msg);
+                if (bounded != msg) {
                     changed = true;
                 }
-                rebuilt.add(stripped);
+                rebuilt.add(bounded);
             }
+
+            // 2) Media stripping for text-only models.
+            if (!multimodal) {
+                List<Msg> stripped = new ArrayList<>(rebuilt.size());
+                for (Msg msg : rebuilt) {
+                    Msg s = stripMediaBlocks(msg);
+                    if (s != msg) {
+                        changed = true;
+                    }
+                    stripped.add(s);
+                }
+                rebuilt = stripped;
+            }
+
+            // 3) Context-pressure compaction: fold old thinking and images
+            //    when the request estimate exceeds the pressure threshold
+            //    (QwenPaw #7521 thinking fold + #6456 visual compact).
+            Integer window = resolveContextWindow(agentId);
+            if (window != null && window > 0) {
+                long threshold = (long) (window * ContextCompactor.PRESSURE_RATIO);
+                long estimated = ContextCompactor.estimateTokens(rebuilt);
+                if (estimated > threshold) {
+                    List<Msg> folded = ContextCompactor.foldForPressure(rebuilt);
+                    if (folded != rebuilt) {
+                        changed = true;
+                        rebuilt = folded;
+                        log.info("[normalizer] context pressure: ~{} tokens > {} "
+                                        + "(70% of {} window); folded old thinking/images",
+                                estimated, threshold, window);
+                    }
+                }
+            }
+
             if (changed) {
                 pre.setInputMessages(rebuilt);
             }
         } catch (Exception e) {
-            // Fail open — a broken capability lookup must never break a call.
-            log.debug("[normalizer] media strip skipped: {}", e.getMessage());
+            // Fail open — a broken compaction must never break a call.
+            log.debug("[normalizer] request normalization skipped: {}", e.getMessage());
         }
         return Mono.just(event);
     }
@@ -200,6 +239,15 @@ public class ModelRequestNormalizerHook implements Hook {
         // No metadata row — fall back to the same model-id heuristic as
         // /probe-multimodal (models seeded without discovery).
         return heuristicMultimodal(slot.modelId());
+    }
+
+    /** Resolve the provider-resolved context window for pressure thresholds. */
+    private Integer resolveContextWindow(String agentId) {
+        var slot = modelRoutingService.resolveEffectiveModel(agentId);
+        if (slot == null || !slot.hasBoth()) {
+            return null;
+        }
+        return modelRoutingService.getContextSize(slot.providerId(), slot.modelId());
     }
 
     private static boolean heuristicMultimodal(String modelId) {
