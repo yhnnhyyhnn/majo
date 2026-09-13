@@ -225,6 +225,9 @@ export const SkillCard = React.memo(function SkillCard({
             ) : (
               <span className={styles.customTag}>{t("skills.custom")}</span>
             )}
+            {skill.preload && (
+              <span className={styles.builtinTag}>{t("skills.preloadTag")}</span>
+            )}
           </h3>
         </Tooltip>
       </div>

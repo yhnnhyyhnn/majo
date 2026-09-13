@@ -31,7 +31,9 @@ Desktop.ini
 
 # AgentScope
 .agentscope/
-agents/
+# Root-level runtime dir only — an unanchored "agents/" also matched
+# frontend/src/pages/Settings/Agents/ and excluded it from version control.
+/agents/
 backend/agents/
 backend/web-user/
 developer/

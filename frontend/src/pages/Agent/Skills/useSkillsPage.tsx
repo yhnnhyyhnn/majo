@@ -303,6 +303,10 @@ export function useSkillsPage() {
         ) {
           sideUpdates.push(api.updateSkillTags(result.name, newTags));
         }
+        const newPreload = values.preload === true;
+        if (newPreload !== (editingSkill.preload === true)) {
+          sideUpdates.push(api.updateSkillPreload(result.name, newPreload));
+        }
         await Promise.all(sideUpdates);
         if (result.mode === "noop" && sideUpdates.length === 0) {
           setDrawerOpen(false);
@@ -363,6 +367,9 @@ export function useSkillsPage() {
           api.updateSkillChannels(actualName, values.channels || ["all"]),
           ...(values.tags?.length
             ? [api.updateSkillTags(actualName, values.tags)]
+            : []),
+          ...(values.preload
+            ? [api.updateSkillPreload(actualName, true)]
             : []),
         ]);
         setDrawerOpen(false);

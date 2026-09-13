@@ -99,6 +99,7 @@ export function useMCP() {
         args?: string[];
         env?: Record<string, string>;
         cwd?: string;
+        http_timeout?: number;
       },
     ) => {
       try {

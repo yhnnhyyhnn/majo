@@ -43,6 +43,8 @@ export interface MCPClientInfo {
   env: Record<string, string>;
   /** Working directory for stdio command */
   cwd: string;
+  /** HTTP/SSE timeout in seconds (null keeps the client default, #7649) */
+  http_timeout?: number | null;
   /** Tool whitelist (null means all tools enabled) */
   tools: string[] | null;
   /** OAuth status (null if OAuth not configured) */
@@ -102,6 +104,8 @@ export interface MCPClientCreateRequest {
     env?: Record<string, string>;
     /** Working directory for stdio command */
     cwd?: string;
+    /** HTTP/SSE timeout in seconds (> 0; omitted keeps the default) */
+    http_timeout?: number;
   };
 }
 
@@ -199,4 +203,6 @@ export interface MCPClientUpdateRequest {
   env?: Record<string, string>;
   /** Working directory for stdio command */
   cwd?: string;
+  /** HTTP/SSE timeout in seconds (> 0; omitted leaves it unchanged) */
+  http_timeout?: number;
 }

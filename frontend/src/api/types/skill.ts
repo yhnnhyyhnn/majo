@@ -5,6 +5,22 @@ export type SkillSyncStatus =
   | "not_synced"
   | "conflict";
 
+/** Declared skill prerequisites (requires.bins/env/mcp), QwenPaw #7609. */
+export interface SkillRequirements {
+  require_bins?: string[];
+  require_envs?: string[];
+  require_mcps?: string[];
+}
+
+/** Result of GET /skills/{name}/dependencies. */
+export interface SkillDependencies {
+  name: string;
+  requirements?: SkillRequirements;
+  declaration_errors?: string[];
+  missing_dependencies?: string[];
+  dependencies_met?: boolean;
+}
+
 export interface SkillSpec {
   name: string;
   description?: string;
@@ -13,11 +29,14 @@ export interface SkillSpec {
   source: string;
   enabled?: boolean;
   channels?: string[];
+  /** Preload full content without an activation step (QwenPaw #7183). */
+  preload?: boolean;
   tags?: string[];
   config?: Record<string, unknown>;
   last_updated?: string;
   emoji?: string;
   installed_from?: string;
+  requirements?: SkillRequirements;
 }
 
 export interface PoolSkillSpec {

@@ -7,6 +7,7 @@ import type {
   HubInstallTaskResponse,
   HubSkillSpec,
   PoolSkillSpec,
+  SkillDependencies,
   SkillSpec,
   WorkspaceSkillSummary,
 } from "../types";
@@ -447,6 +448,20 @@ export const skillApi = {
         method: "PUT",
         body: JSON.stringify(channels),
       },
+    ),
+
+  updateSkillPreload: (skillName: string, preload: boolean) =>
+    request<{ updated: boolean; preload: boolean }>(
+      `/skills/${encodeURIComponent(skillName)}/preload`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ preload }),
+      },
+    ),
+
+  getSkillDependencies: (skillName: string) =>
+    request<SkillDependencies>(
+      `/skills/${encodeURIComponent(skillName)}/dependencies`,
     ),
 
   updateSkillTags: (skillName: string, tags: string[]) =>
