@@ -10,6 +10,7 @@ import api, {
   type Message,
 } from "../../../api";
 import { toDisplayUrl } from "../utils";
+import { syncSessionsGlobal } from "../../../stores/sessionListStore";
 import {
   extractTurnUsageFromOutputMessages,
   extractLatestSnapshotFromCards,
@@ -1231,6 +1232,11 @@ class SessionApi implements IAgentScopeRuntimeWebUISessionAPI {
     const { list, realId } = resolveRealId(this.sessionList, tempId);
     this.sessionList = list;
     if (realId) {
+      // Publish the resolved mapping immediately (QwenPaw #7523) so the
+      // sidebar and session drawer — which read the global store, not this
+      // library-internal list — can match a URL carrying the backend UUID
+      // while the response is still generating.
+      syncSessionsGlobal(this.sessionList as ExtendedSession[]);
       // Migrate the pending user message from the local timestamp key to
       // the backend UUID key so patchLastUserMessage can find it after
       // page refresh (where the URL — and therefore the lookup key — is

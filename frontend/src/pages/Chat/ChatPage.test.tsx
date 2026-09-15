@@ -12,6 +12,7 @@ import { screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/test/common_setup";
 import ChatPage from "./index";
+import { useMessageQueueStore } from "@/stores/messageQueueStore";
 import { chatExtensions } from "@/plugins/registry/chatExtensions";
 
 // t() returns the raw key so tests can assert on key strings directly
@@ -520,5 +521,60 @@ describe("ChatPage", () => {
         callsBefore,
       ),
     );
+  });
+
+  // ── queue-bypass guard (#7610) ────────────────────────────────────────────
+
+  it("routes owner submissions through the queue while queue items exist", async () => {
+    renderWithProviders(<ChatPage />, { initialEntries: ["/chat"] });
+    await screen.findByTestId("chat-ui");
+    const beforeSubmit = capturedOptions?.sender?.beforeSubmit;
+    expect(typeof beforeSubmit).toBe("function");
+
+    // Seed the queue for the default queue session ("new") so it is busy.
+    useMessageQueueStore.getState().clear("new");
+    useMessageQueueStore.getState().enqueue("new", { text: "earlier task" });
+
+    // Stub the sender textarea the guard reads its input from.
+    const wrapper = document.createElement("div");
+    wrapper.className = "sender";
+    const ta = document.createElement("textarea");
+    ta.value = "jump the queue";
+    wrapper.appendChild(ta);
+    document.body.appendChild(wrapper);
+
+    try {
+      const allowed = await beforeSubmit();
+      // The direct SDK send must be intercepted…
+      expect(allowed).toBe(false);
+      // …and the text enqueued behind the existing item instead.
+      const q = useMessageQueueStore.getState().getQueue("new");
+      expect(q.some((i: { text: string }) => i.text === "jump the queue")).toBe(true);
+    } finally {
+      wrapper.remove();
+      useMessageQueueStore.getState().clear("new");
+    }
+  });
+
+  it("allows direct owner submission when the queue is idle", async () => {
+    renderWithProviders(<ChatPage />, { initialEntries: ["/chat"] });
+    await screen.findByTestId("chat-ui");
+    const beforeSubmit = capturedOptions?.sender?.beforeSubmit;
+
+    useMessageQueueStore.getState().clear("new");
+    const wrapper = document.createElement("div");
+    wrapper.className = "sender";
+    const ta = document.createElement("textarea");
+    ta.value = "direct send";
+    wrapper.appendChild(ta);
+    document.body.appendChild(wrapper);
+
+    try {
+      const allowed = await beforeSubmit();
+      expect(allowed).toBe(true);
+    } finally {
+      wrapper.remove();
+      useMessageQueueStore.getState().clear("new");
+    }
   });
 });

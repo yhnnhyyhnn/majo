@@ -2497,11 +2497,21 @@ export default function ChatPage() {
       }));
     const handleBeforeSubmit = async () => {
       if (isComposingRef.current) return false;
+      // Queue-busy guard (QwenPaw #7610): while a task is running or queued
+      // items exist — including the brief idle window between two queued
+      // items — EVERY submission (Enter / send button / programmatic) must
+      // go through the queue, even on the owner tab. Without this the owner
+      // could jump the queue with a direct send.
+      const queueBusy =
+        useMessageQueueStore.getState().getQueue(queueSessionId).length > 0 ||
+        autoSendTimerRef.current !== null ||
+        useMessageQueueStore.getState().currentSendingId !== null ||
+        chatLoadingRef.current;
       // Single-tab ownership: non-owner tabs are queue-only. Re-route every
       // submit (Enter / send button / programmatic) to the shared queue and
       // abort the actual SDK send. The owner tab will pick the item up via
       // cross-tab broadcast and send it.
-      if (!isOwnerRef.current) {
+      if (!isOwnerRef.current || queueBusy) {
         const textarea = document
           .querySelector('[class*="sender"]')
           ?.querySelector("textarea") as HTMLTextAreaElement | null;
