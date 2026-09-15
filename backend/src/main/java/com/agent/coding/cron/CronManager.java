@@ -316,6 +316,12 @@ public class CronManager {
             st.put("last_status", "error");
             st.put("last_error", String.valueOf(e.getMessage()));
             log.warn("cron _execute_once: job_id={} status=error error={}", jobId, e.getMessage());
+            // Report the failed run to the inbox as well — previously it only
+            // landed in job state/history and was invisible to the user
+            // (QwenPaw #7776 inbox-result semantics).
+            appendInboxEvent(job, trigger, null, "cron_failed", "error",
+                    "error", "Cron task failed: " + jobName,
+                    String.valueOf(e.getMessage()));
         } finally {
             String tz = String.valueOf(CronModels.schedule(job).getOrDefault("timezone", "UTC"));
             String runAt = CronModels.formatInstant(System.currentTimeMillis(), tz);

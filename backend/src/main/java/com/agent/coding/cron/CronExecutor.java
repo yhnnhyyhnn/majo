@@ -37,6 +37,8 @@ public class CronExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(CronExecutor.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    /** Hard wall-clock limit for one agent cron run. */
+    static final long CRON_RUN_TIMEOUT_MINUTES = 30;
     private static final String SYS_PROMPT =
             "你是一个专业的编码助手。工具包括: read_file/write_file/edit_file(读写编辑), "
             + "search_code/find_symbol/list_directory(搜索), execute_command(执行命令), "
@@ -154,7 +156,10 @@ public class CronExecutor {
                         .sessionId(sessionId)
                         .userId(effectiveUserId)
                         .build())
-                .blockLast();
+                // A hung run must not hold the scheduler forever; the timeout
+                // carries the run reference into the failure report
+                // (QwenPaw CronExecutionTimeout semantics, #7776).
+                .blockLast(java.time.Duration.ofMinutes(CRON_RUN_TIMEOUT_MINUTES));
 
             // Collect the final assistant text from the session messages.
             if (chatId != null) {
@@ -175,10 +180,15 @@ public class CronExecutor {
                 deliveryError = "no completed message in stream";
             }
         } catch (Exception e) {
-            log.warn("cron _execute_once: job_id={} status=error error={}", jobId, e.getMessage());
-            deliveryError = String.valueOf(e.getMessage());
+            boolean timedOut = e instanceof java.util.concurrent.TimeoutException
+                    || (e.getCause() instanceof java.util.concurrent.TimeoutException);
+            String error = timedOut
+                    ? "timed out after " + CRON_RUN_TIMEOUT_MINUTES + "m (run_id=" + runId + ")"
+                    : String.valueOf(e.getMessage());
+            log.warn("cron _execute_once: job_id={} status=error error={}", jobId, error);
+            deliveryError = error;
             try {
-                InboxTraceStore.finalizeTrace(runId, "error", String.valueOf(e.getMessage()));
+                InboxTraceStore.finalizeTrace(runId, "error", error);
             } catch (Exception ignored) {
             }
         } finally {

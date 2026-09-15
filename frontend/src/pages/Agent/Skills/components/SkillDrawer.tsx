@@ -44,7 +44,7 @@ export function parseFrontmatter(
   }
 }
 
-const CHANNEL_OPTIONS = [
+const FALLBACK_CHANNEL_OPTIONS = [
   { label: "all", value: "all" },
   { label: "console", value: "console" },
   { label: "discord", value: "discord" },
@@ -57,6 +57,30 @@ const CHANNEL_OPTIONS = [
   { label: "wecom", value: "wecom" },
   { label: "mqtt", value: "mqtt" },
 ];
+
+/** Channel ids accepted by the backend (QwenPaw #7782: include customized
+ *  channels). Falls back to the static list when the lookup fails. */
+function useChannelOptions() {
+  const [options, setOptions] = useState(FALLBACK_CHANNEL_OPTIONS);
+  useEffect(() => {
+    let active = true;
+    api
+      .listChannelTypes()
+      .then((types) => {
+        if (!active || !Array.isArray(types) || types.length === 0) return;
+        const dynamic = [
+          { label: "all", value: "all" },
+          ...types.map((id) => ({ label: id, value: id })),
+        ];
+        setOptions(dynamic);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+  return options;
+}
 
 export const MAX_TAGS = 8;
 export const MAX_TAG_LENGTH = 16;
@@ -104,6 +128,7 @@ export function SkillDrawer({
   );
   const [depsLoading, setDepsLoading] = useState(false);
   const { message } = useAppMessage();
+  const channelOptions = useChannelOptions();
 
   const validateFrontmatter = useCallback(
     (_: unknown, value: string) => {
@@ -356,7 +381,7 @@ export function SkillDrawer({
         </Form.Item>
 
         <Form.Item name="channels" label={t("skills.channels")}>
-          <Select mode="multiple" options={CHANNEL_OPTIONS} />
+          <Select mode="multiple" options={channelOptions} />
         </Form.Item>
 
         <Form.Item

@@ -140,7 +140,9 @@ public class ConsoleController {
                 sseEvent(qwenResponseCreated(responseId, sessionId, seq)),
                 sseEvent(qwenResponseInProgress(responseId, sessionId, seq))
             ),
-            agent.streamEvents(new UserMessage(prompt), ctx)
+            com.agent.coding.agent.OverflowRecovery.recover(
+                    agent.streamEvents(new UserMessage(prompt), ctx), agent,
+                    new UserMessage(prompt), ctx)
                 .handle((event, sink) -> {
                     String type = event.getClass().getSimpleName();
                     try {
@@ -456,7 +458,9 @@ public class ConsoleController {
         var texter = new StringBuilder();
         var thinkingMsgId = new String[] { null };
         var textMsgId = new String[] { null };
-        return agent.streamEvents(new UserMessage(prompt), ctx)
+        UserMessage userMessage = new UserMessage(prompt);
+        return com.agent.coding.agent.OverflowRecovery.recover(
+                agent.streamEvents(userMessage, ctx), agent, userMessage, ctx)
             .handle((event, sink) -> {
                 String type = event.getClass().getSimpleName();
                 try {

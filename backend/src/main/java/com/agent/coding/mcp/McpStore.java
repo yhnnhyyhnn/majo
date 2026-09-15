@@ -129,6 +129,8 @@ public class McpStore {
         if (ref == null || ref.isEmpty()) return null;
         Path path = credentialPath(ref);
         if (!Files.isRegularFile(path)) return null;
+        // Read-time permission hardening (QwenPaw #7699 semantics).
+        com.agent.coding.security.SecretPermissions.hardenOnRead(path);
         Map<String, Object> defaults = new LinkedHashMap<>();
         defaults.put("ref", ref);
         return readJsonQuiet(path, defaults);
