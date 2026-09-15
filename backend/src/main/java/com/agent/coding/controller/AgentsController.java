@@ -195,11 +195,11 @@ public class AgentsController {
     }
 
     // ------------------------------------------------------------------
-    // Memory reindex (lightweight keyword index over workspace files)
+    // Memory reindex (delegates to the configured memory backend, ADR-0008)
     // ------------------------------------------------------------------
 
-    private final com.agent.coding.service.MemoryIndexService memoryIndexService =
-            new com.agent.coding.service.MemoryIndexService();
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry;
 
     @PostMapping("/{agentId}/memory/reindex")
     public Map<String, Object> rebuildMemoryIndex(@PathVariable String agentId) {
@@ -207,7 +207,11 @@ public class AgentsController {
         if (profile == null) {
             throw new SkillNotFoundException("Agent '" + agentId + "' not found");
         }
-        return memoryIndexService.rebuild(agentId);
+        var backend = memoryBackendRegistry.resolve(agentId);
+        if (backend == null) {
+            return Map.of("status", "no_backend");
+        }
+        return backend.rebuild();
     }
 
     /**

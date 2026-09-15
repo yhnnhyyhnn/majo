@@ -23,6 +23,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Strips media blocks (image / audio / video / PDF data) from the model
@@ -49,11 +50,14 @@ public class ModelRequestNormalizerHook implements Hook {
 
     private final ModelRoutingService modelRoutingService;
     private final ProviderModelRepository providerModelRepo;
+    private final com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry;
 
     public ModelRequestNormalizerHook(ModelRoutingService modelRoutingService,
-                                      ProviderModelRepository providerModelRepo) {
+                                      ProviderModelRepository providerModelRepo,
+                                      com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry) {
         this.modelRoutingService = modelRoutingService;
         this.providerModelRepo = providerModelRepo;
+        this.memoryBackendRegistry = memoryBackendRegistry;
     }
 
     @Override
@@ -120,11 +124,90 @@ public class ModelRequestNormalizerHook implements Hook {
             if (changed) {
                 pre.setInputMessages(rebuilt);
             }
+
+            // 4) Automatic memory recall (ADR-0008): when enabled, query the
+            //    configured memory backend with the latest user message and
+            //    inject hits as a request-only system reminder (history kept
+            //    clean; QwenPaw auto_memory_search semantics).
+            injectAutoMemoryRecall(pre, agentId, rebuilt);
         } catch (Exception e) {
             // Fail open — a broken compaction must never break a call.
             log.debug("[normalizer] request normalization skipped: {}", e.getMessage());
         }
         return Mono.just(event);
+    }
+
+    private void injectAutoMemoryRecall(PreReasoningEvent pre, String agentId, List<Msg> msgs) {
+        try {
+            String latestUser = null;
+            for (int i = msgs.size() - 1; i >= 0; i--) {
+                if (msgs.get(i).getRole() == io.agentscope.core.message.MsgRole.USER) {
+                    latestUser = msgs.get(i).getTextContent();
+                    break;
+                }
+            }
+            if (latestUser == null || latestUser.isBlank()
+                    || latestUser.startsWith("<memory_recall>")) {
+                return;
+            }
+            var backend = memoryBackendRegistry.resolve(agentId);
+            if (backend == null) {
+                return;
+            }
+            int maxResults = autoSearchMaxResults(agentId);
+            if (maxResults <= 0) {
+                return;
+            }
+            var hits = backend.search(latestUser, maxResults);
+            if (hits.isEmpty()) {
+                return;
+            }
+            StringBuilder sb = new StringBuilder("<memory_recall>\n");
+            for (var hit : hits) {
+                sb.append("- ").append(hit.source());
+                if (!hit.snippet().isBlank()) {
+                    String snippet = hit.snippet().length() > 200
+                            ? hit.snippet().substring(0, 200) + "..." : hit.snippet();
+                    sb.append(": ").append(snippet);
+                }
+                sb.append("\n");
+            }
+            sb.append("</memory_recall>\n");
+            sb.append("The above long-term memory entries may be relevant to the user's request. ")
+              .append("Use memory_search or read_file for details; do not mention this note.");
+            List<Msg> withRecall = new ArrayList<>(pre.getInputMessages().size() + 1);
+            withRecall.addAll(pre.getInputMessages());
+            withRecall.add(Msg.builder()
+                    .name("system")
+                    .role(io.agentscope.core.message.MsgRole.SYSTEM)
+                    .content(TextBlock.builder().text(sb.toString()).build())
+                    .build());
+            pre.setInputMessages(withRecall);
+            log.debug("[normalizer] injected {} memory recall hit(s)", hits.size());
+        } catch (Exception e) {
+            log.debug("[normalizer] auto memory recall skipped: {}", e.getMessage());
+        }
+    }
+
+    /** Auto-search max results from running config; 0 = disabled. */
+    private static int autoSearchMaxResults(String agentId) {
+        try {
+            Map<String, Object> running = com.agent.coding.agent.AgentStore.getRunningConfig(agentId);
+            Object reme = running.get("reme_light_memory_config");
+            if (reme instanceof Map<?, ?> m) {
+                Object auto = m.get("auto_memory_search_config");
+                if (auto instanceof Map<?, ?> a
+                        && Boolean.TRUE.equals(com.agent.coding.skill.SkillService.bool(a.get("enabled"), false))) {
+                    Object max = a.get("max_results");
+                    if (max instanceof Number n && n.intValue() > 0) {
+                        return n.intValue();
+                    }
+                    return 2;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return 0;
     }
 
     @Override

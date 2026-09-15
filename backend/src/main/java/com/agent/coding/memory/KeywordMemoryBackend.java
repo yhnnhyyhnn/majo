@@ -1,16 +1,16 @@
-package com.agent.coding.service;
+package com.agent.coding.memory;
 
-import com.agent.coding.agent.AgentStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,52 +18,116 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
- * Lightweight keyword memory index for an agent workspace. Scans the agent's
- * memory/ directory and top-level markdown files, builds an inverted
- * keyword index, and persists it to memory/.index.json. This replaces the
- * the ReMe vector backend with a zero-dependency file scan so the
- * frontend rebuildMemoryIndex action has real semantics.
+ * Zero-dependency default memory backend: keyword inverted index over the
+ * workspace {@code memory/} directory and top-level markdown files, persisted
+ * to {@code memory/.index.json} (ADR-0008). Absorbs the former
+ * MemoryIndexService.
  */
-@Service
-public class MemoryIndexService {
+@Component
+public class KeywordMemoryBackend implements MemoryBackend {
 
-    private static final Logger log = LoggerFactory.getLogger(MemoryIndexService.class);
+    static final String ID = "keyword";
+
+    private static final Logger log = LoggerFactory.getLogger(KeywordMemoryBackend.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Pattern WORD_SPLIT = Pattern.compile("[^\\p{L}\\p{N}]+");
     private static final int MAX_FILE_BYTES = 2 * 1024 * 1024;
+    private static final int MAX_SNIPPET_CHARS = 400;
 
-    /** In-memory snapshot of the last built index per agent. */
     private final ConcurrentHashMap<String, Map<String, Object>> lastIndexes = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Path> workspaces = new ConcurrentHashMap<>();
 
-    public Map<String, Object> rebuild(String agentId) {
-        return rebuildForPath(AgentStore.workspaceDirForAgent(agentId));
+    @Override
+    public String id() {
+        return ID;
     }
 
-    /** Rebuild the keyword index for an explicit workspace (test-friendly). */
+    @Override
+    public void start(MemoryBackendContext context) {
+        workspaces.put(context.agentId(), context.workspace());
+    }
+
+    @Override
+    public void close() {
+        // Stateless file scan — nothing to flush.
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
+    public String getMemoryPrompt() {
+        return "";
+    }
+
+    @Override
+    public List<MemoryHit> search(String query, int maxResults) {
+        List<MemoryHit> hits = new ArrayList<>();
+        if (query == null || query.isBlank()) {
+            return hits;
+        }
+        for (Map.Entry<String, Path> e : workspaces.entrySet()) {
+            Map<String, Object> index = lastIndexFor(e.getKey(), e.getValue());
+            List<String> files = searchIndex(index, query);
+            for (String relPath : files) {
+                hits.add(new MemoryHit(relPath, snippetFor(e.getValue(), relPath, query), 1.0,
+                        Map.of("backend", ID)));
+                if (hits.size() >= maxResults) {
+                    return hits;
+                }
+            }
+        }
+        return hits;
+    }
+
+    @Override
+    public void remember(String content, Map<String, Object> metadata) {
+        // Keyword backend is read-only over existing files; new memories are
+        // expected to arrive as markdown in the workspace memory/ directory.
+        log.debug("[memory:{}] remember() ignored (read-only backend)", ID);
+    }
+
+    @Override
+    public Map<String, Object> rebuild() {
+        Path workspace = workspaces.isEmpty() ? null : workspaces.values().iterator().next();
+        if (workspace == null) {
+            return Map.of("status", "no_workspace");
+        }
+        return rebuildForPath(workspace);
+    }
+
+    // ── Index build / search (former MemoryIndexService core) ────────
+
     public Map<String, Object> rebuildForPath(Path workspace) {
         String agentId = workspace.getFileName() == null
                 ? "default" : workspace.getFileName().toString();
         long start = System.currentTimeMillis();
         List<Path> files = collectFiles(workspace);
 
-        Map<String, List<Integer>> inverted = new LinkedHashMap<>();
+        Map<String, List<String>> inverted = new LinkedHashMap<>();
         Map<String, Object> fileMeta = new LinkedHashMap<>();
         for (Path file : files) {
             try {
+                String relPath = workspace.relativize(file).toString().replace('\\', '/');
                 String content = readContent(file);
                 List<String> words = tokenize(content);
                 Map<String, Integer> counts = new LinkedHashMap<>();
                 for (String w : words) {
                     counts.merge(w, 1, Integer::sum);
                 }
-                for (Map.Entry<String, Integer> e : counts.entrySet()) {
-                    inverted.computeIfAbsent(e.getKey(), k -> new ArrayList<>()).add(e.getValue());
+                for (String word : counts.keySet()) {
+                    List<String> posting = inverted.computeIfAbsent(word, k -> new ArrayList<>());
+                    if (!posting.contains(relPath)) {
+                        posting.add(relPath);
+                    }
                 }
                 Map<String, Object> meta = new LinkedHashMap<>();
-                meta.put("path", workspace.relativize(file).toString().replace('\\', '/'));
+                meta.put("path", relPath);
                 meta.put("words", words.size());
                 meta.put("bytes", readLength(file));
-                fileMeta.put(workspace.relativize(file).toString().replace('\\', '/'), meta);
+                fileMeta.put(relPath, meta);
             } catch (IOException e) {
                 log.warn("Skipping unreadable memory file {}: {}", file, e.getMessage());
             }
@@ -85,23 +149,15 @@ public class MemoryIndexService {
         return result;
     }
 
-    /** Search the last built index; returns file paths matching every keyword. */
-    public List<String> search(String agentId, String query) {
+    private Map<String, Object> lastIndexFor(String agentId, Path workspace) {
         Map<String, Object> index = lastIndexes.get(agentId);
         if (index == null) {
-            Path workspace = AgentStore.workspaceDirForAgent(agentId);
             index = loadPersisted(workspace);
             if (index != null) {
                 lastIndexes.put(agentId, index);
             }
         }
-        return searchIndex(index, query);
-    }
-
-    /** Search an explicitly provided workspace (test-friendly). */
-    public List<String> searchForPath(Path workspace, String query) {
-        Map<String, Object> index = loadPersisted(workspace);
-        return searchIndex(index, query);
+        return index;
     }
 
     private List<String> searchIndex(Map<String, Object> index, String query) {
@@ -109,7 +165,7 @@ public class MemoryIndexService {
             return List.of();
         }
         @SuppressWarnings("unchecked")
-        Map<String, List<Integer>> inverted = (Map<String, List<Integer>>) index.get("index");
+        Map<String, List<String>> inverted = (Map<String, List<String>>) index.get("index");
         if (inverted == null || inverted.isEmpty()) {
             return List.of();
         }
@@ -117,15 +173,37 @@ public class MemoryIndexService {
         if (terms.isEmpty()) {
             return List.of();
         }
+        // Files containing every query term (AND), ordered by index order.
+        List<String> result = null;
         for (String term : terms) {
-            List<Integer> hits = inverted.get(term);
-            if (hits == null || hits.isEmpty()) {
+            List<String> postings = inverted.get(term);
+            if (postings == null || postings.isEmpty()) {
+                return List.of();
+            }
+            if (result == null) {
+                result = new ArrayList<>(postings);
+            } else {
+                result.retainAll(postings);
+            }
+            if (result.isEmpty()) {
                 return List.of();
             }
         }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> files = (Map<String, Object>) index.get("files");
-        return files == null ? List.of() : new ArrayList<>(files.keySet());
+        return result == null ? List.of() : result;
+    }
+
+    private String snippetFor(Path workspace, String relPath, String query) {
+        try {
+            Path file = workspace.resolve(relPath);
+            String content = readContent(file);
+            int at = content.toLowerCase().indexOf(
+                    query.trim().toLowerCase().split("\\s+")[0]);
+            int from = Math.max(0, at < 0 ? 0 : at - 80);
+            String snippet = content.substring(from, Math.min(content.length(), from + MAX_SNIPPET_CHARS));
+            return snippet.replaceAll("\\s+", " ").trim();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private static List<Path> collectFiles(Path workspace) {
@@ -175,7 +253,7 @@ public class MemoryIndexService {
         }
     }
 
-    private static List<String> tokenize(String text) {
+    static List<String> tokenize(String text) {
         if (text == null || text.isBlank()) {
             return List.of();
         }

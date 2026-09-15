@@ -1,6 +1,6 @@
 # 08-ADR — 架构决策记录
 
-> **状态：🚧 6 篇 ADR 已完成** — 含推翻 ADR-0001 的技术栈转向决策。
+> **状态：🚧 8 篇 ADR 已完成** — 含推翻 ADR-0001 的技术栈转向决策。
 
 ## 本目录的定位
 
@@ -36,6 +36,8 @@
 | [ADR-0004](ADR-0004-cli-vs-ide-priority.md) | CLI 与 IDE 插件开发优先级：CLI-first，IDE 插件 M2 启动 | Accepted | Roadmap、04-UX |
 | [ADR-0005](ADR-0005-telemetry-protocol.md) | Telemetry 标准协议选型：自定义轻量方案 + OpenTelemetry 兼容 Schema | Accepted | RFC-0016 Telemetry、可观测性 |
 | [ADR-0006](ADR-0006-java-agentscope.md) | 推翻 ADR-0001：Java + AgentScope Java 2.0 替代 TypeScript/Node.js | Accepted（Supersedes ADR-0001） | 全局技术栈、Technical Architecture、Deployment |
+| [ADR-0007](ADR-0007-mcp-runtime-bridge.md) | MCP 配置面接入 agent 运行时（MCP Runtime Bridge） | Accepted | MCP、ToolGuardHook、工具治理 |
+| [ADR-0008](ADR-0008-memory-backend-spi.md) | 记忆后端 SPI 化：按 QwenPaw 插件接口设计多后端记忆层 | Accepted | MemoryIndexService、memory_search、长期记忆 |
 
 ## 未来可能的 ADR 候选
 
