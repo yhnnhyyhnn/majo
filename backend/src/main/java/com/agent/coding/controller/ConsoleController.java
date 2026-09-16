@@ -64,6 +64,8 @@ public class ConsoleController {
     private final com.agent.coding.security.ToolGuardHook toolGuardHook;
     private final LoopSessionManager loopSessionManager;
     private final com.agent.coding.service.ActiveTurnRegistry turnRegistry;
+    private final com.agent.coding.memory.MemoryCommandService memoryCommandService;
+    private final com.agent.coding.service.TokenUsageService tokenUsageService;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
                               ChatService chatService, Toolkit toolkit,
@@ -74,7 +76,9 @@ public class ConsoleController {
                               com.agent.coding.approval.ApprovalStore approvalStore,
                               com.agent.coding.security.ToolGuardHook toolGuardHook,
                               LoopSessionManager loopSessionManager,
-                              com.agent.coding.service.ActiveTurnRegistry turnRegistry) {
+                              com.agent.coding.service.ActiveTurnRegistry turnRegistry,
+                              com.agent.coding.memory.MemoryCommandService memoryCommandService,
+                              com.agent.coding.service.TokenUsageService tokenUsageService) {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
         this.chatService = chatService;
@@ -87,6 +91,8 @@ public class ConsoleController {
         this.toolGuardHook = toolGuardHook;
         this.loopSessionManager = loopSessionManager;
         this.turnRegistry = turnRegistry;
+        this.memoryCommandService = memoryCommandService;
+        this.tokenUsageService = tokenUsageService;
     }
 
     @PostMapping(value = "/console/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -106,6 +112,12 @@ public class ConsoleController {
         LoopCommand loopCmd = parseLoopCommand(prompt, agentId);
         if (loopCmd != null) {
             return consoleChatLoop(loopCmd, sessionId, workspace, agentId, body, prompt);
+        }
+
+        // Memory command (ADR-0009): /memory is a system command — execute it
+        // locally and stream the reply without invoking the agent.
+        if (prompt.stripLeading().toLowerCase().startsWith("/memory")) {
+            return consoleMemoryCommand(prompt, sessionId, agentId);
         }
 
         WorkspaceContext.set(workspace);
@@ -133,6 +145,7 @@ public class ConsoleController {
         var thinkingMsgId = new String[] { null };
         var textMsgId = new String[] { null };
         var usageHolder = new Object() { int inputTokens, outputTokens; double timeSec; };
+        final long turnStartMs = System.currentTimeMillis();
         List<Map<String, Object>> completedMessages = new ArrayList<>();
 
         return Flux.concat(
@@ -246,6 +259,12 @@ public class ConsoleController {
                     slot.providerId() != null ? slot.providerId() : "",
                     slot.modelId() != null ? slot.modelId() : "",
                     usageHolder.inputTokens, usageHolder.outputTokens));
+                // Turn-level record (ADR-0011)
+                tokenUsageService.record(agentId, chatId,
+                        slot.providerId() != null ? slot.providerId() : "",
+                        slot.modelId() != null ? slot.modelId() : "",
+                        usageHolder.inputTokens, usageHolder.outputTokens,
+                        System.currentTimeMillis() - turnStartMs);
             }
             // Background LLM title generation
             if (firstUserText != null && !firstUserText.isBlank()
@@ -253,6 +272,55 @@ public class ConsoleController {
                 new Thread(() -> generateTitle(chatId, placeholderTitle, firstUserText, agentId)).start();
             }
             WorkspaceContext.clear();
+        });
+    }
+
+    /**
+     * Memory command stream (ADR-0009): execute /memory locally and replay
+     * the reply through the same SSE shape as a normal text-only turn so the
+     * frontend renders it as a regular assistant message.
+     */
+    private Flux<String> consoleMemoryCommand(String prompt, String sessionId, String agentId) {
+        String trimmed = prompt.stripLeading();
+        String args = trimmed.length() > "/memory".length()
+                ? trimmed.substring("/memory".length()) : "";
+        String reply = memoryCommandService.execute(agentId, args);
+
+        var chatEntity = chatService.getOrCreateBySession(agentId, sessionId, prompt);
+        final String chatId = chatEntity.getId();
+        chatService.setStatus(chatId, "running");
+        taskTracker.setRunning(chatId);
+
+        String responseId = "response_" + UUID.randomUUID().toString().replace("-", "");
+        var seq = new java.util.concurrent.atomic.AtomicLong(1);
+        String msgId = "msg_" + UUID.randomUUID().toString().replace("-", "");
+
+        List<Map<String, Object>> completedMessages = new ArrayList<>();
+        Map<String, Object> msg = new LinkedHashMap<>();
+        msg.put("id", msgId);
+        msg.put("type", "message");
+        msg.put("role", "assistant");
+        msg.put("content", List.of(Map.of("type", "text", "text", reply)));
+        msg.put("status", "completed");
+        completedMessages.add(msg);
+
+        return Flux.concat(
+            Flux.just(
+                sseEvent(qwenResponseCreated(responseId, sessionId, seq)),
+                sseEvent(qwenResponseInProgress(responseId, sessionId, seq)),
+                sseEvent(QwenEvents.textMessageInProgress(msgId, seq)),
+                sseEvent(QwenEvents.contentDelta(msgId, reply, seq, reply)),
+                sseEvent(QwenEvents.contentFinal(msgId, reply, seq)),
+                sseEvent(QwenEvents.textMessageCompleted(msgId, reply, seq))
+            ),
+            Flux.defer(() -> Flux.just(
+                sseEvent(QwenEvents.responseCompleted(responseId, sessionId, seq, 0, 0, completedMessages)),
+                sseEvent(QwenEvents.turnUsage(sessionId, seq, 0, 0))
+            ))
+        ).doFinally(sig -> {
+            taskTracker.setDone(chatId);
+            saveConsoleMessages(chatId, prompt, completedMessages);
+            chatService.setStatus(chatId, "idle");
         });
     }
 
@@ -354,6 +422,7 @@ public class ConsoleController {
         String responseId = "response_" + UUID.randomUUID().toString().replace("-", "");
         var seq = new java.util.concurrent.atomic.AtomicLong(1);
         var usageHolder = new Object() { int inputTokens, outputTokens; double timeSec; };
+        final long turnStartMs = System.currentTimeMillis();
         List<Map<String, Object>> completedMessages = new ArrayList<>();
 
         StopHandler handler = buildLoopHandler(cmd.modeId(), agentId);
@@ -382,6 +451,12 @@ public class ConsoleController {
                     slot.providerId() != null ? slot.providerId() : "",
                     slot.modelId() != null ? slot.modelId() : "",
                     usageHolder.inputTokens, usageHolder.outputTokens));
+                // Turn-level record for the whole loop session (ADR-0011)
+                tokenUsageService.record(agentId, chatId,
+                        slot.providerId() != null ? slot.providerId() : "",
+                        slot.modelId() != null ? slot.modelId() : "",
+                        usageHolder.inputTokens, usageHolder.outputTokens,
+                        System.currentTimeMillis() - turnStartMs);
             }
             if (firstUserText != null && !firstUserText.isBlank()
                     && !"New Chat".equals(placeholderTitle)) {
@@ -729,6 +804,15 @@ public class ConsoleController {
     }
 
     // GET /tools and its tool() helper moved to ToolsController.
+
+    /** Per-agent token totals since the start date (ADR-0011). */
+    @GetMapping("/token-usage/agents")
+    public Map<String, Object> tokenUsageByAgent(
+            @RequestParam(required = false) String start_date) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("agents", tokenUsageService.agentStatsSince(start_date));
+        return result;
+    }
 
     @GetMapping("/token-usage")
     public TokenUsageSummary tokenUsage(

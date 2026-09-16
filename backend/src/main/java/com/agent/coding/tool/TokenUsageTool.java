@@ -1,22 +1,30 @@
 package com.agent.coding.tool;
 
+import com.agent.coding.WorkspaceContext;
 import com.agent.coding.entity.TokenUsageEntity;
 import com.agent.coding.repository.TokenUsageRepository;
+import com.agent.coding.service.TokenUsageService;
 import io.agentscope.core.tool.Tool;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Report today's LLM token usage from the token-usage store.
+ * Report today's LLM token usage from the token-usage stores (daily
+ * aggregate + per-agent turn records, ADR-0011).
  */
 @Component
 public class TokenUsageTool {
 
     private final TokenUsageRepository repo;
+    private final TokenUsageService tokenUsageService;
 
-    public TokenUsageTool(TokenUsageRepository repo) {
+    public TokenUsageTool(TokenUsageRepository repo, TokenUsageService tokenUsageService) {
         this.repo = repo;
+        this.tokenUsageService = tokenUsageService;
     }
 
     @Tool(name = "get_token_usage", description = "获取今天的 LLM token 用量统计")
@@ -45,6 +53,28 @@ public class TokenUsageTool {
                   .append(", output=").append(v[1]).append(", 调用 ").append(v[2]).append(" 次");
             }
         }
+        // Per-agent dimension (ADR-0011) — highlight the calling agent.
+        String self = agentIdOf();
+        List<Map<String, Object>> agents = tokenUsageService.agentStatsSince(today);
+        if (!agents.isEmpty()) {
+            sb.append("\n  按 agent:");
+            for (Map<String, Object> a : agents) {
+                sb.append("\n  ").append(a.get("agent_id"))
+                  .append(self != null && self.equals(a.get("agent_id")) ? " (本 agent)" : "")
+                  .append(": input=").append(a.get("input_tokens"))
+                  .append(", output=").append(a.get("output_tokens"))
+                  .append(", ").append(a.get("turns")).append(" 轮");
+            }
+        }
         return sb.toString();
+    }
+
+    private static String agentIdOf() {
+        try {
+            Path ws = WorkspaceContext.get();
+            return ws.getFileName() != null ? ws.getFileName().toString() : "default";
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
