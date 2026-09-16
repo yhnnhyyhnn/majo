@@ -29,9 +29,9 @@ describe("URL constants", () => {
     expect(PYPI_URL).toBe("https://pypi.org/pypi/qwenpaw/json");
   });
 
-  it("GITHUB_URL points to QwenPaw repo", () => {
+  it("GITHUB_URL points to the Majo repo", () => {
     expect(GITHUB_URL).toContain("github.com");
-    expect(GITHUB_URL).toContain("QwenPaw");
+    expect(GITHUB_URL).toContain("/majo");
   });
 });
 
