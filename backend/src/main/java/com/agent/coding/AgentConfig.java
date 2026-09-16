@@ -41,7 +41,9 @@ public class AgentConfig {
         Map.entry("browser_use", "browser_use"),
         Map.entry("materialize_skill", "materialize_skill"),
         Map.entry("delegate_external_agent", "delegate_external_agent"),
-        Map.entry("memory_search", "memory_search")
+        Map.entry("memory_search", "memory_search"),
+        Map.entry("lsp", "lsp"),
+        Map.entry("ast_search", "ast_search")
     );
 
     @Bean
@@ -63,7 +65,8 @@ public class AgentConfig {
             DesktopScreenshotTool desktopScreenshot,
             BrowserUseTool browserUse, MaterializeSkillTool materializeSkill,
             DelegateExternalAgentTool delegateExternalAgent,
-            MemorySearchTool memorySearch) {
+            MemorySearchTool memorySearch,
+            LspTool lspTool, AstSearchTool astSearchTool) {
         var t = new Toolkit();
         t.registerTool(readFile);
         t.registerTool(writeFile);
@@ -91,6 +94,8 @@ public class AgentConfig {
         t.registerTool(materializeSkill);
         t.registerTool(delegateExternalAgent);
         t.registerTool(memorySearch);
+        t.registerTool(lspTool);
+        t.registerTool(astSearchTool);
         return t;
     }
 }

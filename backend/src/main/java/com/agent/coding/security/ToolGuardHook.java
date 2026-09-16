@@ -44,19 +44,25 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
     private final MediaPromotionHook mediaPromotionHook;
     private final com.agent.coding.agent.ModelRequestNormalizerHook modelRequestNormalizerHook;
     private final com.agent.coding.mcp.McpToolBridge mcpToolBridge;
+    private final com.agent.coding.memory.MemoryWritePipeline memoryWritePipeline;
+    private final com.agent.coding.agent.CodingModePromptInjector codingModePromptInjector;
 
     public ToolGuardHook(ToolGuardService toolGuardService,
                          FileGuardService fileGuardService,
                          ApprovalHook approvalHook,
                          MediaPromotionHook mediaPromotionHook,
                          com.agent.coding.agent.ModelRequestNormalizerHook modelRequestNormalizerHook,
-                         com.agent.coding.mcp.McpToolBridge mcpToolBridge) {
+                         com.agent.coding.mcp.McpToolBridge mcpToolBridge,
+                         com.agent.coding.memory.MemoryWritePipeline memoryWritePipeline,
+                         com.agent.coding.agent.CodingModePromptInjector codingModePromptInjector) {
         this.toolGuardService = toolGuardService;
         this.fileGuardService = fileGuardService;
         this.approvalHook = approvalHook;
         this.mediaPromotionHook = mediaPromotionHook;
         this.modelRequestNormalizerHook = modelRequestNormalizerHook;
         this.mcpToolBridge = mcpToolBridge;
+        this.memoryWritePipeline = memoryWritePipeline;
+        this.codingModePromptInjector = codingModePromptInjector;
     }
 
     @Override
@@ -71,6 +77,17 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
 
     @Override
     public <T extends HookEvent> Mono<T> onEvent(T event) {
+        // Memory write pipeline (ADR-0009): turn capture on PRE_CALL, flush
+        // + prompt-file hot injection lifecycle around the call.
+        if (event instanceof io.agentscope.core.hook.PreCallEvent preCall) {
+            memoryWritePipeline.onPreCall(preCall);
+            codingModePromptInjector.onPreCall(preCall);
+            return Mono.just(event);
+        }
+        if (event instanceof io.agentscope.core.hook.PostCallEvent postCall) {
+            memoryWritePipeline.onPostCall(postCall);
+            return Mono.just(event);
+        }
         // Media promotion (after tool execution)
         if (event instanceof PostActingEvent) {
             return mediaPromotionHook.onEvent(event);
