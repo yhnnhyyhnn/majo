@@ -108,8 +108,9 @@ public class AstSearchTool {
                 return "ast-grep 超时(" + CLI_TIMEOUT_SECONDS + "s): 请缩小 path 范围或使用更具体的 pattern。";
             }
             int code = proc.exitValue();
-            if (code != 0) {
-                // ast-grep exits non-zero on bad pattern/language; surface stderr.
+            if (code != 0 && code != 1) {
+                // ast-grep exits 1 grep-style when nothing matches — that's
+                // a normal "no matches" result, not a failure.
                 String reason = stderr.isBlank() ? ("exit code " + code) : stderr.strip();
                 return "ast-grep 执行失败: " + truncate(reason);
             }

@@ -50,7 +50,7 @@ public class LspTool {
         }
         Path workspace = WorkspaceContext.get();
         String fileName = filePath == null || filePath.isBlank() ? "" : Path.of(filePath.strip()).getFileName().toString();
-        String language = fileName.isEmpty() ? null : LspClient.languageFor(fileName);
+        String language = resolveLanguage(operation.strip(), fileName);
         if (language == null) {
             return "无法从文件推断语言或该操作不需要文件。"
                     + (LspClient.availableLanguages().isEmpty()
@@ -79,6 +79,22 @@ public class LspTool {
         } catch (Exception e) {
             return "Error: LSP " + operation + " failed — " + e.getMessage();
         }
+    }
+
+    /**
+     * Language for a call: inferred from the file name; workspaceSymbol has
+     * no file, so it falls back to the first language with an available
+     * server (QwenPaw parity — deterministic pick, never a hard error).
+     */
+    static String resolveLanguage(String operation, String fileName) {
+        if (fileName != null && !fileName.isBlank()) {
+            return LspClient.languageFor(fileName);
+        }
+        if ("workspaceSymbol".equals(operation)) {
+            List<String> available = LspClient.availableLanguages();
+            return available.isEmpty() ? null : available.get(0);
+        }
+        return null;
     }
 
     /** Languages advertised in errors/help (for tests and diagnostics). */

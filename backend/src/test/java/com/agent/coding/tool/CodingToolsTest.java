@@ -131,6 +131,22 @@ class CodingToolsTest {
     }
 
     @Test
+    void workspaceSymbolWithoutFileFallsBackToFirstAvailableLanguage() {
+        // File present → inferred from extension regardless of operation.
+        assertEquals("typescript", LspTool.resolveLanguage("workspaceSymbol", "App.tsx"));
+        // No file + non-symbol operation → no language (caller errors).
+        assertNull(LspTool.resolveLanguage("hover", ""));
+        // No file + workspaceSymbol → first available server language or null.
+        String picked = LspTool.resolveLanguage("workspaceSymbol", "");
+        List<String> available = LspClient.availableLanguages();
+        if (available.isEmpty()) {
+            assertNull(picked);
+        } else {
+            assertEquals(available.get(0), picked);
+        }
+    }
+
+    @Test
     void readFrameHeaderParsesLspFraming() throws Exception {
         String frame = "Content-Length: 13\r\nContent-Type: x\r\n\r\n";
         var in = new ByteArrayInputStream(frame.getBytes(StandardCharsets.US_ASCII));
