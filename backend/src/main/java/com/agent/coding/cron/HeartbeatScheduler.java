@@ -49,7 +49,9 @@ public class HeartbeatScheduler {
     private static final Pattern INTERVAL_PART = Pattern.compile("(\\d+)([smh])");
     private static final Duration DEFAULT_INTERVAL = Duration.ofHours(6);
     private static final String HEARTBEAT_FILE = "HEARTBEAT.md";
-    private static final String SESSION_ID = "heartbeat:main";
+    // Dashes, not colons: the harness derives task-file paths from the
+    // session id and ":" is illegal in Windows file names.
+    private static final String SESSION_ID = "heartbeat-main";
     private static final String INBOX_SOURCE = "heartbeat";
     private static final int INBOX_PREVIEW_CHARS = 4000;
 
@@ -178,7 +180,7 @@ public class HeartbeatScheduler {
 
         int timeout = Math.max(1, Math.min(settingsService.getHeartbeatTimeoutSeconds(), 3600));
         String target = settingsService.getHeartbeatTarget();
-        String sessionId = SESSION_ID + ":" + agentId;
+        String sessionId = SESSION_ID + "-" + agentId;
         try {
             var chat = chatService.getOrCreateBySession(agentId, sessionId, "Heartbeat");
             HarnessAgent agent = buildAgent(agentId, workspace);
