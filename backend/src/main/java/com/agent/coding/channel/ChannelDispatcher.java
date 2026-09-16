@@ -47,15 +47,18 @@ public class ChannelDispatcher {
     private final ToolGuardHook toolGuardHook;
     private final ChatService chatService;
     private final AccessControlStore accessControl;
+    private final com.agent.coding.memory.MemoryCommandService memoryCommandService;
 
     public ChannelDispatcher(ModelRoutingService modelRouting, Toolkit toolkit,
                              ToolGuardHook toolGuardHook, ChatService chatService,
-                             AccessControlStore accessControl) {
+                             AccessControlStore accessControl,
+                             com.agent.coding.memory.MemoryCommandService memoryCommandService) {
         this.modelRouting = modelRouting;
         this.toolkit = toolkit;
         this.toolGuardHook = toolGuardHook;
         this.chatService = chatService;
         this.accessControl = accessControl;
+        this.memoryCommandService = memoryCommandService;
     }
 
     /**
@@ -70,6 +73,22 @@ public class ChannelDispatcher {
             return;
         }
         if (msg.text() == null || msg.text().isBlank()) {
+            return;
+        }
+        // Memory command (ADR-0009): execute locally, no agent run.
+        String trimmedText = msg.text().strip();
+        if (trimmedText.toLowerCase().startsWith("/memory")) {
+            String args = trimmedText.length() > "/memory".length()
+                    ? trimmedText.substring("/memory".length()) : "";
+            String agentId = AgentStore.DEFAULT_AGENT_ID;
+            try {
+                String replyText = memoryCommandService.execute(agentId, args);
+                saveMemoryCommandChat(agentId, msg, trimmedText, replyText);
+                reply.accept(msg.replyTo(), replyText);
+            } catch (Exception e) {
+                log.error("[channel:{}] memory command failed", msg.channelId(), e);
+                reply.accept(msg.replyTo(), "/memory 命令执行失败: " + e.getMessage());
+            }
             return;
         }
         try {
@@ -203,5 +222,13 @@ public class ChannelDispatcher {
         }
         msgs.add(a);
         chatService.saveMessages(chatId, msgs);
+    }
+
+    /** Persist a /memory command exchange into the channel session history. */
+    private void saveMemoryCommandChat(String agentId, ChannelMessage msg,
+                                       String commandText, String replyText) {
+        String sessionId = "ch-" + msg.channelId() + "-" + Integer.toHexString(msg.identity().hashCode());
+        String chatId = chatService.getOrCreateBySession(agentId, sessionId, commandText).getId();
+        saveChat(chatId, commandText, replyText, null);
     }
 }
