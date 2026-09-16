@@ -89,6 +89,23 @@ public class ModelRequestNormalizerHook implements Hook {
                 rebuilt.add(bounded);
             }
 
+            // 1.5) PDF document blocks nested in tool results are stripped
+            //      unconditionally: OpenAI-compatible chat-completions
+            //      servers (vLLM, DeepSeek, DashScope, ...) reject "file"
+            //      parts even on multimodal models, so the formatter path
+            //      must never see them (QwenPaw #7636). User-supplied
+            //      document blocks keep the multimodal-conditional path
+            //      below; images/audio/video are preserved either way.
+            List<Msg> docStripped = new ArrayList<>(rebuilt.size());
+            for (Msg msg : rebuilt) {
+                Msg cleaned = stripToolResultDocuments(msg);
+                if (cleaned != msg) {
+                    changed = true;
+                }
+                docStripped.add(cleaned);
+            }
+            rebuilt = docStripped;
+
             // 2) Media stripping for text-only models.
             if (!multimodal) {
                 List<Msg> stripped = new ArrayList<>(rebuilt.size());
@@ -216,6 +233,76 @@ public class ModelRequestNormalizerHook implements Hook {
     }
 
     // ── Stripping (request copies only; history untouched) ───────────
+
+    /**
+     * Remove PDF document blocks nested inside tool-result outputs,
+     * regardless of multimodal support (QwenPaw #7636): formatters emit
+     * OpenAI {@code file} parts from them, which chat-completions servers
+     * reject. Sibling image/audio/video blocks are preserved.
+     */
+    static Msg stripToolResultDocuments(Msg msg) {
+        List<ContentBlock> content = msg.getContent();
+        if (content == null || content.isEmpty()) {
+            return msg;
+        }
+        List<ContentBlock> out = new ArrayList<>(content.size());
+        boolean changed = false;
+        for (ContentBlock block : content) {
+            if (block instanceof ToolResultBlock trb) {
+                ToolResultBlock filtered = filterToolResultDocuments(trb);
+                if (filtered != trb) {
+                    changed = true;
+                }
+                out.add(filtered);
+                continue;
+            }
+            out.add(block);
+        }
+        if (!changed) {
+            return msg;
+        }
+        return msg.withContent(out);
+    }
+
+    private static ToolResultBlock filterToolResultDocuments(ToolResultBlock trb) {
+        List<ContentBlock> output = trb.getOutput();
+        if (output == null || output.isEmpty()) {
+            return trb;
+        }
+        List<ContentBlock> filtered = new ArrayList<>(output.size());
+        boolean changed = false;
+        for (ContentBlock block : output) {
+            if (isDocumentBlock(block)) {
+                changed = true;
+                continue;
+            }
+            filtered.add(block);
+        }
+        if (!changed) {
+            return trb;
+        }
+        if (filtered.isEmpty()) {
+            filtered.add(TextBlock.builder()
+                    .text("[PDF document removed - not supported on this request path]")
+                    .build());
+        }
+        return ToolResultBlock.builder()
+                .id(trb.getId())
+                .name(trb.getName())
+                .output(filtered)
+                .metadata(trb.getMetadata())
+                .state(trb.getState())
+                .build();
+    }
+
+    /** A block carrying a PDF payload (formatter turns it into a file part). */
+    private static boolean isDocumentBlock(ContentBlock block) {
+        if (block instanceof DataBlock data) {
+            String mt = mediaTypeOf(data.getSource());
+            return DOCUMENT_MIME_TYPES.contains(mt);
+        }
+        return false;
+    }
 
     private Msg stripMediaBlocks(Msg msg) {
         List<ContentBlock> content = msg.getContent();
