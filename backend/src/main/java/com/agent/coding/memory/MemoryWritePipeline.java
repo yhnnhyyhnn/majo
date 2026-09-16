@@ -153,6 +153,9 @@ public class MemoryWritePipeline {
             metadata.put("trigger", "periodic");
             metadata.put("turns", batch.size());
             metadata.put("backend", backend.id());
+            // Routes the write to this agent's workspace only (ADR-0014);
+            // the summary backend also uses it to pick the LLM slot.
+            metadata.put("agent_id", agentId);
             backend.remember(content, metadata);
             log.info("[memory-write] flushed {} turn(s) for agent '{}' via backend '{}'",
                     batch.size(), agentId, backend.id());
