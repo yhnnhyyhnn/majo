@@ -38,6 +38,7 @@ public class CommandRegistry {
         register("/approve", 10);
         register("/deny", 10);
         register("/approval", 10);
+        register("/memory", 10);
     }
 
     public void register(String prefix, int level) {

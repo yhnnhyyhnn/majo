@@ -2440,6 +2440,9 @@
       "skills": {
         "description": "列出当前对话可用的技能，并显示可显式调用的技能命令"
       },
+      "memory": {
+        "description": "管理长期记忆：status/list/search/read/forget/write"
+      },
       "agents": {
         "description": "列出当前运行时可用的智能体"
       },

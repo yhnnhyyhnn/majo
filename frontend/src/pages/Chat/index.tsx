@@ -2467,6 +2467,11 @@ export default function ChatPage() {
             value: "skills",
             description: t("chat.commands.skills.description"),
           },
+          {
+            command: "/memory",
+            value: "memory",
+            description: t("chat.commands.memory.description"),
+          },
         ]
       : backendCommands.map((item) => ({
           command: `/${item.name}`,

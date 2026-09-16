@@ -33,6 +33,7 @@ public class KeywordMemoryBackend implements MemoryBackend {
     private static final Pattern WORD_SPLIT = Pattern.compile("[^\\p{L}\\p{N}]+");
     private static final int MAX_FILE_BYTES = 2 * 1024 * 1024;
     private static final int MAX_SNIPPET_CHARS = 400;
+    private static final int MAX_NOTE_CHARS = 8000;
 
     private final ConcurrentHashMap<String, Map<String, Object>> lastIndexes = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Path> workspaces = new ConcurrentHashMap<>();
@@ -59,7 +60,10 @@ public class KeywordMemoryBackend implements MemoryBackend {
 
     @Override
     public String getMemoryPrompt() {
-        return "";
+        return "You have a persistent long-term memory directory. When the user shares durable "
+                + "preferences, project facts, or decisions worth remembering across sessions, "
+                + "save them there (or via /memory write). Call memory_search when a request "
+                + "might benefit from previously stored knowledge.";
     }
 
     @Override
@@ -84,9 +88,48 @@ public class KeywordMemoryBackend implements MemoryBackend {
 
     @Override
     public void remember(String content, Map<String, Object> metadata) {
-        // Keyword backend is read-only over existing files; new memories are
-        // expected to arrive as markdown in the workspace memory/ directory.
-        log.debug("[memory:{}] remember() ignored (read-only backend)", ID);
+        // Keyword backend persists memories as daily markdown notes under
+        // memory/daily/ (ADR-0009); the inverted index is refreshed so the
+        // new note is immediately retrievable.
+        for (Map.Entry<String, Path> e : workspaces.entrySet()) {
+            appendDailyNote(e.getValue(), content, metadata);
+            rebuildForPath(e.getValue());
+        }
+    }
+
+    private void appendDailyNote(Path workspace, String content, Map<String, Object> metadata) {
+        if (content == null || content.isBlank()) {
+            return;
+        }
+        String trimmed = content.strip();
+        if (trimmed.length() > MAX_NOTE_CHARS) {
+            trimmed = trimmed.substring(0, MAX_NOTE_CHARS) + "\n…[内容过长已截断]";
+        }
+        String date = java.time.LocalDate.now().toString();
+        String time = java.time.LocalTime.now().withNano(0).toString();
+        StringBuilder note = new StringBuilder();
+        note.append("\n### ").append(time).append("\n");
+        if (metadata != null && !metadata.isEmpty()) {
+            note.append("<!-- metadata: ");
+            try {
+                note.append(MAPPER.writeValueAsString(metadata));
+            } catch (Exception e) {
+                note.append("{}");
+            }
+            note.append(" -->\n");
+        }
+        note.append(trimmed).append("\n");
+        try {
+            Path daily = workspace.resolve("memory").resolve("daily");
+            Files.createDirectories(daily);
+            Path target = daily.resolve(date + ".md");
+            Files.writeString(target, note, StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.APPEND);
+            log.debug("[memory:{}] remembered note -> {}", ID, target);
+        } catch (IOException e) {
+            log.warn("[memory:{}] failed to write daily note: {}", ID, e.getMessage());
+        }
     }
 
     @Override

@@ -2581,6 +2581,9 @@
       "skills": {
         "description": "List chat-available skills and expose explicit skill commands"
       },
+      "memory": {
+        "description": "Manage long-term memory: status, list, search, read, forget, write"
+      },
       "agents": {
         "description": "List agents available to the current runtime"
       },
