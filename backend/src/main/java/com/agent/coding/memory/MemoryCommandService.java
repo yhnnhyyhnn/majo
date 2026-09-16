@@ -277,7 +277,9 @@ public class MemoryCommandService {
             try {
                 keyword.rebuildForPath(workspace);
             } catch (Exception e) {
-                log.debug("[memory-cmd] reindex failed: {}", e.getMessage());
+                // Warn, not debug: a failed reindex leaves search serving the
+                // stale persisted index (a CI gate failure traced back here).
+                log.warn("[memory-cmd] reindex failed for {}: {}", agentId, e.toString());
             }
         }
     }

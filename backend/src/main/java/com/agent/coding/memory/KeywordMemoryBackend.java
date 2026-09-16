@@ -35,6 +35,10 @@ public class KeywordMemoryBackend implements MemoryBackend {
     private static final int MAX_SNIPPET_CHARS = 400;
     private static final int MAX_NOTE_CHARS = 8000;
 
+    // Keyed by workspace path (not agent id): rebuildForPath derives its
+    // cache key from the workspace it indexes, so keying by agent id would
+    // leave stale entries whenever the two spellings diverge (CI caught
+    // exactly that — search served a pre-forget index).
     private final ConcurrentHashMap<String, Map<String, Object>> lastIndexes = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Path> workspaces = new ConcurrentHashMap<>();
 
@@ -90,14 +94,21 @@ public class KeywordMemoryBackend implements MemoryBackend {
     public void remember(String content, Map<String, Object> metadata) {
         // Keyword backend persists memories as daily markdown notes under
         // memory/daily/ (ADR-0009); the inverted index is refreshed so the
-        // new note is immediately retrievable.
+        // new note is immediately retrievable. metadata.agent_id routes the
+        // note to that agent's workspace only (ADR-0014) — without it the
+        // write goes to every started workspace (legacy single-agent path).
+        String target = metadata == null ? null : String.valueOf(metadata.get("agent_id"));
         for (Map.Entry<String, Path> e : workspaces.entrySet()) {
+            if (target != null && !target.isBlank() && !"null".equals(target)
+                    && !e.getKey().equals(target)) {
+                continue;
+            }
             appendDailyNote(e.getValue(), content, metadata);
             rebuildForPath(e.getValue());
         }
     }
 
-    private void appendDailyNote(Path workspace, String content, Map<String, Object> metadata) {
+    void appendDailyNote(Path workspace, String content, Map<String, Object> metadata) {
         if (content == null || content.isBlank()) {
             return;
         }
@@ -181,7 +192,7 @@ public class KeywordMemoryBackend implements MemoryBackend {
         index.put("built_at", java.time.Instant.now().toString());
         index.put("files", fileMeta);
         index.put("index", inverted);
-        lastIndexes.put(agentId, index);
+        lastIndexes.put(cacheKey(workspace), index);
         persist(workspace, index);
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -192,12 +203,16 @@ public class KeywordMemoryBackend implements MemoryBackend {
         return result;
     }
 
+    private static String cacheKey(Path workspace) {
+        return workspace.toAbsolutePath().normalize().toString();
+    }
+
     private Map<String, Object> lastIndexFor(String agentId, Path workspace) {
-        Map<String, Object> index = lastIndexes.get(agentId);
+        Map<String, Object> index = lastIndexes.get(cacheKey(workspace));
         if (index == null) {
             index = loadPersisted(workspace);
             if (index != null) {
-                lastIndexes.put(agentId, index);
+                lastIndexes.put(cacheKey(workspace), index);
             }
         }
         return index;

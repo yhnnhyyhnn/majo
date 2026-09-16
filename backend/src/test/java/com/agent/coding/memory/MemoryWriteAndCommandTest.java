@@ -133,6 +133,9 @@ class MemoryWriteAndCommandTest {
 
         String forgot = svc.execute("default", "forget " + relPath);
         assertTrue(forgot.contains("已删除"));
+        // Disk truth first — if this fails, deletion itself broke; the
+        // search assertion below additionally covers index coherence.
+        assertFalse(Files.exists(workspace.resolve(relPath)), "daily note deleted from disk");
         assertTrue(backend.search("zzztopic", 5).isEmpty());
     }
 
