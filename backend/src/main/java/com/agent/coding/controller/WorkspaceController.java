@@ -123,17 +123,20 @@ public class WorkspaceController {
     private final ModelConfigRepository modelConfigRepo;
     private final PluginRegistry pluginRegistry;
     private final com.agent.coding.channel.ChannelsConfigController channelsConfig;
+    private final com.agent.coding.cron.HeartbeatScheduler heartbeatScheduler;
 
     public WorkspaceController(SettingsService settingsService,
                                 ProviderRepository providerRepo,
                                 ModelConfigRepository modelConfigRepo,
                                 PluginRegistry pluginRegistry,
-                                com.agent.coding.channel.ChannelsConfigController channelsConfig) {
+                                com.agent.coding.channel.ChannelsConfigController channelsConfig,
+                                com.agent.coding.cron.HeartbeatScheduler heartbeatScheduler) {
         this.settingsService = settingsService;
         this.providerRepo = providerRepo;
         this.modelConfigRepo = modelConfigRepo;
         this.pluginRegistry = pluginRegistry;
         this.channelsConfig = channelsConfig;
+        this.heartbeatScheduler = heartbeatScheduler;
     }
 
     private boolean isSkipped(String name) {
@@ -1303,12 +1306,13 @@ public class WorkspaceController {
     // ── Heartbeat config (.py /heartbeat) ──────────────
     @GetMapping("/config/heartbeat")
     public Map<String, Object> getHeartbeat() {
-        return Map.of(
-            "enabled", settingsService.isHeartbeatEnabled(),
-            "every", settingsService.getHeartbeatEvery(),
-            "target", settingsService.getHeartbeatTarget(),
-            "timeoutSeconds", settingsService.getHeartbeatTimeoutSeconds()
-        );
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("enabled", settingsService.isHeartbeatEnabled());
+        result.put("every", settingsService.getHeartbeatEvery());
+        result.put("target", settingsService.getHeartbeatTarget());
+        result.put("timeoutSeconds", settingsService.getHeartbeatTimeoutSeconds());
+        result.put("last_run", heartbeatScheduler.lastRunSummary());
+        return result;
     }
 
     @PutMapping("/config/heartbeat")
@@ -1318,12 +1322,13 @@ public class WorkspaceController {
         String target = Objects.toString(body.get("target"), "main");
         int timeout = ((Number) body.getOrDefault("timeoutSeconds", 120)).intValue();
         settingsService.setHeartbeatConfig(enabled, every, target, timeout);
+        heartbeatScheduler.reschedule();
         return getHeartbeat();
     }
 
     @PostMapping("/config/heartbeat/run")
     public Map<String, Object> runHeartbeat() {
-        return Map.of("started", true);
+        return heartbeatScheduler.runNow();
     }
 
     // ── User timezone (per-agent,/user-timezone) ──

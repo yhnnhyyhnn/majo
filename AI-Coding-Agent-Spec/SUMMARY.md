@@ -69,7 +69,7 @@
 | [05-Engineering](05-Engineering/_INDEX.md) | 🚧（技术架构+详细设计已完整 ✅） | 技术架构、DB DDL、API契约、类设计、Permission+Git详细设计 |
 | [06-Enterprise](06-Enterprise/_INDEX.md) | 🚧 | RBAC、审计、私有化部署、合规 |
 | [07-Operation](07-Operation/_INDEX.md) | 🚧 | 增长、定价、客户成功、社区运营 |
-| [08-ADR](08-ADR/_INDEX.md) | ✅ 6 ADR 已完成 | Agent Core 语言、Sandbox 路线、Embedding 策略、CLI/IDE 优先级、Telemetry 协议、Java+AgentScope转向 |
+| [08-ADR](08-ADR/_INDEX.md) | ✅ 9 ADR 已完成 | Agent Core 语言、Sandbox 路线、Embedding 策略、CLI/IDE 优先级、Telemetry 协议、Java+AgentScope转向、MCP 运行时桥接、记忆后端 SPI、记忆写入管道 |
 | [Appendix](Appendix/_INDEX.md) | 🚧（Benchmark Task Set 已完整✅） | 术语表、参考资料、竞品拆解笔记、[基准任务集](Appendix/Benchmark%20Task%20Set.md) |
 
 ## 完成度总览

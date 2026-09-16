@@ -1,6 +1,6 @@
 # 08-ADR — 架构决策记录
 
-> **状态：🚧 8 篇 ADR 已完成** — 含推翻 ADR-0001 的技术栈转向决策。
+> **状态：🚧 13 篇 ADR 已完成** — 含推翻 ADR-0001 的技术栈转向决策。
 
 ## 本目录的定位
 
@@ -38,6 +38,11 @@
 | [ADR-0006](ADR-0006-java-agentscope.md) | 推翻 ADR-0001：Java + AgentScope Java 2.0 替代 TypeScript/Node.js | Accepted（Supersedes ADR-0001） | 全局技术栈、Technical Architecture、Deployment |
 | [ADR-0007](ADR-0007-mcp-runtime-bridge.md) | MCP 配置面接入 agent 运行时（MCP Runtime Bridge） | Accepted | MCP、ToolGuardHook、工具治理 |
 | [ADR-0008](ADR-0008-memory-backend-spi.md) | 记忆后端 SPI 化：按 QwenPaw 插件接口设计多后端记忆层 | Accepted | MemoryIndexService、memory_search、长期记忆 |
+| [ADR-0009](ADR-0009-memory-write-pipeline.md) | 记忆写入管道与 /memory 命令：补齐 ADR-0008 遗留的写侧与治理面 | Accepted | MemoryWritePipeline、/memory、AGENT.md 注入、inbox 降级提示 |
+| [ADR-0010](ADR-0010-coding-mode-tools.md) | Coding Mode 与代码智能工具：lsp + ast_search 的能力探测型接入 | Accepted | CodingModeService、CodingModePromptInjector、LspTool、AstSearchTool |
+| [ADR-0011](ADR-0011-token-usage-turns.md) | Token 用量按轮次持久化与 Agent 统计面 | Accepted | token_usage_turns、/token-usage/agents、get_token_usage |
+| [ADR-0012](ADR-0012-sandbox-roadmap.md) | 沙箱执行隔离路线图：进程级加固先行，OS 原生隔离分期 | Accepted | ExecuteCommandTool 超时/进程树、sandbox 路线 |
+| [ADR-0013](ADR-0013-heartbeat.md) | Heartbeat 心跳：HEARTBEAT.md 定时驱动 agent 运行 | Accepted | HeartbeatScheduler、/config/heartbeat、inbox 投递 |
 
 ## 未来可能的 ADR 候选
 
