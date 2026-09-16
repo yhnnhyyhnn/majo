@@ -104,16 +104,47 @@ public final class LspClient implements Closeable {
         POOL.clear();
     }
 
-    /** Discover argv for a language by probing PATH; null = unavailable. */
+    /** Discover an executable path for a language by probing PATH; null = unavailable. */
     public static List<String> discover(String language) {
         for (ServerSpec spec : SERVER_SPECS) {
             if (spec.language().equals(language)) {
                 for (List<String> candidate : spec.candidates()) {
-                    if (onPath(candidate.get(0))) {
-                        return candidate;
+                    String resolved = resolveExecutable(candidate.get(0));
+                    if (resolved != null) {
+                        List<String> argv = new ArrayList<>(candidate);
+                        argv.set(0, resolved);
+                        return argv;
                     }
                 }
                 return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Absolute path of an executable Windows/POSIX can actually spawn.
+     * On Windows the bare npm bin name is a sh script ProcessBuilder
+     * cannot run — prefer .cmd/.exe/.bat variants.
+     */
+    static String resolveExecutable(String executable) {
+        String path = System.getenv("PATH");
+        if (path == null) {
+            return null;
+        }
+        String[] names = System.getProperty("os.name", "").toLowerCase().contains("win")
+                ? new String[]{executable + ".exe", executable + ".cmd",
+                        executable + ".bat", executable}
+                : new String[]{executable};
+        for (String dir : path.split("[;]")) {
+            if (dir.isBlank()) {
+                continue;
+            }
+            for (String name : names) {
+                Path candidate = Path.of(dir.strip(), name);
+                if (Files.isExecutable(candidate)) {
+                    return candidate.toString();
+                }
             }
         }
         return null;
@@ -141,27 +172,6 @@ public final class LspClient implements Closeable {
             }
         }
         return null;
-    }
-
-    private static boolean onPath(String executable) {
-        String path = System.getenv("PATH");
-        if (path == null) {
-            return false;
-        }
-        String[] names = System.getProperty("os.name", "").toLowerCase().contains("win")
-                ? new String[]{executable + ".exe", executable + ".cmd", executable + ".bat", executable}
-                : new String[]{executable};
-        for (String dir : path.split("[;]")) {
-            if (dir.isBlank()) {
-                continue;
-            }
-            for (String name : names) {
-                if (Files.isExecutable(Path.of(dir.strip(), name))) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────
@@ -209,6 +219,13 @@ public final class LspClient implements Closeable {
     @Override
     public synchronized void close() {
         if (process != null) {
+            // Kill the tree — a language server may spawn its own children
+            // (tsserver), which otherwise outlive the pooled client and pin
+            // the workspace directory on Windows.
+            try {
+                process.descendants().forEach(ProcessHandle::destroyForcibly);
+            } catch (Exception ignored) {
+            }
             process.destroyForcibly();
             process = null;
         }
@@ -321,12 +338,13 @@ public final class LspClient implements Closeable {
         pending.put(id, future);
         try {
             write(msg);
-            JsonNode result = future.get(timeoutSeconds, TimeUnit.SECONDS);
-            if (result.has("error")) {
+            JsonNode response = future.get(timeoutSeconds, TimeUnit.SECONDS);
+            if (response.has("error")) {
                 throw new LspException("LSP " + method + " 失败: "
-                        + result.path("error").path("message").asText("unknown"));
+                        + response.path("error").path("message").asText("unknown"));
             }
-            return result;
+            // Unwrap the JSON-RPC envelope — callers want the bare result.
+            return response.path("result");
         } catch (LspException e) {
             throw e;
         } catch (Exception e) {
