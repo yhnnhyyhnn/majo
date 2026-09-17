@@ -41,6 +41,7 @@ public class LlmMemorySummarizer implements MemorySummarizer {
     public Optional<String> summarize(String agentId, String content) {
         var slot = modelRouting.resolveEffectiveModel(agentId);
         if (slot == null || !slot.hasBoth()) {
+            log.warn("[memory-summary] no effective model for agent '{}' — extraction skipped", agentId);
             return Optional.empty();
         }
         OpenAIChatModel model = modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
@@ -49,14 +50,19 @@ public class LlmMemorySummarizer implements MemorySummarizer {
                         .content(TextBlock.builder().text(SYSTEM_PROMPT).build()).build(),
                 Msg.builder().role(MsgRole.USER)
                         .content(TextBlock.builder().text(content).build()).build());
-        var response = model.stream(msgs, List.of(), null)
-                .blockLast(TIMEOUT);
-        String text = extractText(response);
+        // Streaming responses deliver text across MANY ChatResponse chunks
+        // (the last one often carries only usage) — aggregate them all.
+        List<io.agentscope.core.model.ChatResponse> responses =
+                model.stream(msgs, List.of(), null).collectList().block(TIMEOUT);
+        String text = extractText(responses);
         if (text == null) {
+            log.warn("[memory-summary] agent '{}' model returned no text blocks (chunks={})",
+                    agentId, responses == null ? -1 : responses.size());
             return Optional.empty();
         }
         String trimmed = text.strip();
         if (trimmed.isEmpty() || "无".equals(trimmed)) {
+            log.info("[memory-summary] agent '{}' model judged batch not worth keeping", agentId);
             return Optional.empty();
         }
         if (trimmed.length() > MAX_SUMMARY_CHARS) {
@@ -66,14 +72,19 @@ public class LlmMemorySummarizer implements MemorySummarizer {
         return Optional.of(trimmed);
     }
 
-    private static String extractText(io.agentscope.core.model.ChatResponse response) {
-        if (response == null || response.getContent() == null) {
+    private static String extractText(List<io.agentscope.core.model.ChatResponse> responses) {
+        if (responses == null || responses.isEmpty()) {
             return null;
         }
         StringBuilder sb = new StringBuilder();
-        for (var block : response.getContent()) {
-            if (block instanceof TextBlock t && t.getText() != null) {
-                sb.append(t.getText());
+        for (var response : responses) {
+            if (response.getContent() == null) {
+                continue;
+            }
+            for (var block : response.getContent()) {
+                if (block instanceof TextBlock t && t.getText() != null) {
+                    sb.append(t.getText());
+                }
             }
         }
         return sb.isEmpty() ? null : sb.toString();
