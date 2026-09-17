@@ -1,7 +1,6 @@
 package com.agent.coding.controller;
 
 import com.agent.coding.ChatService;
-import com.agent.coding.SettingsService;
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.agent.AgentStore;
 import com.agent.coding.dto.*;
@@ -19,8 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.tool.Toolkit;
-import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,10 +52,9 @@ public class ConsoleController {
     private final ModelRoutingService modelRouting;
     private final TaskTracker taskTracker;
     private final ChatService chatService;
-    private final Toolkit toolkit;
+    private final com.agent.coding.agent.HarnessAgentFactory agentFactory;
     private final Set<String> implementedToolNames;
     private final TokenUsageRepository tokenUsageRepo;
-    private final SettingsService settingsService;
     private final InboxStore inboxStore;
     private final com.agent.coding.approval.ApprovalStore approvalStore;
     private final com.agent.coding.security.ToolGuardHook toolGuardHook;
@@ -68,10 +64,10 @@ public class ConsoleController {
     private final com.agent.coding.service.TokenUsageService tokenUsageService;
 
     public ConsoleController(ModelRoutingService modelRouting, TaskTracker taskTracker,
-                              ChatService chatService, Toolkit toolkit,
+                              ChatService chatService,
+                              com.agent.coding.agent.HarnessAgentFactory agentFactory,
                               Set<String> implementedToolNames,
                               TokenUsageRepository tokenUsageRepo,
-                              SettingsService settingsService,
                               InboxStore inboxStore,
                               com.agent.coding.approval.ApprovalStore approvalStore,
                               com.agent.coding.security.ToolGuardHook toolGuardHook,
@@ -82,10 +78,9 @@ public class ConsoleController {
         this.modelRouting = modelRouting;
         this.taskTracker = taskTracker;
         this.chatService = chatService;
-        this.toolkit = toolkit;
+        this.agentFactory = agentFactory;
         this.implementedToolNames = implementedToolNames;
         this.tokenUsageRepo = tokenUsageRepo;
-        this.settingsService = settingsService;
         this.inboxStore = inboxStore;
         this.approvalStore = approvalStore;
         this.toolGuardHook = toolGuardHook;
@@ -1004,8 +999,6 @@ public class ConsoleController {
 
     private HarnessAgent resolveAgent(String workspace, String agentId) {
         Path wsPath;
-        String agentName = "majo";
-
         if (!workspace.isBlank()) {
             wsPath = Paths.get(workspace).toAbsolutePath().normalize();
             if (!Files.isDirectory(wsPath)) {
@@ -1014,20 +1007,12 @@ public class ConsoleController {
         } else {
             wsPath = resolveAgentWorkspace(agentId);
         }
+        log.info("Resolved agent '{}' workspace: {}, name: {}", agentId, wsPath,
+                agentFactory.agentName(agentId));
 
-        var profile = AgentStore.getProfile(agentId);
-        if (profile != null && profile.get("name") != null) {
-            agentName = profile.get("name").toString();
-        }
-        log.info("Resolved agent '{}' workspace: {}, name: {}", agentId, wsPath, agentName);
-
-        return HarnessAgent.builder()
-            .name(agentId)
-            .agentId(agentId)
-            .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
-            .model(createModel(agentId))
-            .toolkit(toolkit)
-            .workspace(wsPath)
+        return agentFactory.builder(agentId, SYS_PROMPT, wsPath,
+                        agentFactory.modelFor(agentId,
+                                com.agent.coding.agent.HarnessAgentFactory.ModelFallback.SETTINGS))
             .hook(toolGuardHook)
             .build();
     }
@@ -1039,20 +1024,6 @@ public class ConsoleController {
             log.warn("Failed to resolve workspace for agent '{}', using default: {}", agentId, e.getMessage());
             return DEFAULT_WORKSPACE;
         }
-    }
-
-    private OpenAIChatModel createModel(String agentId) {
-        var slot = modelRouting.resolveEffectiveModel(agentId);
-        if (!slot.hasBoth()) {
-            log.warn("No active model configured for agent '{}', using gpt-4o-mini fallback", agentId);
-            return OpenAIChatModel.builder()
-                .apiKey("")
-                .baseUrl("https://api.openai.com/v1")
-                .modelName("gpt-4o-mini")
-                .build();
-        }
-        log.info("Effective model for agent '{}': {}/{}", agentId, slot.providerId(), slot.modelId());
-        return modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
     }
 
     private void saveConsoleMessages(String chatId, String userPrompt,

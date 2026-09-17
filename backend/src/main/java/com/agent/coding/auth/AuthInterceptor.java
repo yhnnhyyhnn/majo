@@ -32,6 +32,12 @@ public class AuthInterceptor implements HandlerInterceptor {
     private static final java.util.Set<String> PUBLIC_PREFIXES = java.util.Set.of(
             "/assets/", "/api/frontend_plugin/");
 
+    // allow_no_auth_hosts is consulted on every authenticated request but
+    // changes only when agents.json is rewritten; cache it keyed by mtime
+    // instead of re-parsing the file per request.
+    private volatile long securityMtime = Long.MIN_VALUE;
+    private volatile java.util.Set<String> noAuthHosts = java.util.Set.of();
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
                              Object handler) throws Exception {
@@ -75,20 +81,35 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private boolean isAllowedHost(HttpServletRequest request) {
         String remote = request.getRemoteAddr();
-        Map<String, Object> config = SkillStore.readJson(
-                SkillStore.WORKING_DIR.resolve("agents.json"), Map.of());
-        Object security = config.get("security");
-        if (security instanceof Map<?, ?> sec) {
-            Object hosts = ((Map<?, ?>) sec).get("allow_no_auth_hosts");
-            if (hosts instanceof java.util.List<?> list) {
-                for (Object h : list) {
-                    if (remote.equals(String.valueOf(h))) {
-                        return true;
-                    }
-                }
+        for (String host : noAuthHosts()) {
+            if (remote.equals(host)) {
+                return true;
             }
         }
         return "127.0.0.1".equals(remote) || "0:0:0:0:0:0:0:1".equals(remote);
+    }
+
+    /** {@code security.allow_no_auth_hosts} from agents.json, reloaded on mtime change. */
+    private java.util.Set<String> noAuthHosts() {
+        java.nio.file.Path file = SkillStore.WORKING_DIR.resolve("agents.json");
+        try {
+            long mtime = Files.getLastModifiedTime(file).toMillis();
+            if (mtime != securityMtime) {
+                java.util.Set<String> hosts = new java.util.HashSet<>();
+                Map<String, Object> config = SkillStore.readJson(file, Map.of());
+                if (config.get("security") instanceof Map<?, ?> sec
+                        && sec.get("allow_no_auth_hosts") instanceof java.util.List<?> list) {
+                    for (Object h : list) {
+                        hosts.add(String.valueOf(h));
+                    }
+                }
+                noAuthHosts = hosts;
+                securityMtime = mtime;
+            }
+        } catch (Exception ignored) {
+            // Missing/unreadable file: serve the last known set (empty on first use)
+        }
+        return noAuthHosts;
     }
 
     @SuppressWarnings("unchecked")

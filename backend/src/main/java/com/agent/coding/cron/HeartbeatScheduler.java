@@ -3,11 +3,10 @@ package com.agent.coding.cron;
 import com.agent.coding.ChatService;
 import com.agent.coding.SettingsService;
 import com.agent.coding.agent.AgentStore;
+import com.agent.coding.agent.HarnessAgentFactory;
 import com.agent.coding.inbox.InboxStore;
-import com.agent.coding.service.ModelRoutingService;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,10 +55,9 @@ public class HeartbeatScheduler {
     private static final int INBOX_PREVIEW_CHARS = 4000;
 
     private final SettingsService settingsService;
-    private final ModelRoutingService modelRouting;
     private final ChatService chatService;
-    private final Toolkit toolkit;
     private final InboxStore inboxStore;
+    private final HarnessAgentFactory agentFactory;
     private final com.agent.coding.channel.ChannelRegistry channelRegistry;
     private final com.agent.coding.channel.LastContactStore lastContactStore;
 
@@ -70,17 +68,15 @@ public class HeartbeatScheduler {
     private record LastRun(Instant startedAt, String status, String detail) {}
 
     public HeartbeatScheduler(SettingsService settingsService,
-                              ModelRoutingService modelRouting,
                               ChatService chatService,
-                              Toolkit toolkit,
                               InboxStore inboxStore,
+                              HarnessAgentFactory agentFactory,
                               com.agent.coding.channel.ChannelRegistry channelRegistry,
                               com.agent.coding.channel.LastContactStore lastContactStore) {
         this.settingsService = settingsService;
-        this.modelRouting = modelRouting;
         this.chatService = chatService;
-        this.toolkit = toolkit;
         this.inboxStore = inboxStore;
+        this.agentFactory = agentFactory;
         this.channelRegistry = channelRegistry;
         this.lastContactStore = lastContactStore;
         this.scheduler = new ThreadPoolTaskScheduler();
@@ -287,32 +283,12 @@ public class HeartbeatScheduler {
     }
 
     private HarnessAgent buildAgent(String agentId, Path workspace) {
-        String name = "majo";
-        var profile = AgentStore.getProfile(agentId);
-        if (profile != null && profile.get("name") != null) {
-            name = String.valueOf(profile.get("name"));
-        }
-        return HarnessAgent.builder()
-                .name(agentId)
-                .agentId(agentId)
-                .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(
+        return agentFactory.builder(agentId,
                         "你是通过心跳机制被周期性唤醒的个人助理。按照消息中的指令执行任务，"
-                                + "简洁可靠地完成，不需要寒暄。"))
-                .model(modelFor(agentId))
-                .toolkit(toolkit)
-                .workspace(workspace)
-                .build();
-    }
-
-    private io.agentscope.extensions.model.openai.OpenAIChatModel modelFor(String agentId) {
-        var slot = modelRouting.resolveEffectiveModel(agentId);
-        if (slot != null && slot.hasBoth()) {
-            return modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
-        }
-        return io.agentscope.extensions.model.openai.OpenAIChatModel.builder()
-                .apiKey(settingsService.getApiKey())
-                .baseUrl(settingsService.getBaseUrl())
-                .modelName(settingsService.getModelName())
+                                + "简洁可靠地完成，不需要寒暄。",
+                        workspace,
+                        agentFactory.modelFor(agentId,
+                                HarnessAgentFactory.ModelFallback.SETTINGS))
                 .build();
     }
 

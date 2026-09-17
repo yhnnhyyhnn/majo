@@ -86,7 +86,7 @@ class HeartbeatSchedulerTest {
         // AgentStore's default workspace may or may not contain HEARTBEAT.md;
         // the contract under test is that a status is always recorded.
         HeartbeatScheduler scheduler = new HeartbeatScheduler(
-                settings(true, "6h", "main", 120), null, null, null, null, null, null);
+                settings(true, "6h", "main", 120), null, null, null, null, null);
         assertEquals("never", scheduler.lastRunSummary().get("status"));
         scheduler.runSafely();
         String status = String.valueOf(scheduler.lastRunSummary().get("status"));
@@ -96,7 +96,7 @@ class HeartbeatSchedulerTest {
     @Test
     void runNowRespectsEnabledFlag() {
         HeartbeatScheduler disabled = new HeartbeatScheduler(
-                settings(false, "6h", "main", 120), null, null, null, null, null, null);
+                settings(false, "6h", "main", 120), null, null, null, null, null);
         Map<String, Object> result = disabled.runNow();
         assertEquals(false, result.get("started"));
         assertEquals("never", ((Map<?, ?>) result.get("last_run")).get("status"));
@@ -105,7 +105,7 @@ class HeartbeatSchedulerTest {
     @Test
     void runNowOnEnabledSchedulerStarts() {
         HeartbeatScheduler scheduler = new HeartbeatScheduler(
-                settings(true, "6h", "main", 120), null, null, null, null, null, null);
+                settings(true, "6h", "main", 120), null, null, null, null, null);
         Map<String, Object> result = scheduler.runNow();
         assertEquals(true, result.get("started"));
     }

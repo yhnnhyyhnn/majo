@@ -1,22 +1,17 @@
 package com.agent.coding.cron;
 
 import com.agent.coding.ChatService;
-import com.agent.coding.SettingsService;
-import com.agent.coding.agent.AgentStore;
+import com.agent.coding.agent.HarnessAgentFactory;
 import com.agent.coding.inbox.InboxStore;
 import com.agent.coding.inbox.InboxTraceStore;
-import com.agent.coding.service.ModelRoutingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,22 +39,16 @@ public class CronExecutor {
             + "search_code/find_symbol/list_directory(搜索), execute_command(执行命令), "
             + "git_status/git_diff/git_branch/git_commit/git_add/git_log(Git操作)。回答简洁专业。";
 
-    private final ModelRoutingService modelRouting;
     private final ChatService chatService;
-    private final Toolkit toolkit;
-    private final SettingsService settingsService;
     private final InboxStore inboxStore;
+    private final HarnessAgentFactory agentFactory;
 
-    public CronExecutor(ModelRoutingService modelRouting,
-                        ChatService chatService,
-                        Toolkit toolkit,
-                        SettingsService settingsService,
-                        InboxStore inboxStore) {
-        this.modelRouting = modelRouting;
+    public CronExecutor(ChatService chatService,
+                        InboxStore inboxStore,
+                        HarnessAgentFactory agentFactory) {
         this.chatService = chatService;
-        this.toolkit = toolkit;
-        this.settingsService = settingsService;
         this.inboxStore = inboxStore;
+        this.agentFactory = agentFactory;
     }
 
     public record ExecutionResult(String taskType, String runId, String deliveryStatus,
@@ -83,7 +72,6 @@ public class CronExecutor {
         Map<String, Object> runtime = CronModels.runtime(job);
         Map<String, Object> schedule = CronModels.schedule(job);
         boolean silent = Boolean.TRUE.equals(dispatch.get("silent"));
-        String mode = str(dispatch.get("mode"), "stream");
         String jobId = str(job.get("id"), "");
         String jobName = str(job.get("name"), "");
 
@@ -135,7 +123,6 @@ public class CronExecutor {
         String effectiveUserId = targetUserId.isBlank() ? "cron" : targetUserId;
 
         String deliveryError = null;
-        boolean finalNoContent = false;
         String finalText = null;
         try {
             // Register a chat so the session appears in the frontend list.
@@ -147,7 +134,11 @@ public class CronExecutor {
                 log.debug("cron: failed to register chat spec for job {}", jobId);
             }
 
-            HarnessAgent agent = resolveAgent(agentId, targetChannel, sessionId, effectiveUserId);
+            HarnessAgent agent = agentFactory.builder(agentId, SYS_PROMPT,
+                            agentFactory.workspaceFor(agentId),
+                            agentFactory.modelFor(agentId,
+                                    HarnessAgentFactory.ModelFallback.SETTINGS))
+                    .build();
             String prompt = extractPrompt(request);
 
             List<Map<String, Object>> completed = new ArrayList<>();
@@ -176,9 +167,6 @@ public class CronExecutor {
             if (finalText == null) {
                 finalText = "Agent cron task finished successfully.";
             }
-            if ("final".equals(mode) && !silent && finalNoContent) {
-                deliveryError = "no completed message in stream";
-            }
         } catch (Exception e) {
             boolean timedOut = e instanceof java.util.concurrent.TimeoutException
                     || (e.getCause() instanceof java.util.concurrent.TimeoutException);
@@ -204,8 +192,6 @@ public class CronExecutor {
             deliveryStatus = "suppressed";
         } else if (deliveryError != null) {
             deliveryStatus = "failed";
-        } else if (finalNoContent) {
-            deliveryStatus = "no_content";
         } else {
             deliveryStatus = "success";
         }
@@ -232,47 +218,6 @@ public class CronExecutor {
         msg.put("content", contentJson);
         msgs.add(msg);
         chatService.saveMessages(chat.getId(), msgs);
-    }
-
-    private HarnessAgent resolveAgent(String agentId, String channel, String sessionId, String userId) {
-        Path wsPath;
-        try {
-            wsPath = AgentStore.workspaceDirForAgent(agentId);
-        } catch (Exception e) {
-            wsPath = Path.of(System.getProperty("user.dir"));
-        }
-        String agentName = "majo";
-        var profile = AgentStore.getProfile(agentId);
-        if (profile != null && profile.get("name") != null) {
-            agentName = profile.get("name").toString();
-        }
-        return HarnessAgent.builder()
-            .name(agentName)
-            .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
-            .model(createModel(agentId))
-            .toolkit(toolkit)
-            .workspace(wsPath)
-            .build();
-    }
-
-    private com.agent.coding.service.ModelRoutingService.ModelSlot effectiveSlot(String agentId) {
-        try {
-            return modelRouting.resolveEffectiveModel(agentId);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private io.agentscope.extensions.model.openai.OpenAIChatModel createModel(String agentId) {
-        var slot = effectiveSlot(agentId);
-        if (slot != null && slot.hasBoth()) {
-            return modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
-        }
-        return io.agentscope.extensions.model.openai.OpenAIChatModel.builder()
-            .apiKey(settingsService.getApiKey())
-            .baseUrl(settingsService.getBaseUrl())
-            .modelName(settingsService.getModelName())
-            .build();
     }
 
     @SuppressWarnings("unchecked")

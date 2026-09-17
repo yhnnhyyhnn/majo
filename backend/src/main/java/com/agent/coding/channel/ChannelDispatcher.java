@@ -4,21 +4,18 @@ import com.agent.coding.ChatService;
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.accesscontrol.AccessControlStore;
 import com.agent.coding.agent.AgentStore;
+import com.agent.coding.agent.HarnessAgentFactory;
+import com.agent.coding.agent.StreamTextCollector;
 import com.agent.coding.security.ToolGuardHook;
-import com.agent.coding.service.ModelRoutingService;
 import com.agent.coding.skill.SkillService;
-import com.agent.coding.skill.SkillStore;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,19 +39,17 @@ public class ChannelDispatcher {
             + "web_search/web_fetch(联网), get_current_time(时间), "
             + "spawn_subagent/chat_with_agent(子Agent协作)。";
 
-    private final ModelRoutingService modelRouting;
-    private final Toolkit toolkit;
+    private final HarnessAgentFactory agentFactory;
     private final ToolGuardHook toolGuardHook;
     private final ChatService chatService;
     private final AccessControlStore accessControl;
     private final com.agent.coding.memory.MemoryCommandService memoryCommandService;
 
-    public ChannelDispatcher(ModelRoutingService modelRouting, Toolkit toolkit,
+    public ChannelDispatcher(HarnessAgentFactory agentFactory,
                              ToolGuardHook toolGuardHook, ChatService chatService,
                              AccessControlStore accessControl,
                              com.agent.coding.memory.MemoryCommandService memoryCommandService) {
-        this.modelRouting = modelRouting;
-        this.toolkit = toolkit;
+        this.agentFactory = agentFactory;
         this.toolGuardHook = toolGuardHook;
         this.chatService = chatService;
         this.accessControl = accessControl;
@@ -136,7 +131,7 @@ public class ChannelDispatcher {
         String sessionId = "ch-" + msg.channelId() + "-" + Integer.toHexString(msg.identity().hashCode());
         String chatId = chatService.getOrCreateBySession(agentId, sessionId, msg.text()).getId();
         chatService.setStatus(chatId, "running");
-        WorkspaceContext.set(workspaceFor(agentId).toString());
+        WorkspaceContext.set(agentFactory.workspaceFor(agentId).toString());
 
         HarnessAgent agent = buildAgent(agentId);
         if (agent == null) {
@@ -148,29 +143,18 @@ public class ChannelDispatcher {
                 .userId(msg.senderId())
                 .build();
 
-        StringBuilder text = new StringBuilder();
-        StringBuilder thinking = new StringBuilder();
+        StreamTextCollector collected = new StreamTextCollector();
         try {
             agent.streamEvents(new UserMessage(msg.text()), ctx)
-                    .doOnNext(event -> {
-                        String type = event.getClass().getSimpleName();
-                        try {
-                            if ("TextBlockDeltaEvent".equals(type)) {
-                                text.append(event.getClass().getMethod("getDelta").invoke(event));
-                            } else if ("ThinkingBlockDeltaEvent".equals(type)) {
-                                thinking.append(event.getClass().getMethod("getDelta").invoke(event));
-                            }
-                        } catch (Exception ignored) {
-                        }
-                    })
+                    .doOnNext(collected::accept)
                     .blockLast(RUN_TIMEOUT);
         } finally {
             WorkspaceContext.clear();
-            saveChat(chatId, msg.text(), text.toString(), thinking.toString());
+            saveChat(chatId, msg.text(), collected.text(), collected.thinking());
             chatService.setStatus(chatId, "idle");
         }
 
-        String result = text.toString().trim();
+        String result = collected.text().trim();
         if (result.isBlank()) {
             result = "(没有生成回复)";
         }
@@ -179,33 +163,15 @@ public class ChannelDispatcher {
     }
 
     private HarnessAgent buildAgent(String agentId) {
-        var slot = modelRouting.resolveEffectiveModel(agentId);
-        if (slot == null || !slot.hasBoth()) {
+        OpenAIChatModel model = agentFactory.modelFor(agentId,
+                HarnessAgentFactory.ModelFallback.NONE);
+        if (model == null) {
             return null;
         }
-        OpenAIChatModel model = modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
-        String name = "majo";
-        var profile = AgentStore.getProfile(agentId);
-        if (profile != null && profile.get("name") != null) {
-            name = String.valueOf(profile.get("name"));
-        }
-        return HarnessAgent.builder()
-                .name(agentId)
-                .agentId(agentId)
-                .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
-                .model(model)
-                .toolkit(toolkit)
-                .workspace(workspaceFor(agentId))
+        return agentFactory.builder(agentId, SYS_PROMPT,
+                        agentFactory.workspaceFor(agentId), model)
                 .hook(toolGuardHook)
                 .build();
-    }
-
-    private static Path workspaceFor(String agentId) {
-        try {
-            return AgentStore.workspaceDirForAgent(agentId);
-        } catch (Exception e) {
-            return SkillStore.WORKING_DIR;
-        }
     }
 
     private void saveChat(String chatId, String userText, String replyText, String thinking) {

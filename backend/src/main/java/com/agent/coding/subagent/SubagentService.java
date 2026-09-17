@@ -2,17 +2,15 @@ package com.agent.coding.subagent;
 
 import com.agent.coding.WorkspaceContext;
 import com.agent.coding.agent.AgentStore;
+import com.agent.coding.agent.HarnessAgentFactory;
+import com.agent.coding.agent.StreamTextCollector;
 import com.agent.coding.security.ToolGuardHook;
-import com.agent.coding.service.ModelRoutingService;
-import com.agent.coding.service.ModelRoutingService.ModelSlot;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
@@ -46,8 +44,7 @@ public class SubagentService {
     private static final Duration RUN_TIMEOUT = Duration.ofMinutes(10);
     private static final int MAX_RESULT_CHARS = 16_000;
 
-    private final ModelRoutingService modelRouting;
-    private final Toolkit toolkit;
+    private final HarnessAgentFactory agentFactory;
     private final ToolGuardHook toolGuardHook;
     private final SubagentTaskRegistry registry;
     private final ExecutorService executor = Executors.newCachedThreadPool(r -> {
@@ -56,12 +53,10 @@ public class SubagentService {
         return t;
     });
 
-    public SubagentService(ModelRoutingService modelRouting,
-                           @Lazy Toolkit toolkit,
+    public SubagentService(HarnessAgentFactory agentFactory,
                            ToolGuardHook toolGuardHook,
                            SubagentTaskRegistry registry) {
-        this.modelRouting = modelRouting;
-        this.toolkit = toolkit;
+        this.agentFactory = agentFactory;
         this.toolGuardHook = toolGuardHook;
         this.registry = registry;
     }
@@ -79,7 +74,7 @@ public class SubagentService {
         } catch (Exception e) {
             return "错误: 无法创建子任务工作区: " + e.getMessage();
         }
-        HarnessAgent agent = buildAgent("subagent", subDir, null);
+        HarnessAgent agent = buildAgent(subDir, "subagent");
         if (agent == null) {
             return "错误: 未配置有效的活动模型，无法启动子任务";
         }
@@ -102,7 +97,7 @@ public class SubagentService {
         } catch (Exception e) {
             return "错误: 找不到 Agent '" + agentId + "'";
         }
-        HarnessAgent agent = buildAgent(agentId, workspace, agentId);
+        HarnessAgent agent = buildAgent(workspace, agentId);
         if (agent == null) {
             return "错误: Agent '" + agentId + "' 未配置有效的活动模型";
         }
@@ -124,7 +119,7 @@ public class SubagentService {
             try {
                 Path ws = workspaceFor(agentId);
                 WorkspaceContext.set(ws.toString());
-                HarnessAgent agent = buildAgent(agentId, ws, agentId);
+                HarnessAgent agent = buildAgent(ws, agentId);
                 if (agent == null) {
                     registry.fail(entry.taskId, "Agent '" + agentId + "' 未配置有效的活动模型");
                     return;
@@ -162,35 +157,18 @@ public class SubagentService {
     // ── Internals ────────────────────────────────────────────────────
 
     private Path workspaceFor(String agentId) {
-        try {
-            return AgentStore.workspaceDirForAgent(agentId);
-        } catch (Exception e) {
-            return com.agent.coding.skill.SkillStore.WORKING_DIR;
-        }
+        return agentFactory.workspaceFor(agentId);
     }
 
-    private HarnessAgent buildAgent(String name, Path workspace, String agentId) {
-        OpenAIChatModel model = resolveModel(agentId);
+    private HarnessAgent buildAgent(Path workspace, String agentId) {
+        OpenAIChatModel model = agentFactory.modelFor(agentId,
+                HarnessAgentFactory.ModelFallback.NONE);
         if (model == null) {
             return null;
         }
-        return HarnessAgent.builder()
-                .name(agentId)
-                .agentId(agentId)
-                .sysPrompt(com.agent.coding.agent.ProtectedPrompt.withContract(SYS_PROMPT))
-                .model(model)
-                .toolkit(toolkit)
-                .workspace(workspace)
+        return agentFactory.builder(agentId, SYS_PROMPT, workspace, model)
                 .hook(toolGuardHook)
                 .build();
-    }
-
-    private OpenAIChatModel resolveModel(String agentId) {
-        ModelSlot slot = modelRouting.resolveEffectiveModel(agentId);
-        if (slot != null && slot.hasBoth()) {
-            return modelRouting.buildOpenAIChatModel(slot.providerId(), slot.modelId());
-        }
-        return null;
     }
 
     /** Run one agent turn and collect the final text. */
@@ -199,24 +177,13 @@ public class SubagentService {
                 .sessionId(sessionId)
                 .userId("subagent")
                 .build();
-        StringBuilder text = new StringBuilder();
-        StringBuilder thinking = new StringBuilder();
+        StreamTextCollector collected = new StreamTextCollector();
         agent.streamEvents(new UserMessage(prompt), ctx)
-                .doOnNext(event -> {
-                    String type = event.getClass().getSimpleName();
-                    try {
-                        if ("TextBlockDeltaEvent".equals(type)) {
-                            text.append(event.getClass().getMethod("getDelta").invoke(event));
-                        } else if ("ThinkingBlockDeltaEvent".equals(type)) {
-                            thinking.append(event.getClass().getMethod("getDelta").invoke(event));
-                        }
-                    } catch (Exception ignored) {
-                    }
-                })
+                .doOnNext(collected::accept)
                 .blockLast(RUN_TIMEOUT);
-        String result = text.toString().trim();
-        if (result.isBlank() && !thinking.toString().isBlank()) {
-            result = "[仅思考] " + thinking.toString().trim();
+        String result = collected.text().trim();
+        if (result.isBlank() && !collected.thinking().isBlank()) {
+            result = "[仅思考] " + collected.thinking().trim();
         }
         if (result.isBlank()) {
             return "(子任务无文本输出)";
