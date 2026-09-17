@@ -217,6 +217,11 @@ function AppInner() {
         locale={antdLocale}
         theme={{
           ...(selectedTheme as any)?.theme,
+          // Emit real CSS variables (--majo-colorPrimaryBg etc.) so less
+          // modules can consume semantic tokens in both light and dark
+          // modes; without this the var() references silently fall back to
+          // hardcoded light colors (QwenPaw #7682 bug class).
+          cssVar: { prefix: "majo" },
           algorithm: isDark
             ? antdTheme.darkAlgorithm
             : antdTheme.defaultAlgorithm,
