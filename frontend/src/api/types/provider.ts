@@ -119,6 +119,8 @@ export interface CreateCustomProviderRequest {
   id: string;
   name: string;
   default_base_url?: string;
+  /** Inline API key (QwenPaw #7826): persisted with the provider at creation. */
+  api_key?: string;
   api_key_prefix?: string;
   chat_model?: string;
   models?: ModelInfo[];

@@ -298,13 +298,31 @@ public class ModelProviderController {
 
     @PostMapping("/models/custom-providers")
     public ProviderInfoDto createProvider(@RequestBody Map<String, String> body) {
+        // Accept both the frontend modal's snake_case keys (#7826) and the
+        // legacy camelCase ones — before this, base_url/api_key from the
+        // modal were silently dropped and providers landed on OpenAI defaults.
         var e = new ModelConfigEntity();
         e.setName(body.getOrDefault("name", "Custom"));
-        e.setApiKey(body.getOrDefault("apiKey", ""));
-        e.setBaseUrl(body.getOrDefault("baseUrl", "https://api.openai.com/v1"));
-        e.setModelName(body.getOrDefault("modelName", "gpt-4o-mini"));
+        e.setApiKey(firstNonBlank(body, "api_key", "apiKey", ""));
+        e.setBaseUrl(firstNonBlank(body, "default_base_url", "baseUrl",
+                "https://api.openai.com/v1"));
+        e.setModelName(firstNonBlank(body, "chat_model", "modelName", "gpt-4o-mini"));
         modelRepo.save(e);
         return toCustomProviderDto(e);
+    }
+
+    private static String firstNonBlank(Map<String, String> body, String key, String fallback) {
+        String v = body.get(key);
+        return v == null || v.isBlank() ? fallback : v.trim();
+    }
+
+    private static String firstNonBlank(Map<String, String> body, String k1, String k2,
+                                        String fallback) {
+        String v = body.get(k1);
+        if (v == null || v.isBlank()) {
+            v = body.get(k2);
+        }
+        return v == null || v.isBlank() ? fallback : v.trim();
     }
 
     @DeleteMapping("/models/custom-providers/{provider_id}")

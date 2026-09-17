@@ -7,7 +7,7 @@ import { useAppMessage } from "../../../../../hooks/useAppMessage";
 interface CustomProviderModalProps {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
 }
 
 export function CustomProviderModal({
@@ -21,34 +21,33 @@ export function CustomProviderModal({
   const [form] = Form.useForm();
 
   useEffect(() => {
-    if (open) {
-      form.resetFields();
-    }
-  }, [open, form]);
+    if (!open) return;
+    setSaving(false);
+    form.resetFields();
+  }, [form, open]);
 
-  const handleSubmit = async () => {
+  const handleSave = async () => {
     try {
       const values = await form.validateFields();
       setSaving(true);
+      const providerName = values.name.trim();
       await api.createCustomProvider({
         id: values.id.trim(),
-        name: values.name.trim(),
+        name: providerName,
         default_base_url: values.default_base_url?.trim() || "",
-        api_key_prefix: values.api_key_prefix?.trim() || "",
+        api_key: values.api_key?.trim() || "",
         chat_model: values.chat_model || "OpenAIChatModel",
       });
-      message.success(
-        t("models.providerCreated", { name: values.name.trim() }),
-      );
-      onSaved();
+      await onSaved();
+      message.success(t("models.configurationSaved", { name: providerName }));
       onClose();
     } catch (error) {
       if (error && typeof error === "object" && "errorFields" in error) return;
-      const errMsg =
+      const errorMessage =
         error instanceof Error
           ? error.message
           : t("models.providerCreateFailed");
-      message.error(errMsg);
+      message.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -59,7 +58,7 @@ export function CustomProviderModal({
       title={t("models.addProviderTitle")}
       open={open}
       onCancel={onClose}
-      onOk={handleSubmit}
+      onOk={handleSave}
       confirmLoading={saving}
       okText={t("common.create")}
       cancelText={t("models.cancel")}
@@ -128,6 +127,12 @@ export function CustomProviderModal({
               },
             ]}
           />
+        </Form.Item>
+
+        {/* Inline API key (QwenPaw #7826): create provider + key in one
+            dialog instead of a separate configuration step. */}
+        <Form.Item name="api_key" label={t("models.apiKey")}>
+          <Input.Password placeholder={t("models.enterApiKeyOptional")} />
         </Form.Item>
       </Form>
     </Modal>
