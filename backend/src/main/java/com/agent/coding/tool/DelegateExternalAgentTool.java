@@ -77,7 +77,7 @@ public class DelegateExternalAgentTool {
                         "id", taskId,
                         "prompt", task,
                         "options", Map.of("maxSteps", 20)));
-                result = collectTaskResult(in, process);
+                result = collectTaskResult(out, in, process);
             }
             if (!process.waitFor(5, TimeUnit.SECONDS)) {
                 process.destroyForcibly();
@@ -143,8 +143,19 @@ public class DelegateExternalAgentTool {
         return null;
     }
 
-    /** After agent/task, keep reading framed messages until the final result. */
-    private static String collectTaskResult(BufferedReader in, Process process) throws Exception {
+    /**
+     * After agent/task, keep reading framed messages until the final result.
+     *
+     * <p>Runner-initiated requests (non-empty {@code method}; e.g.
+     * {@code session/request_permission}) carry their own id counter — an id
+     * colliding with ours must never be mistaken for the task result, and an
+     * unanswered request hangs the runner until the timeout kills it. We
+     * answer permission requests with a Denied outcome (the delegated agent
+     * has no human watching this pipe) and reject anything else, then keep
+     * reading. Same failure family as QwenPaw #7783.
+     */
+    private static String collectTaskResult(Writer out, BufferedReader in,
+                                            Process process) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
         StringBuilder combined = new StringBuilder();
         while (System.nanoTime() < deadline) {
@@ -156,10 +167,20 @@ public class DelegateExternalAgentTool {
                 break;
             }
             String method = node.path("method").asText("");
-            if ("agent/task/progress".equals(method)) {
-                continue; // progress notifications — skip
+            if (!method.isEmpty()) {
+                if (node.has("id") && !node.get("id").isNull()) {
+                    if (method.endsWith("request_permission")) {
+                        replyRaw(out, node.get("id").asInt(), Map.of(
+                                "outcome", Map.of("outcome", "cancelled")));
+                    } else {
+                        replyRaw(out, node.get("id").asInt(), Map.of(
+                                "error", Map.of("code", -32601, "message",
+                                        "method not supported by delegating client: " + method)));
+                    }
+                }
+                continue; // requests/notifications are never the task result
             }
-            if (node.path("id").asInt(-1) == 2) {
+            if (node.path("id").asInt(-1) == 2 && node.has("result")) {
                 String status = node.path("result").path("status").asText("");
                 combined.append(extractText(node.path("result")));
                 if ("completed".equals(status) || "cancelled".equals(status) || "failed".equals(status)) {
@@ -172,6 +193,20 @@ public class DelegateExternalAgentTool {
         }
         process.destroyForcibly();
         return combined.toString().trim();
+    }
+
+    /** Answer a runner request: bare JSON-RPC result/error (no method). */
+    private static void replyRaw(Writer out, int id, Map<String, Object> payload)
+            throws Exception {
+        Map<String, Object> msg = new LinkedHashMap<>();
+        msg.put("jsonrpc", "2.0");
+        msg.put("id", id);
+        msg.putAll(payload);
+        byte[] bytes = new com.fasterxml.jackson.databind.ObjectMapper()
+                .writeValueAsBytes(msg);
+        out.write("Content-Length: " + bytes.length + "\r\n\r\n");
+        out.write(new String(bytes, StandardCharsets.UTF_8));
+        out.flush();
     }
 
     private static String extractText(com.fasterxml.jackson.databind.JsonNode result) {
