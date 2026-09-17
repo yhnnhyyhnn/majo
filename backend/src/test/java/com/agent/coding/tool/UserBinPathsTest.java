@@ -73,7 +73,10 @@ class UserBinPathsTest {
     @Test
     void windowsCandidateDirsUseAppData() {
         List<String> dirs = UserBinPaths.candidateDirs("C:\\u", true, "D:\\AppData");
-        assertTrue(dirs.contains("D:\\AppData\\npm"), String.valueOf(dirs));
+        // Separator-agnostic: on the CI Linux runner the drive path keeps the
+        // caller's backslashes while the join uses File.separator ("/").
+        boolean hasNpm = dirs.stream().anyMatch((d) -> d.replace('\\', '/').endsWith("/npm"));
+        assertTrue(hasNpm, String.valueOf(dirs));
     }
 
     @Test
