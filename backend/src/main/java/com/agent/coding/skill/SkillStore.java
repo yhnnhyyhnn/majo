@@ -69,7 +69,15 @@ public class SkillStore {
                 continue;
             }
             if ("agents.json".equals(name)) {
-                // Always rewrite so previously-migrated copies get workspace_dir fixed.
+                // One-time bootstrap only: never overwrite an existing live
+                // copy. The legacy snapshot goes stale the moment the app
+                // first runs, and rewriting it on every boot silently
+                // reverted every change since (running configs, new agents)
+                // — a data-loss bug caught in E2E. The workspace_dir fix-up
+                // below already ran when the copy was first migrated.
+                if (Files.exists(dst)) {
+                    continue;
+                }
                 try {
                     migrateAgentsJson(src, dst, workspacesBase);
                     log.info("Migrated legacy data: {} -> {}", src, dst);
@@ -116,6 +124,13 @@ public class SkillStore {
                 Map<String, Object> profile = (Map<String, Object>) m;
                 Object ws = profile.get("workspace_dir");
                 if (!(ws instanceof String s)) {
+                    continue;
+                }
+                // A drive-letter path on a non-Windows host (or vice versa)
+                // is a foreign absolute path from another machine/layout —
+                // Path.of would misread it as relative and the rewrite below
+                // would corrupt it (observed: "…/workspaces/D:\code\…").
+                if (s.contains(":") && !java.io.File.separator.equals("\\")) {
                     continue;
                 }
                 String normalized = Path.of(s).toAbsolutePath().normalize().toString();
