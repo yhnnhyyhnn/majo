@@ -36,10 +36,11 @@ class DelegateExternalAgentSessionTest {
                                  long deadline) throws Exception {
         Method m = DelegateExternalAgentTool.class.getDeclaredMethod(
                 "pumpUntilResponse", Writer.class, java.io.InputStream.class,
-                Process.class, int.class, collector.getClass(), long.class);
+                Process.class, int.class,
+                com.agent.coding.acp.AcpPermissionBridge.class, collector.getClass(), long.class);
         m.setAccessible(true);
         Writer writer = new java.io.OutputStreamWriter(out, StandardCharsets.UTF_8);
-        return (JsonNode) m.invoke(tool, writer, in, null, respId, collector, deadline);
+        return (JsonNode) m.invoke(tool, writer, in, null, respId, null, collector, deadline);
     }
 
     private static Object newCollector() throws Exception {
@@ -102,7 +103,7 @@ class DelegateExternalAgentSessionTest {
         });
         feeder.start();
 
-        JsonNode resp = pump(new DelegateExternalAgentTool(), out, in, 3, collector, deadline);
+        JsonNode resp = pump(new DelegateExternalAgentTool(null), out, in, 3, collector, deadline);
         feeder.join(2000);
 
         assertNotNull(resp, "prompt response must be returned");
@@ -132,7 +133,7 @@ class DelegateExternalAgentSessionTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Object collector = newCollector();
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(300);
-        JsonNode resp = pump(new DelegateExternalAgentTool(), out, in, 3, collector, deadline);
+        JsonNode resp = pump(new DelegateExternalAgentTool(null), out, in, 3, collector, deadline);
         assertNull(resp, "EOF without response → null");
     }
 }

@@ -41,6 +41,12 @@ public class DelegateExternalAgentTool {
     private static final Logger log = LoggerFactory.getLogger(DelegateExternalAgentTool.class);
     private static final long TIMEOUT_SECONDS = 300;
     private static final int MAX_RESULT_CHARS = 16_000;
+
+    private final com.agent.coding.acp.AcpPermissionBridge permissionBridge;
+
+    public DelegateExternalAgentTool(com.agent.coding.acp.AcpPermissionBridge permissionBridge) {
+        this.permissionBridge = permissionBridge;
+    }
     private static final int MAX_TRACE_LINES = 12;
 
     @Tool(name = "delegate_external_agent",
@@ -111,7 +117,7 @@ public class DelegateExternalAgentTool {
                 "mcpServers", List.of()));
         FrameCollector collector = new FrameCollector();
         com.fasterxml.jackson.databind.JsonNode newSess =
-                pumpUntilResponse(out, in, process, 2, collector, System.nanoTime());
+                pumpUntilResponse(out, in, process, 2, permissionBridge, collector, System.nanoTime());
         if (newSess == null) {
             return timeoutNote();
         }
@@ -130,7 +136,7 @@ public class DelegateExternalAgentTool {
                 "prompt", List.of(Map.of("type", "text", "text", task))));
         collector.expectStopReason = true;
         com.fasterxml.jackson.databind.JsonNode promptResp =
-                pumpUntilResponse(out, in, process, 3, collector, System.nanoTime());
+                pumpUntilResponse(out, in, process, 3, permissionBridge, collector, System.nanoTime());
         if (promptResp == null) {
             return timeoutNote();
         }
@@ -270,9 +276,10 @@ public class DelegateExternalAgentTool {
      *
      * @return the response node, or null on timeout/EOF
      */
-    private static com.fasterxml.jackson.databind.JsonNode pumpUntilResponse(
+    private com.fasterxml.jackson.databind.JsonNode pumpUntilResponse(
             Writer out, java.io.InputStream in, Process process, int respId,
-            FrameCollector collector, long deadlineNanos) throws Exception {
+            com.agent.coding.acp.AcpPermissionBridge bridge, FrameCollector collector,
+            long deadlineNanos) throws Exception {
         while (System.nanoTime() < deadlineNanos) {
             if (process != null && !process.isAlive()) {
                 break;
@@ -287,10 +294,18 @@ public class DelegateExternalAgentTool {
                 if ("session/update".equals(method)) {
                     collector.onSessionUpdate(node.path("params").path("update"));
                 } else if (isRequest) {
-                    Map<String, Object> payload = method.endsWith("request_permission")
-                            ? Map.of("outcome", Map.of("outcome", "cancelled"))
-                            : Map.of("error", Map.of("code", -32601, "message",
-                                    "method not supported by delegating client: " + method));
+                    Map<String, Object> payload;
+                    if (method.endsWith("request_permission")) {
+                        // Phase 2: interactive context → approval card on the
+                        // majo session; otherwise instant deny. Null bridge
+                        // (tests) degrades to the same instant deny.
+                        payload = bridge != null
+                                ? bridge.resolve(node.path("params"))
+                                : Map.of("outcome", Map.of("outcome", "cancelled"));
+                    } else {
+                        payload = Map.of("error", Map.of("code", -32601, "message",
+                                "method not supported by delegating client: " + method));
+                    }
                     replyRaw(out, node.get("id").asInt(), payload);
                 }
                 continue; // requests/notifications are never the task result
