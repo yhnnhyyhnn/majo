@@ -40,6 +40,14 @@ public final class AccessControlStore {
 
     // ── Persistence ─────────────────────────────────────────────────────
 
+    /** Drop every ACL (whitelist/blacklist/pending) and persist. */
+    public void clear() {
+        synchronized (lock) {
+            data = new LinkedHashMap<>();
+            save();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void load() {
         synchronized (lock) {

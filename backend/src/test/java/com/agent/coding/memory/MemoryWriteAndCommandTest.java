@@ -125,8 +125,11 @@ class MemoryWriteAndCommandTest {
 
         String listed = svc.execute("default", "list");
         assertTrue(listed.contains("daily/"), listed);
+        // Pick the DAILY note explicitly, not the first entry: list() sorts
+        // by mtime and deploy.md can tie with the just-written note (coarse
+        // CI filesystem timestamps), leaving deletion order undefined.
         String relPath = listed.lines()
-                .filter(l -> l.contains("`"))
+                .filter(l -> l.contains("`") && l.contains("daily/"))
                 .findFirst().orElseThrow();
         relPath = relPath.substring(relPath.indexOf('`') + 1,
                 relPath.indexOf('`', relPath.indexOf('`') + 1));
@@ -136,7 +139,18 @@ class MemoryWriteAndCommandTest {
         // Disk truth first — if this fails, deletion itself broke; the
         // search assertion below additionally covers index coherence.
         assertFalse(Files.exists(workspace.resolve(relPath)), "daily note deleted from disk");
-        assertTrue(backend.search("zzztopic", 5).isEmpty());
+        var hits = backend.search("zzztopic", 5);
+        assertTrue(hits.isEmpty(), () -> {
+            StringBuilder diag = new StringBuilder("index served stale hits after forget: ");
+            diag.append("sources=").append(hits.stream().map(MemoryHit::source).toList());
+            diag.append(" ws=").append(workspace);
+            try (var walk = Files.walk(workspace.resolve("memory"))) {
+                diag.append(" memoryTree=").append(walk.map(p -> workspace.relativize(p)
+                        .toString().replace('\\', '/')).toList());
+            } catch (Exception ignored) {
+            }
+            return diag.toString();
+        });
     }
 
     @Test

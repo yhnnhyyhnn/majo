@@ -75,6 +75,19 @@
         <finalName>majo-backend</finalName>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Tests must not read or mutate the developer's real
+                         data/majo working dir (SkillStore.WORKING_DIR):
+                         leftover state across JVM runs made outcomes
+                         order- and machine-dependent on CI. -->
+                    <environmentVariables>
+                        <MAJO_WORKING_DIR>${project.build.directory}/majo-test-working</MAJO_WORKING_DIR>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>

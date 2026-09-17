@@ -29,10 +29,9 @@ class AccessControlControllerTest {
 
     @BeforeEach
     void cleanState() {
-        // Ensure a clean per-test slate by removing any pre-existing channel data.
-        for (String channel : store.getAllAcls().keySet()) {
-            store.removeFromWhitelist(channel, "__all__");
-        }
+        // Full reset per test: the store is file-backed, and leftover
+        // pendings from other methods/runs made results order-dependent.
+        store.clear();
     }
 
     @Test
