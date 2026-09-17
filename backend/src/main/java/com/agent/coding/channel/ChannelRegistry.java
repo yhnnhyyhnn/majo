@@ -19,6 +19,7 @@ public class ChannelRegistry {
     private static final Logger log = LoggerFactory.getLogger(ChannelRegistry.class);
 
     private final Map<String, Channel> adapters = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Object>> configs = new ConcurrentHashMap<>();
     private final ChannelDispatcher dispatcher;
 
     public ChannelRegistry(ChannelDispatcher dispatcher,
@@ -40,6 +41,16 @@ public class ChannelRegistry {
         return ch != null && ch.isRunning();
     }
 
+    /** The adapter for a channel id, or null (heartbeat target=last). */
+    public Channel channelFor(String id) {
+        return adapters.get(id);
+    }
+
+    /** The most recent config a channel was started/restarted with. */
+    public Map<String, Object> configFor(String id) {
+        return configs.getOrDefault(id, Map.of());
+    }
+
     /** Stop and restart one channel with the given config. */
     public synchronized void restart(String id, Map<String, Object> cfg) {
         Channel ch = adapters.get(id);
@@ -47,6 +58,7 @@ public class ChannelRegistry {
             return;
         }
         try {
+            configs.put(id, cfg == null ? Map.of() : cfg);
             if (ch.isRunning()) {
                 ch.stop();
             }
@@ -69,6 +81,7 @@ public class ChannelRegistry {
             @SuppressWarnings("unchecked")
             Map<String, Object> chCfg = cfg.get(id) instanceof Map<?, ?> m
                     ? (Map<String, Object>) m : new LinkedHashMap<>();
+            configs.put(id, chCfg);
             boolean enabled = Boolean.TRUE.equals(chCfg.get("enabled"));
             if (enabled && !ch.isRunning()) {
                 try {

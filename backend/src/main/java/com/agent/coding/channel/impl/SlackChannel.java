@@ -190,21 +190,28 @@ public class SlackChannel implements Channel {
     }
 
     private void sendReply(String channel, String text) {
+        String err = sendText(config, channel, text);
+        if (err != null) {
+            log.warn("[slack] reply error: {}", err);
+        }
+    }
+
+    /** Proactive send (heartbeat target=last): token-based. */
+    @Override
+    public String sendText(Map<String, Object> cfg, String to, String text) {
         try {
-            String payload = MAPPER.writeValueAsString(Map.of("channel", channel, "text", text));
+            String payload = MAPPER.writeValueAsString(Map.of("channel", to, "text", text));
             HttpRequest req = HttpRequest.newBuilder(URI.create("https://slack.com/api/chat.postMessage"))
                     .timeout(Duration.ofSeconds(20))
-                    .header("Authorization", "Bearer " + SkillService.str(config.get("bot_token")))
+                    .header("Authorization", "Bearer " + SkillService.str(cfg.get("bot_token")))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(payload))
                     .build();
             HttpResponse<String> resp = HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
-            JsonNode root = MAPPER.readTree(resp.body());
-            if (!root.path("ok").asBoolean()) {
-                log.warn("[slack] reply error: {}", root.path("error").asText());
-            }
+            com.fasterxml.jackson.databind.JsonNode root = MAPPER.readTree(resp.body());
+            return root.path("ok").asBoolean() ? null : root.path("error").asText("unknown");
         } catch (Exception e) {
-            log.warn("[slack] reply error: {}", e.getMessage());
+            return e.getMessage();
         }
     }
 }

@@ -60,6 +60,8 @@ public class HeartbeatScheduler {
     private final ChatService chatService;
     private final Toolkit toolkit;
     private final InboxStore inboxStore;
+    private final com.agent.coding.channel.ChannelRegistry channelRegistry;
+    private final com.agent.coding.channel.LastContactStore lastContactStore;
 
     private final ThreadPoolTaskScheduler scheduler;
     private ScheduledFuture<?> scheduled;
@@ -71,12 +73,16 @@ public class HeartbeatScheduler {
                               ModelRoutingService modelRouting,
                               ChatService chatService,
                               Toolkit toolkit,
-                              InboxStore inboxStore) {
+                              InboxStore inboxStore,
+                              com.agent.coding.channel.ChannelRegistry channelRegistry,
+                              com.agent.coding.channel.LastContactStore lastContactStore) {
         this.settingsService = settingsService;
         this.modelRouting = modelRouting;
         this.chatService = chatService;
         this.toolkit = toolkit;
         this.inboxStore = inboxStore;
+        this.channelRegistry = channelRegistry;
+        this.lastContactStore = lastContactStore;
         this.scheduler = new ThreadPoolTaskScheduler();
         this.scheduler.setPoolSize(1);
         this.scheduler.setThreadNamePrefix("heartbeat-");
@@ -210,9 +216,21 @@ public class HeartbeatScheduler {
         }
     }
 
-    /** main: no delivery on success (inbox on failure); inbox/last: always. */
+    /**
+     * main: no delivery on success (inbox on failure); inbox: always; last:
+     * proactively send the result to the most recently contacted channel
+     * (falls back to inbox events for the delivery outcome).
+     */
     private void deliver(String target, String agentId, String status, String title, String body) {
         boolean deliverOnSuccess = !"main".equals(target);
+        if ("last".equals(target) && "success".equals(status)) {
+            String sendError = sendToLastContact(agentId, body);
+            if (sendError == null) {
+                return; // delivered through the channel
+            }
+            title = title + "(主动外发失败)";
+            body = body + "\n\n[外发失败: " + sendError + "]";
+        }
         if (!"success".equals(status) || deliverOnSuccess) {
             try {
                 inboxStore.appendEvent(agentId, INBOX_SOURCE, "", "heartbeat_result",
@@ -222,6 +240,34 @@ public class HeartbeatScheduler {
                 log.warn("[heartbeat] inbox delivery failed: {}", e.getMessage());
             }
         }
+    }
+
+    /**
+     * Send the result to the last contacted channel. Returns null on
+     * success, otherwise a readable failure reason (contact missing,
+     * channel not running, or platform error).
+     */
+    private String sendToLastContact(String agentId, String body) {
+        Map<String, Object> contact = lastContactStore.latest();
+        if (contact == null) {
+            return "没有最近联系的渠道记录";
+        }
+        String channel = com.agent.coding.skill.SkillService.str(contact.get("channel"), "");
+        String to = com.agent.coding.skill.SkillService.str(contact.get("to"), "");
+        com.agent.coding.channel.Channel adapter = channelRegistry.channelFor(channel);
+        if (adapter == null) {
+            return "渠道不存在: " + channel;
+        }
+        if (!channelRegistry.isRunning(channel)) {
+            return "渠道 " + channel + " 未运行";
+        }
+        String err = adapter.sendText(channelRegistry.configFor(channel), to,
+                "Heartbeat 结果:\n" + preview(body));
+        if (err != null) {
+            return "渠道 " + channel + " 外发失败: " + err;
+        }
+        log.info("[heartbeat] delivered to last contact channel '{}'", channel);
+        return null;
     }
 
     private String lastAssistantText(String chatId) {

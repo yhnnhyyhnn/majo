@@ -135,23 +135,30 @@ public class TelegramChannel implements Channel {
     }
 
     private void sendReply(String chatId, String text) {
+        String err = sendText(config, chatId, text);
+        if (err != null) {
+            log.warn("[telegram] send failed: {}", err);
+        }
+    }
+
+    /** Proactive send (heartbeat target=last): token-based, config passed in. */
+    @Override
+    public String sendText(Map<String, Object> cfg, String to, String text) {
         try {
-            String token = SkillService.str(config.get("bot_token"));
-            String base = SkillService.str(config.get("base_url"), "https://api.telegram.org");
+            String token = SkillService.str(cfg.get("bot_token"));
+            String base = SkillService.str(cfg.get("base_url"), "https://api.telegram.org");
             if (!base.endsWith("/")) base += "/";
             String payload = MAPPER.writeValueAsString(Map.of(
-                    "chat_id", Long.parseLong(chatId), "text", text));
+                    "chat_id", Long.parseLong(to), "text", text));
             HttpRequest req = HttpRequest.newBuilder(URI.create(base + "bot" + token + "/sendMessage"))
                     .timeout(Duration.ofSeconds(20))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(payload))
                     .build();
             HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() != 200) {
-                log.warn("[telegram] send failed: HTTP {} {}", resp.statusCode(), resp.body());
-            }
+            return resp.statusCode() == 200 ? null : "HTTP " + resp.statusCode();
         } catch (Exception e) {
-            log.warn("[telegram] send error: {}", e.getMessage());
+            return e.getMessage();
         }
     }
 

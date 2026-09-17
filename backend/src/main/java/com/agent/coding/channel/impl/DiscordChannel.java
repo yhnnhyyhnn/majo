@@ -249,21 +249,28 @@ public class DiscordChannel implements Channel {
     }
 
     private void sendReply(String channelId, String text) {
+        String err = sendText(config, channelId, text);
+        if (err != null) {
+            log.warn("[discord] reply failed: {}", err);
+        }
+    }
+
+    /** Proactive send (heartbeat target=last): token-based. */
+    @Override
+    public String sendText(Map<String, Object> cfg, String to, String text) {
         try {
             String payload = MAPPER.writeValueAsString(Map.of("content", text));
             HttpRequest req = HttpRequest.newBuilder(
-                            URI.create("https://discord.com/api/v10/channels/" + channelId + "/messages"))
+                            URI.create("https://discord.com/api/v10/channels/" + to + "/messages"))
                     .timeout(Duration.ofSeconds(20))
-                    .header("Authorization", "Bot " + SkillService.str(config.get("bot_token")))
+                    .header("Authorization", "Bot " + SkillService.str(cfg.get("bot_token")))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(payload))
                     .build();
             HttpResponse<String> resp = HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() >= 400) {
-                log.warn("[discord] reply HTTP {}: {}", resp.statusCode(), resp.body());
-            }
+            return resp.statusCode() < 400 ? null : "HTTP " + resp.statusCode();
         } catch (Exception e) {
-            log.warn("[discord] reply error: {}", e.getMessage());
+            return e.getMessage();
         }
     }
 }
