@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f9f8f4;
+  background: var(--majo-color-bg-layout, #f9f8f4);
 
   :global {
     .majo-space-item {
@@ -54,7 +54,7 @@
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 .sider {
-  background: #f9f8f4 !important;
+  background: var(--majo-color-bg-layout, #f9f8f4) !important;
   overflow: auto;
   height: calc(100vh - 64px) !important;
   padding: 0 16px;
@@ -101,7 +101,7 @@
     z-index: 10;
     margin-bottom: 4px;
     // Opaque background so scrolled content is hidden behind
-    background: #f9f7f3;
+    background: var(--majo-color-bg-layout, #f9f7f3);
     border-radius: 12px 12px 0 0;
   }
 
@@ -290,7 +290,7 @@
 }
 
 .siderDark {
-  background: #1a1a1a !important;
+  background: var(--majo-color-bg-layout, #1a1a1a) !important;
   border-right-color: rgba(255, 255, 255, 0.08) !important;
 
   // Agent-scoped section (dark mode)
@@ -301,12 +301,12 @@
 
   // Sticky container background (dark mode)
   .agentSelectorContainer {
-    background: #1e1e1e;
+    background: var(--majo-color-bg-container, #1e1e1e);
   }
 
   // Sticky bottom bar background (dark mode)
   .collapseToggleContainer {
-    background: #1a1a1a;
+    background: var(--majo-color-bg-layout, #1a1a1a);
   }
 
   // Chat button (dark mode)
@@ -326,7 +326,7 @@
 
   :global {
     .majo-menu {
-      background: #1a1a1a !important;
+      background: var(--majo-color-bg-layout, #1a1a1a) !important;
       border-inline-end: 0 !important;
     }
 
@@ -388,7 +388,7 @@
 
 .versionBadge {
   font-size: 12px;
-  color: #1a171673;
+  color: var(--majo-color-text-quaternary, #1a171673);
   font-weight: 600;
   line-height: 1;
   position: relative;
@@ -412,7 +412,7 @@
 .authActions {
   flex-shrink: 0;
   padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--majo-color-border-secondary, #f0f0f0);
 }
 
 .authBtn {
@@ -507,7 +507,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  background: #f9f8f4; // match sider background so scrolled content is hidden
+  background: var(--majo-color-bg-layout, #f9f8f4); // match sider background so scrolled content is hidden
 }
 
 .collapseToggle {
@@ -830,7 +830,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   border: 1px solid rgba(43, 18, 0, 0.12);
   border-radius: 20px;
   padding: 3px 12px;
@@ -887,8 +887,8 @@
 // ─── Code block inside update modal ──────────────────────────────────────────
 .codeBlock {
   position: relative;
-  background: #f5f5f5;
-  border: 1px solid #e8e8e8;
+  background: var(--majo-color-fill-tertiary, #f5f5f5);
+  border: 1px solid var(--majo-color-border, #e8e8e8);
   border-radius: 6px;
   padding: 12px 40px 12px 16px;
   overflow-x: auto;
@@ -901,7 +901,7 @@
 }
 
 .codeInline {
-  background: #f5f5f5;
+  background: var(--majo-color-fill-tertiary, #f5f5f5);
   border-radius: 3px;
   padding: 1px 5px;
   font-family: monospace;
@@ -931,13 +931,13 @@
 }
 
 .copyBtnDefault {
-  color: #999;
+  color: var(--majo-color-text-quaternary, #999);
 }
 
 /* ─── Dark mode overrides ─────────────────────────────────────────────────── */
 :global(.dark-mode) {
   .header {
-    background: #1a1a1a !important;
+    background: var(--majo-color-bg-layout, #1a1a1a) !important;
     border-bottom-color: rgba(255, 255, 255, 0.08) !important;
     color: rgba(255, 255, 255, 0.85);
 
@@ -968,7 +968,7 @@
   }
 
   .sider {
-    background: #1a1a1a !important;
+    background: var(--majo-color-bg-layout, #1a1a1a) !important;
     border-right-color: rgba(255, 255, 255, 0.08) !important;
   }
 
@@ -1026,12 +1026,12 @@
   }
 
   .codeBlock {
-    background: #2a2a2a;
+    background: var(--majo-color-fill-secondary, #2a2a2a);
     border-color: rgba(255, 255, 255, 0.1);
   }
 
   .codeInline {
-    background: #2a2a2a;
+    background: var(--majo-color-fill-secondary, #2a2a2a);
     color: rgba(255, 255, 255, 0.85);
   }
 
