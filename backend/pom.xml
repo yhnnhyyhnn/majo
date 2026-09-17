@@ -24,6 +24,9 @@
     <properties>
         <java.version>21</java.version>
         <agentscope.version>2.0.3</agentscope.version>
+        <!-- Timestamp for the per-build test working dir; colons are
+             illegal in Windows paths so keep the format file-name safe. -->
+        <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
     </properties>
 
     <dependencies>
@@ -81,9 +84,11 @@
                     <!-- Tests must not read or mutate the developer's real
                          data/majo working dir (SkillStore.WORKING_DIR):
                          leftover state across JVM runs made outcomes
-                         order- and machine-dependent on CI. -->
+                         order- and machine-dependent on CI. Timestamped so
+                         every build starts pristine (no cross-run residue,
+                         including Docker-mounted runs sharing target/). -->
                     <environmentVariables>
-                        <MAJO_WORKING_DIR>${project.build.directory}/majo-test-working</MAJO_WORKING_DIR>
+                        <MAJO_WORKING_DIR>${project.build.directory}/majo-test-working-${maven.build.timestamp}</MAJO_WORKING_DIR>
                     </environmentVariables>
                 </configuration>
             </plugin>
