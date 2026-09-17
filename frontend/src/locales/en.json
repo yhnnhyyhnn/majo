@@ -179,6 +179,10 @@
     "settings": {
       "language": "Language",
       "theme": "Theme",
+      "accent": "Accent color",
+      "accentDark": "Dark mode accent",
+      "accentPresets": "Presets",
+      "accentReset": "Reset to default",
       "mode": "Mode"
     },
     "simpleMode": "Simple Mode",

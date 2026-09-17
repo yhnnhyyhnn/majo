@@ -29,6 +29,9 @@ public class SettingsService {
     /** HH:mm active window for heartbeat runs; null = unrestricted. */
     private volatile String heartbeatActiveHoursStart = null;
     private volatile String heartbeatActiveHoursEnd = null;
+    /** User-selected accent colors; null = default orange. */
+    private volatile String themeAccent = null;
+    private volatile String themeAccentDark = null;
     private volatile String userTimezone = "UTC";
 
     public SettingsService(SettingsRepository repository) {
@@ -51,6 +54,8 @@ public class SettingsService {
             this.heartbeatTimeoutSeconds = entity.getHeartbeatTimeoutSeconds() > 0 ? entity.getHeartbeatTimeoutSeconds() : 120;
             this.heartbeatActiveHoursStart = entity.getHeartbeatActiveHoursStart();
             this.heartbeatActiveHoursEnd = entity.getHeartbeatActiveHoursEnd();
+            this.themeAccent = entity.getThemeAccent();
+            this.themeAccentDark = entity.getThemeAccentDark();
             this.userTimezone = entity.getUserTimezone() != null && !entity.getUserTimezone().isBlank()
                 ? entity.getUserTimezone() : "UTC";
             log.info("Settings loaded — baseUrl: {}, modelName: {}, audioMode: {}",
@@ -131,6 +136,27 @@ public class SettingsService {
         return t.isEmpty() ? null : t;
     }
 
+    public String getThemeAccent() { return themeAccent; }
+    public String getThemeAccentDark() { return themeAccentDark; }
+
+    /** Accent colors (#rrggbb); blank clears back to the default orange. */
+    @Transactional
+    public void setThemeAccents(String accent, String accentDark) {
+        this.themeAccent = normalizeColor(accent);
+        this.themeAccentDark = normalizeColor(accentDark);
+        persist();
+    }
+
+    private static String normalizeColor(String v) {
+        if (v == null) return null;
+        String t = v.trim();
+        if (t.isEmpty()) return null;
+        if (!t.startsWith("#") || !t.matches("^#[0-9a-fA-F]{6}$")) {
+            throw new IllegalArgumentException("accent must be #rrggbb, got: " + t);
+        }
+        return t.toLowerCase();
+    }
+
     private void persist() {
         SettingsEntity entity = repository.findById(1).orElseGet(SettingsEntity::new);
         entity.setId(1);
@@ -147,6 +173,8 @@ public class SettingsService {
         entity.setHeartbeatTimeoutSeconds(heartbeatTimeoutSeconds);
         entity.setHeartbeatActiveHoursStart(heartbeatActiveHoursStart);
         entity.setHeartbeatActiveHoursEnd(heartbeatActiveHoursEnd);
+        entity.setThemeAccent(themeAccent);
+        entity.setThemeAccentDark(themeAccentDark);
         entity.setUserTimezone(userTimezone);
         repository.save(entity);
         log.info("Settings persisted — baseUrl: {}, modelName: {}", baseUrl, modelName);

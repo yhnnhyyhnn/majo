@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { SunMoon } from "lucide-react";
-import { Select } from "antd";
+import { ColorPicker, Select, Tooltip } from "antd";
 import {
   SparkSunLine,
   SparkMoonLine,
@@ -15,6 +15,7 @@ import {
   SparkExitFullscreenLine,
 } from "@agentscope-ai/icons";
 import { languageApi } from "../api/modules/language";
+import { themeApi, DEFAULT_ACCENT } from "../api/modules/theme";
 import { useTheme, type ThemeMode } from "../contexts/ThemeContext";
 import { useSidebarModeStore } from "../stores/sidebarModeStore";
 import { isTauriRuntime } from "../tauri/backendRuntime";
@@ -52,6 +53,34 @@ export default function SidebarSettingsPanel({
   const { themeMode, setThemeMode } = useTheme();
   const { mode: sidebarMode, toggleMode: toggleSidebarMode } =
     useSidebarModeStore();
+  const [accent, setAccent] = React.useState<string>(DEFAULT_ACCENT);
+  const [accentDark, setAccentDark] = React.useState<string | null>(null);
+
+  // Load the persisted accent once; failures keep the default orange.
+  React.useEffect(() => {
+    themeApi
+      .get()
+      .then(({ accent: a, accent_dark: ad }) => {
+        if (a) setAccent(a);
+        if (ad) setAccentDark(ad);
+      })
+      .catch(() => {});
+  }, []);
+
+  /** Persist and broadcast; App listens and re-wires antd + CSS vars. */
+  const applyAccent = (light: string, dark: string | null) => {
+    setAccent(light);
+    setAccentDark(dark);
+    themeApi
+      .update({ accent: light, accent_dark: dark ?? "" })
+      .catch(() => {});
+    window.dispatchEvent(
+      new CustomEvent("majo-accent-changed", {
+        detail: { accent: light, accent_dark: dark ?? "" },
+      }),
+    );
+  };
+
   const [closeBehavior, setCloseBehavior] = React.useState<CloseBehavior>(() =>
     isTauriRuntime() ? getRememberedCloseAction() ?? "ask" : "ask",
   );
@@ -138,6 +167,50 @@ export default function SidebarSettingsPanel({
               <span className={styles.optLabel}>{label}</span>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* ── Accent color (QwenPaw #7741 counterpart) ─────── */}
+      <div className={styles.row}>
+        <span className={styles.label}>
+          {t("sidebar.settings.accent", "Accent color")}
+        </span>
+        <div className={styles.options}>
+          <ColorPicker
+            size="small"
+            value={accent}
+            onChange={(color) => applyAccent(color.toHexString(), accentDark)}
+            presets={[
+              {
+                label: t("sidebar.settings.accentPresets", "Presets"),
+                colors: [
+                  "#FF7F16",
+                  "#1677FF",
+                  "#0B57D0",
+                  "#13C2C2",
+                  "#52C41A",
+                  "#722ED1",
+                  "#EB2F96",
+                  "#F5222D",
+                ],
+              },
+            ]}
+          />
+          <Tooltip title={t("sidebar.settings.accentDark", "Dark mode accent")}>
+            <ColorPicker
+              size="small"
+              value={accentDark || accent}
+              onChange={(color) => applyAccent(accent, color.toHexString())}
+            />
+          </Tooltip>
+          <button
+            title={t("sidebar.settings.accentReset", "Reset to default")}
+            className={`${styles.optBtn} ${styles.optBtnActive ?? ""}`}
+            style={{ fontWeight: 700 }}
+            onClick={() => applyAccent(DEFAULT_ACCENT, null)}
+          >
+            ↺
+          </button>
         </div>
       </div>
 

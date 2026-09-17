@@ -179,6 +179,10 @@
     "settings": {
       "language": "语言",
       "theme": "主题",
+      "accent": "主题色",
+      "accentDark": "深色模式主题色",
+      "accentPresets": "预设",
+      "accentReset": "恢复默认",
       "mode": "模式"
     },
     "simpleMode": "精简模式",

@@ -52,6 +52,13 @@ public class SettingsEntity {
     @Column(name = "heartbeat_active_hours_end", length = 5)
     private String heartbeatActiveHoursEnd;
 
+    /** User-selected accent color, light mode; null = default (#FF7F16). */
+    @Column(name = "theme_accent", length = 16)
+    private String themeAccent;
+
+    @Column(name = "theme_accent_dark", length = 16)
+    private String themeAccentDark;
+
     @Column(name = "user_timezone", length = 64, nullable = false)
     private String userTimezone = "UTC";
 
@@ -118,6 +125,10 @@ public class SettingsEntity {
     public void setHeartbeatActiveHoursStart(String v) { this.heartbeatActiveHoursStart = v; }
     public String getHeartbeatActiveHoursEnd() { return heartbeatActiveHoursEnd; }
     public void setHeartbeatActiveHoursEnd(String v) { this.heartbeatActiveHoursEnd = v; }
+    public String getThemeAccent() { return themeAccent; }
+    public void setThemeAccent(String v) { this.themeAccent = v; }
+    public String getThemeAccentDark() { return themeAccentDark; }
+    public void setThemeAccentDark(String v) { this.themeAccentDark = v; }
 
     public String getUserTimezone() { return userTimezone; }
     public void setUserTimezone(String v) { this.userTimezone = v; }

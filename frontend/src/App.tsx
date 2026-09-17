@@ -34,6 +34,7 @@ import { lazyImportWithRetry } from "./utils/lazyWithRetry";
 const LoginPage = lazyImportWithRetry("./pages/Login/index");
 import { authApi } from "./api/modules/auth";
 import { languageApi } from "./api/modules/language";
+import { themeApi, DEFAULT_ACCENT } from "./api/modules/theme";
 import { useUploadLimitStore } from "./stores/uploadLimitStore";
 import CloseWindowPrompt from "./tauri/CloseWindowPrompt";
 import { isTauri } from "@tauri-apps/api/core";
@@ -112,6 +113,43 @@ function AppInner() {
   const [antdLocale, setAntdLocale] = useState<Locale>(
     antdLocaleMap[lang] ?? enUS,
   );
+  // User-selected accent (QwenPaw #7741 counterpart): persisted server-side,
+  // applied to the antd token and the --majo-accent CSS variable that the
+  // less modules consume instead of the hardcoded orange.
+  const [accent, setAccent] = useState<string>(DEFAULT_ACCENT);
+  const [accentDark, setAccentDark] = useState<string | null>(null);
+
+  useEffect(() => {
+    themeApi
+      .get()
+      .then(({ accent: a, accent_dark: ad }) => {
+        if (a) setAccent(a);
+        if (ad) setAccentDark(ad);
+      })
+      .catch(() => {
+        // Theme loading is optional; defaults remain active.
+      });
+  }, []);
+
+  // Listen for accent changes from the settings panel.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ accent: string; accent_dark?: string }>)
+        .detail;
+      if (detail?.accent) setAccent(detail.accent);
+      setAccentDark(detail?.accent_dark || null);
+    };
+    window.addEventListener("majo-accent-changed", handler);
+    return () => window.removeEventListener("majo-accent-changed", handler);
+  }, []);
+
+  const effectiveAccent = isDark ? accentDark || accent : accent;
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--majo-accent",
+      effectiveAccent,
+    );
+  }, [effectiveAccent]);
 
   useEffect(() => {
     if (!localStorage.getItem("language")) {
@@ -183,7 +221,7 @@ function AppInner() {
             ? antdTheme.darkAlgorithm
             : antdTheme.defaultAlgorithm,
           token: {
-            colorPrimary: "#FF7F16",
+            colorPrimary: effectiveAccent,
           },
         }}
       >
