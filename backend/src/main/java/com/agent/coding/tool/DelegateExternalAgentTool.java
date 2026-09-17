@@ -74,6 +74,8 @@ public class DelegateExternalAgentTool {
             pb.redirectErrorStream(true);
             Map<String, String> processEnv = pb.environment();
             processEnv.putAll(env);
+            // Runners often live in user scopes (npm/uv tool installs).
+            UserBinPaths.applyTo(processEnv);
             try {
                 pb.directory(com.agent.coding.WorkspaceContext.get().toFile());
             } catch (Exception ignored) {

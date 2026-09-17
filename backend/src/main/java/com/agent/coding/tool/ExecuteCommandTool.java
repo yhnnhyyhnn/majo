@@ -47,6 +47,9 @@ public class ExecuteCommandTool {
                 ? new ProcessBuilder("cmd.exe", "/c", command)
                 : new ProcessBuilder("sh", "-c", command);
             pb.directory(WorkspaceContext.get().toFile());
+            // Daemon-friendly PATH: user-installed CLIs (gh, ast-grep, npm
+            // shims) stay reachable under stripped service environments.
+            UserBinPaths.applyTo(pb.environment());
             pb.redirectErrorStream(true);
             p = pb.start();
             final Process proc = p;
