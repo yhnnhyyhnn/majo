@@ -177,6 +177,13 @@ public class HeartbeatScheduler {
             lastRun.set(new LastRun(Instant.now(), "skipped", HEARTBEAT_FILE + " empty"));
             return;
         }
+        // Active-hours window in the agent's timezone; overnight ranges
+        // (e.g. 22:00-06:00) are supported (QwenPaw ActiveHours semantics).
+        String windowReason = activeHoursReason(agentId);
+        if (windowReason != null) {
+            lastRun.set(new LastRun(Instant.now(), "skipped", windowReason));
+            return;
+        }
 
         int timeout = Math.max(1, Math.min(settingsService.getHeartbeatTimeoutSeconds(), 3600));
         String target = settingsService.getHeartbeatTarget();
@@ -264,6 +271,56 @@ public class HeartbeatScheduler {
     }
 
     // ── Schedule parsing (QwenPaw semantics) ────────────────────────
+
+    /**
+     * Null when inside the active window (or no window configured);
+     * otherwise a skip reason for last_run.
+     */
+    private String activeHoursReason(String agentId) {
+        String start = settingsService.getHeartbeatActiveHoursStart();
+        String end = settingsService.getHeartbeatActiveHoursEnd();
+        Integer from = parseHHmm(start);
+        Integer to = parseHHmm(end);
+        if (from == null && to == null) {
+            return null;
+        }
+        if (from == null || to == null) {
+            // Half-configured window: treat as unrestricted but visible.
+            log.warn("[heartbeat] active_hours half-configured ({}..{}) — ignoring", start, end);
+            return null;
+        }
+        java.time.ZoneId zone;
+        try {
+            String tz = AgentStore.getUserTimezone(agentId, settingsService.getUserTimezone());
+            zone = java.time.ZoneId.of(tz);
+        } catch (Exception e) {
+            zone = java.time.ZoneOffset.UTC;
+        }
+        int now = java.time.LocalTime.now(zone).getHour() * 60
+                + java.time.LocalTime.now(zone).getMinute();
+        boolean inside = from <= to
+                ? (now >= from && now < to)
+                : (now >= from || now < to); // overnight window
+        return inside ? null : "outside active hours " + start + "-" + end + " (" + zone + ")";
+    }
+
+    /** Minutes since midnight for "HH:mm"; null when unset/invalid. */
+    static Integer parseHHmm(String v) {
+        if (v == null || v.isBlank()) {
+            return null;
+        }
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("^(\\d{1,2}):(\\d{2})$").matcher(v.trim());
+        if (!m.matches()) {
+            return null;
+        }
+        int h = Integer.parseInt(m.group(1));
+        int min = Integer.parseInt(m.group(2));
+        if (h > 23 || min > 59) {
+            return null;
+        }
+        return h * 60 + min;
+    }
 
     /** True when the string is a 5-field cron expression. */
     static boolean isCronExpression(String every) {

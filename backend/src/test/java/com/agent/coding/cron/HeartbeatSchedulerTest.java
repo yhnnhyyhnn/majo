@@ -12,6 +12,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -61,6 +62,21 @@ class HeartbeatSchedulerTest {
         assertFalse(HeartbeatScheduler.isCronExpression("0 */6 * *"));
         assertFalse(HeartbeatScheduler.isCronExpression("not a cron at all here ok"));
         assertFalse(HeartbeatScheduler.isCronExpression(null));
+    }
+
+    // ── Active-hours window (ADR-0013 follow-up) ────────────────────
+
+    @Test
+    void parsesHHmmWindows() {
+        assertEquals(Integer.valueOf(0), HeartbeatScheduler.parseHHmm("00:00"));
+        assertEquals(Integer.valueOf(8 * 60), HeartbeatScheduler.parseHHmm("08:00"));
+        assertEquals(Integer.valueOf(22 * 60 + 30), HeartbeatScheduler.parseHHmm("22:30"));
+        assertEquals(Integer.valueOf(9 * 60 + 5), HeartbeatScheduler.parseHHmm("9:05"));
+        assertNull(HeartbeatScheduler.parseHHmm(null));
+        assertNull(HeartbeatScheduler.parseHHmm(""));
+        assertNull(HeartbeatScheduler.parseHHmm("24:00"));
+        assertNull(HeartbeatScheduler.parseHHmm("08:60"));
+        assertNull(HeartbeatScheduler.parseHHmm("8am"));
     }
 
     // ── Run status contract ──────────────────────────────────────────

@@ -1311,6 +1311,11 @@ public class WorkspaceController {
         result.put("every", settingsService.getHeartbeatEvery());
         result.put("target", settingsService.getHeartbeatTarget());
         result.put("timeoutSeconds", settingsService.getHeartbeatTimeoutSeconds());
+        result.put("active_hours", Map.of(
+                "start", settingsService.getHeartbeatActiveHoursStart() == null
+                        ? "" : settingsService.getHeartbeatActiveHoursStart(),
+                "end", settingsService.getHeartbeatActiveHoursEnd() == null
+                        ? "" : settingsService.getHeartbeatActiveHoursEnd()));
         result.put("last_run", heartbeatScheduler.lastRunSummary());
         return result;
     }
@@ -1322,6 +1327,11 @@ public class WorkspaceController {
         String target = Objects.toString(body.get("target"), "main");
         int timeout = ((Number) body.getOrDefault("timeoutSeconds", 120)).intValue();
         settingsService.setHeartbeatConfig(enabled, every, target, timeout);
+        if (body.get("active_hours") instanceof Map<?, ?> hours) {
+            settingsService.setHeartbeatActiveHours(
+                    Objects.toString(hours.get("start"), null),
+                    Objects.toString(hours.get("end"), null));
+        }
         heartbeatScheduler.reschedule();
         return getHeartbeat();
     }

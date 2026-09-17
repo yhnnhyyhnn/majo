@@ -45,6 +45,13 @@ public class SettingsEntity {
     @Column(name = "heartbeat_timeout_seconds", nullable = false)
     private int heartbeatTimeoutSeconds = 120;
 
+    /** HH:mm active window start; null = unrestricted (ADR-0013). */
+    @Column(name = "heartbeat_active_hours_start", length = 5)
+    private String heartbeatActiveHoursStart;
+
+    @Column(name = "heartbeat_active_hours_end", length = 5)
+    private String heartbeatActiveHoursEnd;
+
     @Column(name = "user_timezone", length = 64, nullable = false)
     private String userTimezone = "UTC";
 
@@ -107,6 +114,10 @@ public class SettingsEntity {
     public void setHeartbeatTarget(String v) { this.heartbeatTarget = v; }
     public int getHeartbeatTimeoutSeconds() { return heartbeatTimeoutSeconds; }
     public void setHeartbeatTimeoutSeconds(int v) { this.heartbeatTimeoutSeconds = v; }
+    public String getHeartbeatActiveHoursStart() { return heartbeatActiveHoursStart; }
+    public void setHeartbeatActiveHoursStart(String v) { this.heartbeatActiveHoursStart = v; }
+    public String getHeartbeatActiveHoursEnd() { return heartbeatActiveHoursEnd; }
+    public void setHeartbeatActiveHoursEnd(String v) { this.heartbeatActiveHoursEnd = v; }
 
     public String getUserTimezone() { return userTimezone; }
     public void setUserTimezone(String v) { this.userTimezone = v; }

@@ -26,6 +26,9 @@ public class SettingsService {
     private volatile String heartbeatEvery = "6h";
     private volatile String heartbeatTarget = "main";
     private volatile int heartbeatTimeoutSeconds = 120;
+    /** HH:mm active window for heartbeat runs; null = unrestricted. */
+    private volatile String heartbeatActiveHoursStart = null;
+    private volatile String heartbeatActiveHoursEnd = null;
     private volatile String userTimezone = "UTC";
 
     public SettingsService(SettingsRepository repository) {
@@ -46,6 +49,8 @@ public class SettingsService {
             this.heartbeatEvery = entity.getHeartbeatEvery() != null ? entity.getHeartbeatEvery() : "6h";
             this.heartbeatTarget = entity.getHeartbeatTarget() != null ? entity.getHeartbeatTarget() : "main";
             this.heartbeatTimeoutSeconds = entity.getHeartbeatTimeoutSeconds() > 0 ? entity.getHeartbeatTimeoutSeconds() : 120;
+            this.heartbeatActiveHoursStart = entity.getHeartbeatActiveHoursStart();
+            this.heartbeatActiveHoursEnd = entity.getHeartbeatActiveHoursEnd();
             this.userTimezone = entity.getUserTimezone() != null && !entity.getUserTimezone().isBlank()
                 ? entity.getUserTimezone() : "UTC";
             log.info("Settings loaded — baseUrl: {}, modelName: {}, audioMode: {}",
@@ -109,6 +114,23 @@ public class SettingsService {
         persist();
     }
 
+    public String getHeartbeatActiveHoursStart() { return heartbeatActiveHoursStart; }
+    public String getHeartbeatActiveHoursEnd() { return heartbeatActiveHoursEnd; }
+
+    /** HH:mm window ("08:00"/"22:00"); blank/null clears (unrestricted). */
+    @Transactional
+    public void setHeartbeatActiveHours(String start, String end) {
+        this.heartbeatActiveHoursStart = normalizeHours(start);
+        this.heartbeatActiveHoursEnd = normalizeHours(end);
+        persist();
+    }
+
+    private static String normalizeHours(String v) {
+        if (v == null) return null;
+        String t = v.trim();
+        return t.isEmpty() ? null : t;
+    }
+
     private void persist() {
         SettingsEntity entity = repository.findById(1).orElseGet(SettingsEntity::new);
         entity.setId(1);
@@ -123,6 +145,8 @@ public class SettingsService {
         entity.setHeartbeatEvery(heartbeatEvery);
         entity.setHeartbeatTarget(heartbeatTarget);
         entity.setHeartbeatTimeoutSeconds(heartbeatTimeoutSeconds);
+        entity.setHeartbeatActiveHoursStart(heartbeatActiveHoursStart);
+        entity.setHeartbeatActiveHoursEnd(heartbeatActiveHoursEnd);
         entity.setUserTimezone(userTimezone);
         repository.save(entity);
         log.info("Settings persisted — baseUrl: {}, modelName: {}", baseUrl, modelName);
