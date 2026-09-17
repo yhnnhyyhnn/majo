@@ -2,8 +2,8 @@
 .createForm {
   --loop-accent: var(--majo-accent, #ff7f16);
   --loop-accent-strong: #c65300;
-  --loop-accent-soft: rgba(255, 127, 22, 0.08);
-  --loop-accent-border: rgba(255, 127, 22, 0.32);
+  --loop-accent-soft: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.08);
+  --loop-accent-border: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.32);
   --loop-surface: #fff;
   --loop-surface-subtle: #f9f8f4;
   --loop-border: #eae8e7;
@@ -488,13 +488,13 @@
   .loopCard,
   .createForm {
     --loop-accent: var(--majo-accent, #ff7f16);
-    --loop-accent-strong: #ff9d4d;
-    --loop-accent-soft: rgba(255, 127, 22, 0.14);
-    --loop-accent-border: rgba(255, 127, 22, 0.42);
+    --loop-accent-strong: color-mix(in srgb, var(--majo-accent, #ff7f16) 70%, white);
+    --loop-accent-soft: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.14);
+    --loop-accent-border: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.42);
     --loop-surface: #1f1f1f;
     --loop-surface-subtle: #262626;
     --loop-border: rgba(255, 255, 255, 0.1);
-    --loop-border-hover: rgba(255, 127, 22, 0.5);
+    --loop-border-hover: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.5);
     --loop-text: rgba(255, 255, 255, 0.85);
     --loop-text-secondary: rgba(255, 255, 255, 0.58);
     --loop-text-tertiary: rgba(255, 255, 255, 0.38);

@@ -119,11 +119,11 @@
 }
 
 .selectedCard {
-  box-shadow: 0 0 0 1px rgba(255, 127, 22, 0.2) !important;
+  box-shadow: 0 0 0 1px rgba(var(--majo-accent-rgb, 255, 127, 22), 0.2) !important;
 }
 
 .selectedListItem {
-  background: rgba(255, 127, 22, 0.02);
+  background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.02);
 }
 
 /* ─── Batch Mode Header ──────────────────────────────────────────────────── */
@@ -1385,7 +1385,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid rgba(255, 127, 22, 0.42);
+    outline: 2px solid rgba(var(--majo-accent-rgb, 255, 127, 22), 0.42);
     outline-offset: 2px;
   }
 
@@ -1491,7 +1491,7 @@
   .managementBanner {
     border-color: #42372f;
     color: #ff9a47;
-    background: rgba(255, 127, 22, 0.07);
+    background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.07);
 
     strong {
       color: #f5eee8;
@@ -1517,7 +1517,7 @@
   .providerSkillsCount,
   .providerSkillIcon {
     color: #ff9a47;
-    background: rgba(255, 127, 22, 0.13);
+    background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.13);
   }
 
   .providerSkillCard {
@@ -1811,7 +1811,7 @@
 
   .selectedCard {
     border-color: var(--majo-accent, #ff7f16) !important;
-    box-shadow: 0 0 0 1px rgba(255, 127, 22, 0.3) !important;
+    box-shadow: 0 0 0 1px rgba(var(--majo-accent-rgb, 255, 127, 22), 0.3) !important;
   }
 
   .batchCount {

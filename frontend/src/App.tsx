@@ -149,6 +149,12 @@ function AppInner() {
       "--majo-accent",
       effectiveAccent,
     );
+    // Companion rgb triplet for rgba(var(--majo-accent-rgb), alpha) tints.
+    const hex = effectiveAccent.replace("#", "");
+    const rgb = hex.length === 6
+      ? [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")
+      : "255, 127, 22";
+    document.documentElement.style.setProperty("--majo-accent-rgb", rgb);
   }, [effectiveAccent]);
 
   useEffect(() => {

@@ -123,12 +123,12 @@
 .ambientA {
   top: -130px;
   left: -110px;
-  background: rgba(255, 127, 22, 0.3);
+  background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.3);
   animation: backend-loading-blob-a 16s ease-in-out infinite;
 }
 
 .pageDark .ambientA {
-  background: rgba(255, 127, 22, 0.22);
+  background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.22);
 }
 
 .ambientB {
@@ -173,7 +173,7 @@
   height: 72px;
   margin-bottom: 28px;
   animation: backend-loading-float 4.5s ease-in-out infinite;
-  filter: drop-shadow(0 8px 20px rgba(255, 127, 22, 0.28));
+  filter: drop-shadow(0 8px 20px rgba(var(--majo-accent-rgb, 255, 127, 22), 0.28));
 }
 
 /* --- Progress bar ---------------------------------------------------------- */
@@ -192,7 +192,7 @@
   border-radius: 12px;
   background: radial-gradient(
     closest-side,
-    rgba(255, 127, 22, 0.2),
+    rgba(var(--majo-accent-rgb, 255, 127, 22), 0.2),
     transparent 72%
   );
   animation: backend-loading-glow 3.2s ease-in-out infinite;

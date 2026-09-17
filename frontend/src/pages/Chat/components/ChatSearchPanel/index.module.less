@@ -5,7 +5,7 @@
       flex-direction: column;
       height: 100%;
       overflow: hidden;
-      background-color: var(--colorBgBase, #fff);
+      background-color: var(--majo-color-bg-base, #fff);
     }
   }
 }
@@ -29,7 +29,7 @@
   align-items: center;
   padding: 16px 16px 16px 20px;
   gap: 8px;
-  background-color: var(--colorBgBase, #fff);
+  background-color: var(--majo-color-bg-base, #fff);
   flex-shrink: 0;
 }
 
@@ -44,7 +44,7 @@
   font-size: 16px;
   font-weight: 500;
   line-height: 32px;
-  color: var(--colorText, rgba(0, 0, 0, 0.88));
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
 }
 
 .headerRight {
@@ -73,7 +73,7 @@
 .resultsCount {
   flex-shrink: 0;
   padding: 8px 16px;
-  border-bottom: 1px solid var(--colorBorderSecondary, rgba(0, 0, 0, 0.06));
+  border-bottom: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
 }
 
 /* Session list wrapper */
@@ -108,7 +108,7 @@
   height: 28px;
   background: linear-gradient(
     180deg,
-    var(--colorBgBase, #fff) 0%,
+    var(--majo-color-bg-base, #fff) 0%,
     rgba(255, 255, 255, 0) 100%
   );
   z-index: 1;
@@ -124,7 +124,7 @@
   height: 28px;
   background: linear-gradient(
     0deg,
-    var(--colorBgBase, #fff) 0%,
+    var(--majo-color-bg-base, #fff) 0%,
     rgba(255, 255, 255, 0) 100%
   );
   z-index: 1;
@@ -136,12 +136,12 @@
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 8px;
-  background: var(--colorBgContainer, #fff);
+  background: var(--majo-color-bg-container, #fff);
   cursor: pointer;
   transition: background-color 0.2s;
 
   &:hover {
-    background: var(--colorBgTextHover, rgba(0, 0, 0, 0.04));
+    background: var(--majo-color-bg-text-hover, rgba(0, 0, 0, 0.04));
   }
 }
 
@@ -156,7 +156,7 @@
 .resultChatName {
   font-size: 13px;
   font-weight: 500;
-  color: var(--colorText, rgba(0, 0, 0, 0.88));
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -166,22 +166,22 @@
 .resultRole {
   font-size: 12px;
   font-weight: 500;
-  color: var(--colorTextSecondary, rgba(0, 0, 0, 0.45));
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.45));
   padding: 2px 8px;
   border-radius: 4px;
-  background: var(--colorBgContainer, rgba(0, 0, 0, 0.02));
+  background: var(--majo-color-bg-container, rgba(0, 0, 0, 0.02));
   flex-shrink: 0;
 }
 
 .resultContent {
   font-size: 13px;
-  color: var(--colorText, rgba(0, 0, 0, 0.88));
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
   line-height: 1.5;
 }
 
 .resultTime {
   font-size: 12px;
-  color: var(--colorTextSecondary, rgba(0, 0, 0, 0.45));
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.45));
   margin-top: 6px;
 }
 

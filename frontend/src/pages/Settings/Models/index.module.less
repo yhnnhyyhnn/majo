@@ -351,7 +351,7 @@
   font-weight: 500;
   background-color: rgba(255, 247, 230, 0.8);
   color: var(--majo-accent, #ff7f16);
-  border: 1px solid rgba(255, 127, 22, 0.2);
+  border: 1px solid rgba(var(--majo-accent-rgb, 255, 127, 22), 0.2);
 }
 
 .freeTag {
@@ -1554,7 +1554,7 @@
   align-items: stretch;
   gap: 10px;
   background: linear-gradient(180deg, #fffaf3 0%, #fffdf8 100%);
-  border-left: 3px solid rgba(255, 127, 22, 0.35);
+  border-left: 3px solid rgba(var(--majo-accent-rgb, 255, 127, 22), 0.35);
 }
 
 .customModelHeader {
@@ -1726,7 +1726,7 @@
   }
 
   :global(.ant-progress-inner) {
-    background: rgba(255, 127, 22, 0.14);
+    background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.14);
     border-radius: 999px;
   }
 
@@ -1896,7 +1896,7 @@
 
   .localRuntimeProgress {
     :global(.ant-progress-inner) {
-      background: rgba(255, 127, 22, 0.18);
+      background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.18);
     }
   }
 
@@ -1931,9 +1931,9 @@
   }
 
   .customTag {
-    background-color: rgba(255, 127, 22, 0.15);
-    color: #ff9d4d;
-    border-color: rgba(255, 127, 22, 0.25);
+    background-color: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.15);
+    color: var(--majo-accent, #ff9d4d);
+    border-color: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.25);
   }
 
   .freeTag {
@@ -2268,16 +2268,16 @@
   .customModelListItem {
     background: linear-gradient(
       180deg,
-      rgba(255, 127, 22, 0.1) 0%,
-      rgba(255, 127, 22, 0.04) 100%
+      rgba(var(--majo-accent-rgb, 255, 127, 22), 0.1) 0%,
+      rgba(var(--majo-accent-rgb, 255, 127, 22), 0.04) 100%
     );
-    border-left-color: rgba(255, 127, 22, 0.55);
+    border-left-color: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.55);
 
     &:hover {
       background: linear-gradient(
         180deg,
-        rgba(255, 127, 22, 0.14) 0%,
-        rgba(255, 127, 22, 0.06) 100%
+        rgba(var(--majo-accent-rgb, 255, 127, 22), 0.14) 0%,
+        rgba(var(--majo-accent-rgb, 255, 127, 22), 0.06) 100%
       );
     }
   }
