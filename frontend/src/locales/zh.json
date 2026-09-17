@@ -2459,6 +2459,11 @@
         "description": "Goal循环 — Agent围绕目标持续执行，通过Rubric评估自动判断完成"
       }
     },
+    "sentFiles": {
+      "button": "已发送文件",
+      "title": "本次会话已发送的文件",
+      "empty": "本次会话还没有通过 send_file_to_user 发送的文件"
+    },
     "attachments": {
       "tooltip": "支持文档、图片、视频、音频等多种格式",
       "tooltipImageOnly": "当前模型仅支持图片上传",

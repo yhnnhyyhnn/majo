@@ -4,10 +4,10 @@ import {
   type IAgentScopeRuntimeWebUIRef,
 } from "@agentscope-ai/chat";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Modal, Result, Tooltip } from "antd";
+import { Alert, Button, Drawer, Empty, Modal, Result, Tooltip } from "antd";
 import { useAppMessage } from "../../hooks/useAppMessage";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { ExclamationCircleOutlined, SettingOutlined } from "@ant-design/icons";
+import { ExclamationCircleOutlined, PaperclipOutlined, SettingOutlined } from "@ant-design/icons";
 import { SparkCopyLine, SparkAttachmentLine } from "@agentscope-ai/icons";
 import { usePlugins } from "../../plugins/PluginContext";
 import { useTranslation } from "react-i18next";
@@ -2038,6 +2038,67 @@ export default function ChatPage() {
     chatRef.current?.input.submit({ query: "/compact" });
   }, []);
 
+  // ── Sent-files drawer (QwenPaw #7750/#7704) ─────────────────────────
+  // Collects files delivered via send_file_to_user across the current
+  // session's response cards; computed on open, newest first, deduped.
+  const [sentFilesOpen, setSentFilesOpen] = useState(false);
+  const [sentFiles, setSentFiles] = useState<
+    { name: string; url: string }[]
+  >([]);
+
+  const openSentFilesDrawer = useCallback(() => {
+    const files: { name: string; url: string }[] = [];
+    try {
+      const messages = chatRef.current?.messages?.getMessages() ?? [];
+      for (const msg of messages) {
+        for (const card of (msg.cards ?? []) as Array<{
+          code?: string;
+          data?: {
+            output?: Array<{
+              type?: string;
+              content?: Array<{
+                data?: { name?: string; arguments?: unknown };
+              }>;
+            }>;
+          };
+        }>) {
+          if (card?.code !== "AgentScopeRuntimeResponseCard") continue;
+          for (const out of card?.data?.output ?? []) {
+            if (out?.type !== "plugin_call_output") continue;
+            const call = out?.content?.[0]?.data;
+            if (call?.name !== "send_file_to_user") continue;
+            let params: Record<string, unknown> = {};
+            try {
+              params =
+                typeof call.arguments === "string"
+                  ? (JSON.parse(call.arguments) as Record<string, unknown>)
+                  : ((call.arguments as Record<string, unknown>) ?? {});
+            } catch {
+              continue;
+            }
+            const raw =
+              params.file_path ??
+              params.image_path ??
+              params.video_path ??
+              params.audio_path ??
+              params.path;
+            if (typeof raw === "string" && raw.trim()) {
+              files.push({
+                name: raw.split(/[\\/]/).pop() || raw,
+                url: toDisplayUrl(raw),
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Malformed card data must never break the drawer.
+    }
+    const seen = new Set<string>();
+    setSentFiles(files.filter((f) => !seen.has(f.url) && seen.add(f.url)));
+    setSentFilesOpen(true);
+  }, []);
+
   const handleNewCommand = useCallback(() => {
     const current = useTurnUsageStore.getState().snapshot;
     const maxInputLength = current?.context_usage?.max_input_length ?? 131072;
@@ -2866,6 +2927,15 @@ export default function ChatPage() {
                 onNew={handleNewCommand}
               />
             )}
+            <Tooltip title={t("chat.sentFiles.button")}>
+              <Button
+                type="text"
+                size="small"
+                aria-label={t("chat.sentFiles.button")}
+                icon={<PaperclipOutlined />}
+                onClick={openSentFilesDrawer}
+              />
+            </Tooltip>
             {usesMajoBackend ? (
               <ApprovalLevelToggle
                 sessionId={queueSessionId}
@@ -3350,6 +3420,33 @@ export default function ChatPage() {
           )}
         </>
       )}
+
+      {/* Files the agent sent this session via send_file_to_user
+          (QwenPaw #7750/#7704: right-side drawer with an artifact list). */}
+      <Drawer
+        open={sentFilesOpen}
+        onClose={() => setSentFilesOpen(false)}
+        title={t("chat.sentFiles.title")}
+        placement="right"
+        width={320}
+      >
+        {sentFiles.length === 0 ? (
+          <Empty description={t("chat.sentFiles.empty")} />
+        ) : (
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {sentFiles.map((file) => (
+              <li
+                key={file.url}
+                style={{ padding: "6px 0", borderBottom: "1px solid rgba(128,128,128,0.15)" }}
+              >
+                <a href={file.url} target="_blank" rel="noreferrer">
+                  {file.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Drawer>
     </div>
   );
 }

@@ -2600,6 +2600,11 @@
         "description": "Goal loop — Agent pursues a goal continuously, auto-evaluates via Rubric"
       }
     },
+    "sentFiles": {
+      "button": "Sent files",
+      "title": "Files sent in this session",
+      "empty": "No files delivered via send_file_to_user in this session yet"
+    },
     "attachments": {
       "tooltip": "Supports documents, images, videos, audio and more formats",
       "tooltipImageOnly": "Current model supports image upload only",
