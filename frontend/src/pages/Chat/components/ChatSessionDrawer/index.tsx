@@ -58,7 +58,11 @@ type FlatRow =
       count: number;
       collapsed: boolean;
     }
-  | { kind: "session"; session: ExtendedChatSession };
+  | { kind: "session"; session: ExtendedChatSession }
+  | { kind: "loadMore"; groupKey: DateGroup; remaining: number };
+
+/** Sessions rendered per group before a "load more" row (QwenPaw #7665/#7688). */
+const GROUP_PAGE_SIZE = 10;
 
 /** Data passed to each virtual row */
 interface VirtualRowData {
@@ -77,6 +81,7 @@ interface VirtualRowData {
   handleEditSubmit: () => void;
   handleEditCancel: () => void;
   toggleGroup: (key: DateGroup) => void;
+  loadMoreGroup: (key: DateGroup) => void;
 }
 
 /** Virtual list row renderer — handles both group headers and session items */
@@ -106,6 +111,24 @@ const VirtualRow = React.memo(function VirtualRow({
           >
             <SparkDownArrowLine size={10} />
           </span>
+        </button>
+      </div>
+    );
+  }
+
+  if (row.kind === "loadMore") {
+    const label = data.t(
+      "chat.groups.loadMore",
+      "Load more · {{count}} remaining",
+      { count: row.remaining },
+    );
+    return (
+      <div style={style}>
+        <button
+          className={styles.groupLabel}
+          onClick={() => data.loadMoreGroup(row.groupKey)}
+        >
+          <span>{label}</span>
         </button>
       </div>
     );
@@ -286,6 +309,16 @@ const ChatSessionDrawer: React.FC<ChatSessionDrawerProps> = (props) => {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<DateGroup>>(
     () => new Set<DateGroup>(["month", "older"]),
   );
+  /** Per-group pagination (QwenPaw #7665/#7688). */
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>(
+    {},
+  );
+  const loadMoreGroup = useCallback((key: DateGroup) => {
+    setVisibleCounts((prev) => ({
+      ...prev,
+      [key]: (prev[key] ?? GROUP_PAGE_SIZE) + GROUP_PAGE_SIZE,
+    }));
+  }, []);
 
   /** Immediate search input value (bound to Input, updates on every keystroke) */
   const [searchInput, setSearchInput] = useState("");
@@ -640,22 +673,26 @@ const ChatSessionDrawer: React.FC<ChatSessionDrawerProps> = (props) => {
         collapsed,
       });
       if (!collapsed) {
-        for (const session of group.sessions) {
+        const visible = visibleCounts[group.key] ?? GROUP_PAGE_SIZE;
+        const shown = group.sessions.slice(0, visible);
+        for (const session of shown) {
           rows.push({ kind: "session", session });
+        }
+        const remaining = group.sessions.length - shown.length;
+        if (remaining > 0) {
+          rows.push({ kind: "loadMore", groupKey: group.key, remaining });
         }
       }
     }
     return rows;
-  }, [groups, collapsedGroups, searchQuery, filteredSessions]);
+  }, [groups, collapsedGroups, searchQuery, filteredSessions, visibleCounts]);
 
   /** Row height calculator for VariableSizeList */
   const getRowHeight = useCallback(
     (index: number) => {
       const row = flatRows[index];
       if (!row) return SESSION_ROW_HEIGHT;
-      return row.kind === "groupHeader"
-        ? GROUP_HEADER_HEIGHT
-        : SESSION_ROW_HEIGHT;
+      return row.kind === "session" ? SESSION_ROW_HEIGHT : GROUP_HEADER_HEIGHT;
     },
     [flatRows],
   );
@@ -707,6 +744,7 @@ const ChatSessionDrawer: React.FC<ChatSessionDrawerProps> = (props) => {
       handleEditSubmit,
       handleEditCancel,
       toggleGroup,
+      loadMoreGroup,
     }),
     [
       flatRows,
@@ -724,6 +762,7 @@ const ChatSessionDrawer: React.FC<ChatSessionDrawerProps> = (props) => {
       handleEditSubmit,
       handleEditCancel,
       toggleGroup,
+      loadMoreGroup,
     ],
   );
 

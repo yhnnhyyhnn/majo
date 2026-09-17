@@ -2695,6 +2695,9 @@
       "loadingConversations": "Loading…"
     },
     "conversationHistory": "Conversation History",
+    "groups": {
+      "loadMore": "Load more · {{count}} remaining"
+    },
     "history": {
       "empty": "No chat history"
     },

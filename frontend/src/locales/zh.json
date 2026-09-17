@@ -2554,6 +2554,9 @@
       "loadingConversations": "加载中…"
     },
     "conversationHistory": "历史对话",
+    "groups": {
+      "loadMore": "加载更多 · 剩余 {{count}} 条"
+    },
     "history": {
       "empty": "暂无聊天记录"
     },

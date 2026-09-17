@@ -30,7 +30,10 @@ const SESSION_ROW_HEIGHT = 42;
 /** Fixed height of each group header row */
 const GROUP_HEADER_HEIGHT = 28;
 
-/** A flattened row: either a group header or a session item */
+/** Sessions rendered per group before a "load more" row (QwenPaw #7665/#7688). */
+const GROUP_PAGE_SIZE = 10;
+
+/** A flattened row: either a group header, a session item, or a load-more row */
 type FlatRow =
   | {
       kind: "groupHeader";
@@ -39,7 +42,8 @@ type FlatRow =
       count: number;
       collapsed: boolean;
     }
-  | { kind: "session"; session: ExtendedChatSession };
+  | { kind: "session"; session: ExtendedChatSession }
+  | { kind: "loadMore"; groupKey: DateGroup; remaining: number };
 
 // ── Component ─────────────────────────────────────────────────────────────
 
@@ -59,6 +63,7 @@ interface VirtualRowData {
   handleEditSubmit: () => void;
   handleEditCancel: () => void;
   toggleGroup: (key: DateGroup) => void;
+  loadMoreGroup: (key: DateGroup) => void;
 }
 
 /** Virtual list row renderer */
@@ -86,6 +91,22 @@ const VirtualRow = React.memo(function VirtualRow({
           >
             <SparkDownArrowLine size={10} />
           </span>
+        </button>
+      </div>
+    );
+  }
+
+  if (row.kind === "loadMore") {
+    const label = data.t("chat.groups.loadMore", "Load more · {{count}} remaining", {
+      count: row.remaining,
+    });
+    return (
+      <div style={style}>
+        <button
+          className={styles.groupLabel}
+          onClick={() => data.loadMoreGroup(row.groupKey)}
+        >
+          <span>{label}</span>
         </button>
       </div>
     );
@@ -228,6 +249,17 @@ export default function SidebarSessionList({
     });
   }, []);
 
+  /** Per-group pagination: first page is implicit, each click adds a page. */
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>(
+    {},
+  );
+  const loadMoreGroup = useCallback((key: DateGroup) => {
+    setVisibleCounts((prev) => ({
+      ...prev,
+      [key]: (prev[key] ?? GROUP_PAGE_SIZE) + GROUP_PAGE_SIZE,
+    }));
+  }, []);
+
   /** Flatten groups into a single array of rows for virtual list */
   const flatRows = useMemo<FlatRow[]>(() => {
     if (searchQuery.trim()) {
@@ -248,22 +280,41 @@ export default function SidebarSessionList({
         collapsed,
       });
       if (!collapsed) {
-        for (const session of group.sessions) {
+        const visible = visibleCounts[group.key] ?? GROUP_PAGE_SIZE;
+        const shown = group.sessions.slice(0, visible);
+        for (const session of shown) {
           rows.push({ kind: "session", session });
+        }
+        const remaining = group.sessions.length - shown.length;
+        if (remaining > 0) {
+          rows.push({ kind: "loadMore", groupKey: group.key, remaining });
         }
       }
     }
     return rows;
-  }, [groups, collapsedGroups, searchQuery, filteredSessions]);
+  }, [groups, collapsedGroups, searchQuery, filteredSessions, visibleCounts]);
+
+  // Keep the active session visible even when it sits beyond its group's
+  // rendered page (e.g. returning to an old session).
+  useEffect(() => {
+    if (!currentSessionId || !groups) return;
+    for (const group of groups) {
+      const at = group.sessions.findIndex((s) => s.id === currentSessionId);
+      if (at >= (visibleCounts[group.key] ?? GROUP_PAGE_SIZE)) {
+        setVisibleCounts((prev) => ({
+          ...prev,
+          [group.key]: (Math.floor(at / GROUP_PAGE_SIZE) + 1) * GROUP_PAGE_SIZE,
+        }));
+      }
+    }
+  }, [currentSessionId, groups, visibleCounts]);
 
   /** Row height calculator for VariableSizeList */
   const getRowHeight = useCallback(
     (index: number) => {
       const row = flatRows[index];
       if (!row) return SESSION_ROW_HEIGHT;
-      return row.kind === "groupHeader"
-        ? GROUP_HEADER_HEIGHT
-        : SESSION_ROW_HEIGHT;
+      return row.kind === "session" ? SESSION_ROW_HEIGHT : GROUP_HEADER_HEIGHT;
     },
     [flatRows],
   );
@@ -314,6 +365,7 @@ export default function SidebarSessionList({
       handleEditSubmit,
       handleEditCancel,
       toggleGroup,
+      loadMoreGroup,
     }),
     [
       flatRows,
@@ -330,6 +382,7 @@ export default function SidebarSessionList({
       handleEditSubmit,
       handleEditCancel,
       toggleGroup,
+      loadMoreGroup,
     ],
   );
 
