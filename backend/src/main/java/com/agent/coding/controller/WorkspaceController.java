@@ -578,6 +578,37 @@ public class WorkspaceController {
         return result;
     }
 
+    /** Ordered default project folders (QwenPaw #7789). */
+    @GetMapping("/workspace/coding-project/dirs")
+    public List<Map<String, String>> codingProjectDirs(HttpServletRequest request) {
+        return com.agent.coding.agent.AgentStore.getProjectDirs(resolveAgentId(request));
+    }
+
+    /** Replace the ordered default project folders; primary mirrors project_dir. */
+    @PutMapping("/workspace/coding-project/dirs")
+    public List<Map<String, String>> codingProjectDirsUpdate(
+            @RequestBody Map<String, Object> body, HttpServletRequest request) {
+        List<Map<String, String>> dirs = new ArrayList<>();
+        if (body.get("project_dirs") instanceof List<?> list) {
+            for (Object o : list) {
+                if (o instanceof Map<?, ?> m) {
+                    Map<String, String> e = new LinkedHashMap<>();
+                    e.put("path", m.get("path") == null ? "" : String.valueOf(m.get("path")));
+                    e.put("label", m.get("label") == null ? "" : String.valueOf(m.get("label")));
+                    dirs.add(e);
+                }
+            }
+        }
+        com.agent.coding.agent.AgentStore.setProjectDirs(resolveAgentId(request), dirs);
+        return codingProjectDirs(request);
+    }
+
+    @DeleteMapping("/workspace/coding-project/dirs")
+    public List<Map<String, String>> codingProjectDirsClear(HttpServletRequest request) {
+        com.agent.coding.agent.AgentStore.setProjectDirs(resolveAgentId(request), List.of());
+        return codingProjectDirs(request);
+    }
+
     @GetMapping("/workspace/coding-project/browse-dirs")
     public Map<String, Object> browseDirs(@RequestParam(defaultValue = "~") String path,
                                           @RequestParam(defaultValue = "false") boolean show_hidden) {

@@ -29,6 +29,7 @@ import { useTranslation } from "react-i18next";
 import {
   codingProjectApi,
   type BrowseDirsResponse,
+  type ProjectDirEntry,
   type ProjectListItem,
 } from "../../api/modules/codingProject";
 import { useProjectDir } from "../../stores/codingModeStore";
@@ -723,6 +724,46 @@ function RecentProjects({
 }
 
 // ---------------------------------------------------------------------------
+// Default workspaces (QwenPaw #7789): ordered agent defaults, primary first
+// ---------------------------------------------------------------------------
+
+function DefaultDirs({
+  dirs,
+  onSelect,
+}: {
+  dirs: ProjectDirEntry[];
+  onSelect: (path: string) => void;
+}) {
+  if (dirs.length === 0) return null;
+  return (
+    <div className={styles.recentWrap}>
+      <div className={styles.recentTitle}>Defaults</div>
+      <List
+        size="small"
+        dataSource={dirs}
+        renderItem={(item, index) => (
+          <List.Item
+            className={styles.recentItem}
+            onClick={() => onSelect(item.path)}
+          >
+            <Folder size={13} className={styles.recentIcon} />
+            <span className={styles.recentName}>
+              {item.label || item.path.split(/[\\/]/).pop() || item.path}
+            </span>
+            <span className={styles.recentPath}>{item.path}</span>
+            {index === 0 && (
+              <span className={styles.recentPath} style={{ opacity: 0.6 }}>
+                ★
+              </span>
+            )}
+          </List.Item>
+        )}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main Modal
 // ---------------------------------------------------------------------------
 
@@ -735,6 +776,8 @@ export default function ProjectSelectModal({
   const { setProjectDir } = useProjectDir();
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [activeTab, setActiveTab] = useState("workspace");
+  /** Ordered default workspaces (QwenPaw #7789), primary first. */
+  const [defaultDirs, setDefaultDirs] = useState<ProjectDirEntry[]>([]);
   // The agent's default workspace directory (fetched from backend)
   const [workspaceDir, setWorkspaceDir] = useState<string | null>(null);
 
@@ -742,6 +785,10 @@ export default function ProjectSelectModal({
     codingProjectApi
       .list()
       .then(setProjects)
+      .catch(() => undefined);
+    codingProjectApi
+      .getDirs()
+      .then(setDefaultDirs)
       .catch(() => undefined);
     // GET returns workspace_dir field alongside the active project
     codingProjectApi
@@ -867,6 +914,10 @@ export default function ProjectSelectModal({
         onChange={setActiveTab}
         items={tabItems}
         size="small"
+      />
+      <DefaultDirs
+        dirs={defaultDirs}
+        onSelect={(p) => void handlePathSelected(p)}
       />
       <RecentProjects
         projects={projects}

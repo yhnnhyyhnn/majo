@@ -2,6 +2,12 @@ import { request } from "../request";
 import { getApiUrl } from "../config";
 import { buildAuthHeaders } from "../authHeaders";
 
+/** Ordered default project folder (QwenPaw #7789). */
+export interface ProjectDirEntry {
+  path: string;
+  label?: string;
+}
+
 export interface CodingProjectInfo {
   path: string;
   name: string;
@@ -27,6 +33,27 @@ export interface BrowseDirsResponse {
 export const codingProjectApi = {
   /** Get the current active coding project. */
   get: () => request<CodingProjectInfo>("/workspace/coding-project"),
+
+  /** Ordered agent default workspaces; primary first (QwenPaw #7789). */
+  getDirs: () => request<ProjectDirEntry[]>("/workspace/coding-project/dirs"),
+
+  /** Replace the ordered defaults; the first entry becomes the primary. */
+  setDirs: (dirs: ProjectDirEntry[]) =>
+    request<ProjectDirEntry[]>("/workspace/coding-project/dirs", {
+      method: "PUT",
+      body: JSON.stringify({
+        project_dirs: dirs.map((d) => ({
+          path: d.path,
+          label: d.label ?? null,
+        })),
+      }),
+    }),
+
+  /** Clear all default workspaces (also clears the primary project_dir). */
+  clearDirs: () =>
+    request<ProjectDirEntry[]>("/workspace/coding-project/dirs", {
+      method: "DELETE",
+    }),
 
   /**
    * Set the active coding project.

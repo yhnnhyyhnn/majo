@@ -26,8 +26,32 @@ export interface BrowseDirsResponse {
 
 const BASE = "/workspace/coding-project";
 
+/** Ordered default project folder (QwenPaw #7789). */
+export interface ProjectDirEntry {
+  path: string;
+  label?: string;
+}
+
 export const projectDirectoryApi = {
   get: () => request<ProjectDirectoryInfo>(BASE),
+
+  /** Ordered agent default workspaces; primary first. */
+  getDirs: () => request<ProjectDirEntry[]>(`${BASE}/dirs`),
+
+  /** Replace the ordered defaults; the first entry becomes the primary. */
+  setDirs: (dirs: ProjectDirEntry[]) =>
+    request<ProjectDirEntry[]>(`${BASE}/dirs`, {
+      method: "PUT",
+      body: JSON.stringify({
+        project_dirs: dirs.map((d) => ({
+          path: d.path,
+          label: d.label ?? null,
+        })),
+      }),
+    }),
+
+  clearDirs: () =>
+    request<ProjectDirEntry[]>(`${BASE}/dirs`, { method: "DELETE" }),
 
   set: (path: string | null) =>
     request<ProjectDirectoryInfo>(BASE, {

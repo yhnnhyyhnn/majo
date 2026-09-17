@@ -483,6 +483,87 @@ public class AgentStore {
             profile.remove("project_dir");
         } else {
             profile.put("project_dir", projectDir);
+            // Multi-folder defaults (#7789): promote the chosen dir to the
+            // front of the ordered defaults list without dropping others.
+            List<Map<String, String>> dirs = new ArrayList<>();
+            for (Map<String, String> e : readProjectDirs(profile)) {
+                if (!e.get("path").equals(projectDir)) {
+                    dirs.add(e);
+                }
+            }
+            dirs.add(0, Map.of("path", projectDir, "label", ""));
+            profile.put("project_dirs",
+                    dirs.size() > MAX_PROJECT_DIRS
+                            ? new ArrayList<>(dirs.subList(0, MAX_PROJECT_DIRS))
+                            : dirs);
+        }
+        SkillStore.writeJsonAtomic(AGENTS_FILE, config);
+    }
+
+    /** Ordered default project folders cap (#7789). */
+    public static final int MAX_PROJECT_DIRS = 10;
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, String>> readProjectDirs(Map<String, Object> profile) {
+        List<Map<String, String>> out = new ArrayList<>();
+        if (profile.get("project_dirs") instanceof List<?> list) {
+            for (Object o : list) {
+                if (o instanceof Map<?, ?> m && m.get("path") != null) {
+                    out.add(Map.of(
+                            "path", String.valueOf(m.get("path")),
+                            "label", m.get("label") == null ? "" : String.valueOf(m.get("label"))));
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Ordered default project folders ({path, label}), primary first. */
+    public static List<Map<String, String>> getProjectDirs(String agentId) {
+        Map<String, Object> profile = getProfile(agentId);
+        if (profile == null) {
+            return List.of();
+        }
+        return readProjectDirs(profile);
+    }
+
+    /**
+     * Persist the ordered default project folders; the first entry is
+     * mirrored into {@code project_dir} (QwenPaw parity). Entries pointing
+     * at nonexistent directories are dropped.
+     */
+    public static synchronized void setProjectDirs(String agentId,
+                                                   List<Map<String, String>> projectDirs) {
+        ensureAgentsInitialized();
+        Map<String, Object> config = loadConfig();
+        Map<String, Object> profiles = SkillService.asMap(config.get("profiles"));
+        Map<String, Object> profile = SkillService.asMap(profiles.get(agentId));
+        if (profile.isEmpty()) {
+            throw new SkillNotFoundException("Agent '" + agentId + "' not found");
+        }
+        List<Map<String, String>> cleaned = new ArrayList<>();
+        for (Map<String, String> e : projectDirs == null ? List.<Map<String, String>>of() : projectDirs) {
+            String path = e == null ? null : e.get("path");
+            if (path == null || path.isBlank()) {
+                continue;
+            }
+            if (!Files.isDirectory(Path.of(path.trim()).toAbsolutePath().normalize())) {
+                continue;
+            }
+            Map<String, String> entry = new LinkedHashMap<>();
+            entry.put("path", path.trim());
+            entry.put("label", e.get("label") == null ? "" : e.get("label"));
+            cleaned.add(entry);
+            if (cleaned.size() >= MAX_PROJECT_DIRS) {
+                break;
+            }
+        }
+        if (cleaned.isEmpty()) {
+            profile.remove("project_dirs");
+            profile.remove("project_dir");
+        } else {
+            profile.put("project_dirs", cleaned);
+            profile.put("project_dir", cleaned.get(0).get("path"));
         }
         SkillStore.writeJsonAtomic(AGENTS_FILE, config);
     }
