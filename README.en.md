@@ -38,6 +38,25 @@ Spring Boot + AgentScope + React + H2 + Flyway + Tauri (optional desktop)
                     └─────────────────────────────────────┘
 ```
 
+## Feature Overview
+
+| Capability | Description |
+|---|---|
+| Agentic tool surface | 28+ built-in tools: file I/O, code search (lsp/ast_search/find_symbol), shell, Git, browser, sub-agent collaboration, media & vision |
+| Coding Mode | Toggling injects the coding discipline prompt (TODO checklists, path:line references, tool preferences) and enables lsp & ast_search |
+| Long-term memory | Backend SPI (keyword/summary), automatic turn distillation, memory_search auto-recall, /memory command governance |
+| Heartbeat | Periodically runs HEARTBEAT.md tasks; cron/interval expressions, active-hours window, result delivery (inbox/last channel) |
+| Loop modes | goal/mission/custom loops with iteration, repetition, budget and rubric stop gates |
+| MCP | Config-facing runtime bridge; stdio/HTTP/SSE servers, OAuth, per-tool governance (allow/ask/deny) |
+| Skills | Skill pool + marketplace + dependency checks + workspace materialization |
+| Messaging channels | 12+ channel adapters (DingTalk/Feishu/Telegram/Slack/Discord/QQ/WeCom/Matrix...), ACL access control + approvals |
+| Cron jobs | cron/once jobs with execution history and inbox failure reporting |
+| Session governance | Checkpoints, backups (zip + signature), archive, pinning, grouped pagination |
+| Console | Multi-agent management, model routing, theme colors, token usage stats, inbox, plugin manager |
+| Desktop | Tauri 2 shell (sidecar + jlink JRE + AppCDS startup optimizations) |
+
+Design decisions: see `AI-Coding-Agent-Spec/08-ADR/` (14 ADRs).
+
 ## Desktop App (Tauri, optional)
 
 Majo can be packaged as a native desktop app: `frontend/src-tauri/` is a Tauri 2 shell (Rust) that spawns the Spring Boot backend as a **sidecar child process** and loads the backend-hosted SPA in a WebView. The shell and backend share only two language-agnostic protocol conventions:
@@ -205,7 +224,10 @@ majo/
 │   │   ├── SettingsService.java             # LLM configuration
 │   │   ├── WorkspaceContext.java            # workspace context
 │   │   ├── agent/
-│   │   │   └── AgentStore.java              # multi-agent registry (agents.json)
+│   │   │   ├── AgentStore.java              # multi-agent registry (agents.json)
+│   │   │   ├── ContextCompactor.java        # context compaction (thinking fold / visual / tool-result bounding)
+│   │   │   ├── OverflowRecovery.java        # one-shot overflow recovery
+│   │   │   └── CodingModeService.java       # Coding Mode switch + runtime wiring
 │   │   ├── backup/                          # backup services (zip + signature + restore)
 │   │   │   ├── BackupStore.java             # storage/list/signature
 │   │   │   ├── BackupCreator.java           # create + SSE progress
@@ -227,6 +249,13 @@ majo/
 │   │   │   ├── DesktopReadyPrinter.java     # prints MAJO_BACKEND_READY ready line
 │   │   │   ├── SpaFallbackController.java   # /console → index.html SPA fallback
 │   │   │   └── SettingsController.java      # GET/POST /api/settings
+│   │   ├── memory/                          # memory backend SPI + write pipeline + /memory command
+│   │   ├── cron/                            # cron jobs + HEARTBEAT.md heartbeat
+│   │   ├── channel/                         # messaging channels (12+ adapters + last-contact store)
+│   │   ├── security/                        # tool guard / file guard / secret hardening
+│   │   ├── loop/                            # loop-mode stop gates (goal/mission/custom)
+│   │   ├── acp/                             # ACP external-agent runtime detection
+│   │   ├── mcp/                             # MCP client bridge & governance
 │   │   ├── skill/                           # skill system (pool + workspace)
 │   │   ├── entity/                          # JPA entities
 │   │   └── repository/
@@ -234,7 +263,7 @@ majo/
 │   │   ├── application.yml                  # server port + DB config
 │   │   ├── application-desktop.yml          # desktop profile (lazy-init + no swagger)
 │   │   ├── builtin-skills/                  # 17 built-in skills (classpath)
-│   │   └── db/migration/                    # Flyway migrations (V1-V24)
+│   │   └── db/migration/                    # Flyway migrations (V1-V27)
 │   └── local-repo/                          # AgentScope jars (local Maven repo)
 ├── frontend/
 │   ├── src/
@@ -287,6 +316,13 @@ majo/
 | `/api/backups/{id}/export` | GET | Export backup zip |
 | `/api/backups/import` | POST | Import backup (conflict 409 + trust_mode) |
 | `/api/backups/delete` | POST | Delete backup |
+| `/api/config/theme` | GET/PUT/DELETE | Accent colors (light/dark) |
+| `/api/config/heartbeat` | GET/PUT | Heartbeat config (+ POST /run manual trigger) |
+| `/api/coding-mode` | GET/POST | Coding Mode switch |
+| `/api/commands/run` | POST | System command execution (/memory etc.) |
+| `/api/token-usage` | GET | Daily usage summary |
+| `/api/token-usage/agents` | GET | Per-agent per-turn usage stats |
+| `/api/workspace/coding-project/dirs` | GET/PUT/DELETE | Multi-folder default workspaces |
 | `/api/settings` | GET/POST | LLM configuration |
 | `/api/providers` | GET | Model provider management |
 | `/api/desktop/shutdown` | POST | Desktop graceful shutdown (requires token header, desktop only) |

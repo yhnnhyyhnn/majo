@@ -78,11 +78,17 @@ export const compareVersions = (a: string, b: string): number => {
 
 // ── Update markdown ───────────────────────────────────────────────────────
 export const UPDATE_MD: Record<string, string> = {
-  zh: `### Majo 如何更新
+  zh: `### Majo 0.2.0 更新亮点
 
-要更新 Majo 到最新版本，可根据你的安装方式选择对应方法：
+- 长期记忆闭环:自动记忆提炼(LLM 摘要)、/memory 命令、自动召回
+- Coding Mode 实际生效,新增 lsp 与 ast_search 代码智能工具
+- 心跳调度:按周期执行 HEARTBEAT.md 任务,支持活动时段窗口与最近渠道回传
+- 控制台:自定义主题色、分组会话分页、多文件夹默认工作区、已发送文件抽屉
+- 多项正确性修复:命令超时强制生效、进程树清理、启动迁移不再覆盖配置
 
-1. 如果你从源码运行，拉取最新代码后重新构建：
+### 如何更新
+
+1. 源码部署:拉取最新代码后重新构建
 
 \`\`\`
 git pull origin master
@@ -90,7 +96,7 @@ mvn -f backend/pom.xml package
 cd frontend && npm ci && npm run build
 \`\`\`
 
-2. 如果你使用 Docker，拉取最新镜像并重启容器：
+2. Docker 部署:拉取最新镜像并重启
 
 \`\`\`
 docker compose pull
@@ -99,11 +105,17 @@ docker compose up -d
 
 升级后重启后端服务即可。`,
 
-  ru: `### Как обновить Majo
+  ru: `### Основные изменения в Majo 0.2.0
 
-Чтобы обновить Majo, выберите способ в зависимости от типа установки:
+- Замкнутый цикл долгосрочной памяти: авто-извлечение (LLM-резюме), команда /memory, автоматический recall
+- Coding Mode реально работает, новые инструменты lsp и ast_search
+- Планировщик Heartbeat: периодические задачи из HEARTBEAT.md, окно активности, доставка в последний канал
+- Консоль: настраиваемый цвет темы, пагинация групп сессий, мульти-папочные рабочие каталоги, панель отправленных файлов
+- Серия исправлений: принудительный таймаут команд, очистка дерева процессов, миграция больше не перезаписывает конфигурацию
 
-1. Если вы запускаете Majo из исходников, получите последние изменения и пересоберите:
+### Как обновить
+
+1. Из исходников: получите изменения и пересоберите
 
 \`\`\`
 git pull origin master
@@ -111,7 +123,7 @@ mvn -f backend/pom.xml package
 cd frontend && npm ci && npm run build
 \`\`\`
 
-2. Если используете Docker, загрузите новый образ и перезапустите контейнеры:
+2. Docker: загрузите новый образ и перезапустите
 
 \`\`\`
 docker compose pull
@@ -120,11 +132,17 @@ docker compose up -d
 
 После обновления перезапустите бэкенд.`,
 
-  en: `### How to update Majo
+  en: `### Majo 0.2.0 highlights
 
-To update Majo, use the method matching your installation type:
+- Long-term memory loop: automatic LLM distillation, /memory command, auto recall
+- Coding Mode now takes effect at runtime, with new lsp and ast_search code-intelligence tools
+- Heartbeat scheduler: periodic HEARTBEAT.md tasks with active-hours window and last-channel delivery
+- Console: customizable accent color, grouped session pagination, multi-folder default workspaces, sent-files drawer
+- Multiple correctness fixes: enforced command timeouts, process-tree cleanup, startup migration no longer overwrites config
 
-1. If you run Majo from source, pull the latest code and rebuild:
+### How to update
+
+1. Source deployment: pull the latest code and rebuild
 
 \`\`\`
 git pull origin master
@@ -132,7 +150,7 @@ mvn -f backend/pom.xml package
 cd frontend && npm ci && npm run build
 \`\`\`
 
-2. If using Docker, pull the latest image and restart the containers:
+2. Docker deployment: pull the latest image and restart
 
 \`\`\`
 docker compose pull

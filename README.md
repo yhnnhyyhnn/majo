@@ -38,6 +38,25 @@ Spring Boot + AgentScope + React + H2 + Flyway + Tauri（桌面可选）
                     └─────────────────────────────────────┘
 ```
 
+## 功能总览
+
+| 能力 | 说明 |
+|---|---|
+| Agentic 工具面 | 28+ 内置工具:文件读写编辑、代码搜索(lsp/ast_search/find_symbol)、shell、Git、浏览器、子 Agent 协作、媒体视觉 |
+| Coding Mode | 切换后注入编码纪律 prompt(任务清单/path:line 引用/工具偏好),启用 lsp 与 ast_search |
+| 长期记忆 | 后端 SPI(keyword/summary),轮次自动提炼落盘、memory_search 自动召回、/memory 命令治理 |
+| 心跳 | 按周期执行 HEARTBEAT.md 任务,支持 cron/间隔表达式、活动时段窗口、结果投递(inbox/最近渠道) |
+| Loop 模式 | goal/mission/custom 循环,迭代/重复/预算/评分终止门 |
+| MCP | 配置面直连运行时,标准 stdio/HTTP/SSE 服务,OAuth,按工具治理(allow/ask/deny) |
+| 技能系统 | 技能池 + 市场 + 依赖校验 + 物化(materialize)到工作区 |
+| 消息渠道 | 12+ 渠道接入(钉钉/飞书/Telegram/Slack/Discord/QQ/企微/Matrix...),ACL 访问控制 + 审批 |
+| 定时任务 | cron/once 任务,执行历史,失败落收件箱 |
+| 会话治理 | 检查点、备份(zip+签名)、归档、置顶、分组分页 |
+| 控制台 | 多 Agent 管理、模型路由、主题色、Token 用量统计、收件箱、插件管理 |
+| 桌面端 | Tauri 2 壳(sidecar + jlink JRE + AppCDS 启动优化) |
+
+设计决策详见 `AI-Coding-Agent-Spec/08-ADR/`(14 篇)。
+
 ## 桌面应用（Tauri，可选）
 
 Majo 可以打包成原生桌面应用：`frontend/src-tauri/` 是一套 Tauri 2 壳（Rust），把 Spring Boot 后端作为 **sidecar 子进程** 拉起，WebView 加载后端托管的 SPA。壳与后端之间只有两个语言无关的协议约定：
@@ -205,7 +224,10 @@ majo/
 │   │   ├── SettingsService.java             # 大模型配置
 │   │   ├── WorkspaceContext.java            # 工作区上下文
 │   │   ├── agent/
-│   │   │   └── AgentStore.java              # 多Agent 注册表 (agents.json)
+│   │   │   ├── AgentStore.java              # 多Agent 注册表 (agents.json)
+│   │   │   ├── ContextCompactor.java        # 上下文压缩 (thinking折叠/视觉压缩/工具结果限界)
+│   │   │   ├── OverflowRecovery.java        # 溢出一次性恢复
+│   │   │   └── CodingModeService.java       # Coding Mode 开关与运行时联动
 │   │   ├── backup/                          # 备份服务 (zip + 签名 + 恢复)
 │   │   │   ├── BackupStore.java             # 存储/列表/签名
 │   │   │   ├── BackupCreator.java           # 创建 + SSE 进度
@@ -227,6 +249,13 @@ majo/
 │   │   │   ├── DesktopReadyPrinter.java     # 打印 MAJO_BACKEND_READY 就绪行
 │   │   │   ├── SpaFallbackController.java   # /console → index.html SPA fallback
 │   │   │   └── SettingsController.java      # GET/POST /api/settings
+│   │   ├── memory/                          # 记忆后端 SPI + 写入管道 + /memory 命令
+│   │   ├── cron/                            # 定时任务 + HEARTBEAT.md 心跳
+│   │   ├── channel/                         # 消息渠道 (12+ 实现 + 最近联系存储)
+│   │   ├── security/                        # 工具守卫/文件守卫/密钥加固
+│   │   ├── loop/                            # 循环模式终止门 (goal/mission/custom)
+│   │   ├── acp/                             # ACP 外部 Agent 运行时探测
+│   │   ├── mcp/                             # MCP 客户端桥接与治理
 │   │   ├── skill/                           # 技能系统 (pool + workspace)
 │   │   ├── entity/                          # JPA Entity
 │   │   └── repository/
@@ -234,7 +263,7 @@ majo/
 │   │   ├── application.yml                  # 服务端口 + DB 配置
 │   │   ├── application-desktop.yml          # 桌面 profile (lazy-init + 关 swagger)
 │   │   ├── builtin-skills/                  # 17 个内置技能 (classpath)
-│   │   └── db/migration/                    # Flyway 迁移脚本 (V1-V24)
+│   │   └── db/migration/                    # Flyway 迁移脚本 (V1-V27)
 │   └── local-repo/                          # AgentScope jar (本地 Maven 仓库)
 ├── frontend/
 │   ├── src/
@@ -287,6 +316,13 @@ majo/
 | `/api/backups/{id}/export` | GET | 导出备份 zip |
 | `/api/backups/import` | POST | 导入备份（支持冲突 409 + trust_mode） |
 | `/api/backups/delete` | POST | 删除备份 |
+| `/api/config/theme` | GET/PUT/DELETE | 主题色(accent 浅/深) |
+| `/api/config/heartbeat` | GET/PUT | 心跳配置(+ POST /run 手动触发) |
+| `/api/coding-mode` | GET/POST | Coding Mode 开关 |
+| `/api/commands/run` | POST | /memory 等系统命令执行 |
+| `/api/token-usage` | GET | 日粒度用量汇总 |
+| `/api/token-usage/agents` | GET | 按Agent的轮次用量统计 |
+| `/api/workspace/coding-project/dirs` | GET/PUT/DELETE | 多文件夹默认工作区 |
 | `/api/settings` | GET/POST | 大模型配置 |
 | `/api/providers` | GET | 模型供应商管理 |
 | `/api/desktop/shutdown` | POST | 桌面优雅停机（需 token header，仅桌面模式） |
