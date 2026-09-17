@@ -7,11 +7,11 @@
 
   :global {
     .majo-slider-track {
-      background-color: #ff7f16;
+      background-color: var(--majo-accent, #ff7f16);
     }
 
     .majo-slider .majo-slider-handle::after {
-      box-shadow: 0 0 0 2px #ff7f16;
+      box-shadow: 0 0 0 2px var(--majo-accent, #ff7f16);
     }
 
     .majo-tabs-nav {
@@ -44,17 +44,17 @@
     color: #666 !important;
 
     &:hover {
-      color: #ff7f16 !important;
+      color: var(--majo-accent, #ff7f16) !important;
     }
   }
 
   :global(.majo-tabs-tab-active .majo-tabs-tab-btn) {
-    color: #ff7f16 !important;
+    color: var(--majo-accent, #ff7f16) !important;
     font-weight: 600;
   }
 
   :global(.majo-tabs-ink-bar) {
-    background: #ff7f16 !important;
+    background: var(--majo-accent, #ff7f16) !important;
     height: 3px;
     border-radius: 2px 2px 0 0;
   }
@@ -241,7 +241,7 @@
   }
 
   .sliderValue {
-    color: #ff7f16;
+    color: var(--majo-accent, #ff7f16);
   }
 
   .mainTabs {
@@ -250,12 +250,12 @@
     }
 
     :global(.majo-tabs-tab-active .majo-tabs-tab-btn) {
-      color: #ff7f16 !important;
+      color: var(--majo-accent, #ff7f16) !important;
       font-weight: 600;
     }
 
     :global(.majo-tabs-ink-bar) {
-      background: #ff7f16 !important;
+      background: var(--majo-accent, #ff7f16) !important;
     }
   }
 }
