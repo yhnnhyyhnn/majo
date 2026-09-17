@@ -70,7 +70,8 @@ Majo 可以打包成原生桌面应用：`frontend/src-tauri/` 是一套 Tauri 2
 - 前端 SPA 通过 `/console` 路径访问（`SpaFallbackController` 转发到 index.html），`App.tsx` 自动识别 `/console` basename
 - 打包时内置一个 **jlink 裁剪的 JRE**（约 76MB），最终用户无需安装 Java
 - 自动更新（updater）已配置:更新签名密钥对（minisign/Ed25519）在本机生成,公钥烧入应用,检查端点指向 GitHub Releases 的 `latest.json`
-- 本地打包脚本会自动从 `%USERPROFILE%.taurimajo.key` 加载签名私钥(私钥务必保密,丢失将无法为已装用户推送更新)
+- 签名私钥位于 `frontend/src-tauri/keys/majo.key`(已加入 .gitignore,**永不提交**;备份到密码管理器,丢失将无法为已装用户推送更新;回退查找 `%USERPROFILE%\.tauri\majo.key`)
+- 打包脚本按上述顺序自动加载私钥;CI 自动签名需将私钥配置为仓库 Secret `TAURI_SIGNING_PRIVATE_KEY`
 - 发布桌面更新 = 用打包脚本产出签名工件,把安装包与 `latest.json` 上传到 GitHub Releases
 
 ### 桌面构建

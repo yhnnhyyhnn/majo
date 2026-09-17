@@ -139,16 +139,19 @@ if (Test-Path $BaseJsaAlt) { Remove-Item -Force $BaseJsaAlt }
 # ---------------------------------------------------------------------------
 if (-not $SkipTauriBuild) {
     # Updater signing (createUpdaterArtifacts): auto-load the minisign private
-    # key from %USERPROFILE%\.tauri\majo.key when present so local builds sign
-    # update artifacts without extra environment setup.
+    # key. Lookup order: project keys/ dir (gitignored) -> %USERPROFILE%\.tauri\.
     if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
-        $UpdaterKey = Join-Path $env:USERPROFILE ".tauri\majo.key"
-        if (Test-Path $UpdaterKey) {
+        $KeyCandidates = @(
+            (Join-Path $TauriDir "keys\majo.key"),
+            (Join-Path $env:USERPROFILE ".tauri\majo.key")
+        )
+        $UpdaterKey = $KeyCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if ($UpdaterKey) {
             $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content $UpdaterKey -Raw).Trim()
             $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
             Write-Host "Loaded updater signing key from $UpdaterKey"
         } else {
-            Write-Warning "No updater signing key found - update artifacts will NOT be signed"
+            Write-Warning "No updater signing key found\ - update artifacts will NOT be signed"
         }
     }
     Step "Building Tauri desktop app"

@@ -90,3 +90,5 @@ frontend/dist-tauri/
 
 # Desktop packaging artifacts (jlink JRE + backend jar, gitignored)
 frontend/local-binaries/
+# Updater signing private key (NEVER commit) — local desktop builds only
+frontend/src-tauri/keys/

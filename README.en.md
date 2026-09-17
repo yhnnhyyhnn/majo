@@ -70,7 +70,8 @@ Key desktop behaviors:
 - The SPA is served under `/console` (`SpaFallbackController` forwards to index.html); `App.tsx` auto-detects the `/console` basename
 - The bundle embeds a **jlink-trimmed JRE** (~76MB), so end users don't need Java installed
 - Auto-update (updater) is configured: the minisign/Ed25519 signing keypair was generated locally, the public key is embedded in the app, and the check endpoint points to the GitHub Releases `latest.json`
-- The local pack script auto-loads the signing private key from `%USERPROFILE%.taurimajo.key` (keep it secret — losing it means you can no longer push updates to installed users)
+- The signing private key lives at `frontend/src-tauri/keys/majo.key` (gitignored, **never commit**; back it up in a password manager — losing it means you can no longer push updates to installed users; fallback: `%USERPROFILE%\.tauri\majo.key`)
+- The pack script auto-loads the key in that order; for CI auto-signing configure it as the repo secret `TAURI_SIGNING_PRIVATE_KEY`
 - Publishing a desktop update = produce signed artifacts with the pack script, then upload the installers and `latest.json` to GitHub Releases
 
 ### Desktop build
