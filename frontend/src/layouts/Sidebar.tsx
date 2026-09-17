@@ -59,6 +59,8 @@ import type { ReactNode } from "react";
 
 const { Sider } = Layout;
 const MOBILE_SIDEBAR_QUERY = "(max-width: 768px)";
+/** Desktop collapse choice persisted across reloads (QwenPaw #7681). */
+const SIDEBAR_COLLAPSED_KEY = "majo_sidebar_collapsed";
 
 function isMobileSidebarViewport() {
   return (
@@ -129,8 +131,20 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
   const [accountLoading, setAccountLoading] = useState(false);
   const [accountForm] = Form.useForm();
   // Start collapsed on mobile so the first paint does not overlay/obscure
-  // the main content on narrow viewports.
-  const [collapsed, setCollapsed] = useState(isMobileSidebarViewport);
+  // the main content on narrow viewports; on desktop restore the user's
+  // last choice across reloads (QwenPaw #7681).
+  const [collapsed, setCollapsedState] = useState(() => {
+    if (isMobileSidebarViewport) {
+      return true;
+    }
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  });
+  // User toggles persist; viewport-driven changes (mobile media query)
+  // must not overwrite the desktop preference.
+  const setCollapsed = useCallback((value: boolean) => {
+    setCollapsedState(value);
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, value ? "1" : "0");
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(isMobileSidebarViewport);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
@@ -207,8 +221,9 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
     const syncMobileSidebar = () => {
       setIsMobile(mediaQuery.matches);
       // Collapse on mobile to avoid covering the main content; expand again
-      // when the viewport returns to desktop width.
-      setCollapsed(mediaQuery.matches);
+      // when the viewport returns to desktop width. Viewport-driven — bypass
+      // the persisting setter so the desktop preference survives.
+      setCollapsedState(mediaQuery.matches);
     };
 
     syncMobileSidebar();
