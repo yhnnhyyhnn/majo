@@ -134,7 +134,7 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
   // the main content on narrow viewports; on desktop restore the user's
   // last choice across reloads (QwenPaw #7681).
   const [collapsed, setCollapsedState] = useState(() => {
-    if (isMobileSidebarViewport) {
+    if (isMobileSidebarViewport()) {
       return true;
     }
     return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";

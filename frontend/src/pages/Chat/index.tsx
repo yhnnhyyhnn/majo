@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Drawer, Empty, Modal, Result, Tooltip } from "antd";
 import { useAppMessage } from "../../hooks/useAppMessage";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { ExclamationCircleOutlined, PaperclipOutlined, SettingOutlined } from "@ant-design/icons";
+import { ExclamationCircleOutlined, PaperClipOutlined, SettingOutlined } from "@ant-design/icons";
 import { SparkCopyLine, SparkAttachmentLine } from "@agentscope-ai/icons";
 import { usePlugins } from "../../plugins/PluginContext";
 import { useTranslation } from "react-i18next";
@@ -2932,7 +2932,7 @@ export default function ChatPage() {
                 type="text"
                 size="small"
                 aria-label={t("chat.sentFiles.button")}
-                icon={<PaperclipOutlined />}
+                icon={<PaperClipOutlined />}
                 onClick={openSentFilesDrawer}
               />
             </Tooltip>
