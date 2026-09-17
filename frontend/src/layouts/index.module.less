@@ -83,9 +83,9 @@
   // Agent-scoped section: selector + Chat + Control + Workspace
   .agentScopedSection {
     flex-shrink: 0;
-    background: rgba(43, 18, 0, 0.02);
+    background: var(--majo-color-fill-quaternary, rgba(43, 18, 0, 0.02));
     border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
     padding: 4px;
 
     :global {
@@ -116,14 +116,14 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: rgba(0, 0, 0, 0.88);
+    color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
     font-size: 14px;
     cursor: pointer;
     transition: background 0.2s;
     padding-left: 12px;
 
     &:hover {
-      background: rgba(0, 0, 0, 0.06);
+      background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
     }
   }
 
@@ -236,13 +236,13 @@
       font-weight: 500 !important;
       line-height: 32px !important;
       letter-spacing: normal !important;
-      color: rgba(26, 23, 22, 0.25) !important;
+      color: var(--majo-color-text-quaternary, rgba(26, 23, 22, 0.25)) !important;
       padding-left: 8px !important;
 
       /* No hover effect for group titles */
       &:hover {
         background: transparent !important;
-        color: rgba(26, 23, 22, 0.25) !important;
+        color: var(--majo-color-text-quaternary, rgba(26, 23, 22, 0.25)) !important;
       }
     }
 
@@ -290,35 +290,10 @@
 }
 
 .siderDark {
-  background: var(--majo-color-bg-layout, #1a1a1a) !important;
-  border-right-color: rgba(255, 255, 255, 0.08) !important;
-
-  // Agent-scoped section (dark mode)
-  .agentScopedSection {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  // Sticky container background (dark mode)
-  .agentSelectorContainer {
-    background: var(--majo-color-bg-container, #1e1e1e);
-  }
-
-  // Sticky bottom bar background (dark mode)
-  .collapseToggleContainer {
-    background: var(--majo-color-bg-layout, #1a1a1a);
-  }
-
-  // Chat button (dark mode)
-  .stickyChatButton {
-    color: rgba(255, 255, 255, 0.75);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.95);
-    }
-  }
-
+  // Most light/dark pairing is handled by the auto-switching cssVar tokens
+  // in .sider above. Only the active states stay explicit: dark mode
+  // deliberately highlights them with the accent colour, while the light
+  // theme uses a neutral tint.
   .stickyChatButtonActive {
     background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.5);
     color: var(--majo-accent, #ff7f16);
@@ -330,29 +305,7 @@
       border-inline-end: 0 !important;
     }
 
-    /* Group title (sub-menu label) */
-    .majo-menu-submenu-title {
-      color: rgba(255, 255, 255, 0.45) !important;
-
-      /* No hover effect for group titles in dark mode */
-      &:hover {
-        background: transparent !important;
-        color: rgba(255, 255, 255, 0.45) !important;
-      }
-    }
-
-    /* Regular menu item */
-    .majo-menu-item {
-      color: rgba(255, 255, 255, 0.75) !important;
-    }
-
-    /* Hover state - only for menu items, not group titles */
-    .majo-menu-item:hover {
-      background: rgba(255, 255, 255, 0.1) !important;
-      color: rgba(255, 255, 255, 0.95) !important;
-    }
-
-    /* Selected item */
+    /* Selected item: accent tint (neutral tint in light mode) */
     .majo-menu-item-selected {
       background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.5) !important;
       color: var(--majo-accent, #ff7f16) !important;
@@ -374,7 +327,7 @@
   width: 16px;
   height: 0px;
   transform: rotate(90deg);
-  border-top: 1px solid rgba(234, 232, 231, 1);
+  border-top: 1px solid var(--majo-color-border-secondary, #eae8e7);
   margin: 0 8px;
 }
 
@@ -383,7 +336,7 @@
   height: 0px;
   transform: rotate(90deg);
   z-index: 4;
-  border-top: 1px solid rgba(234, 232, 231, 1);
+  border-top: 1px solid var(--majo-color-border-secondary, #eae8e7);
 }
 
 .versionBadge {
@@ -420,11 +373,11 @@
   align-items: center;
   gap: 8px;
   justify-content: flex-start;
-  color: rgba(0, 0, 0, 0.65);
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.65));
 
   &:hover {
-    color: rgba(0, 0, 0, 0.88) !important;
-    background: rgba(0, 0, 0, 0.04) !important;
+    color: var(--majo-color-text, rgba(0, 0, 0, 0.88)) !important;
+    background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04)) !important;
   }
 }
 
@@ -481,17 +434,13 @@
   transform-origin: center center;
   // Show a persistent hover-like background so the "rectangle" rotates
   // together with the content.
-  background-color: rgba(0, 0, 0, 0.06) !important;
+  background-color: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06)) !important;
 
   // Pause immediately on hover as a visual safety net (JS handler
   // will permanently remove the class on the next React render).
   &:hover {
     animation-play-state: paused;
   }
-}
-
-:global(.dark-mode) .inboxShake {
-  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Collapse Toggle Button */
@@ -511,12 +460,12 @@
 }
 
 .collapseToggle {
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
   border-radius: 8px;
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06) !important;
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06)) !important;
     color: var(--majo-accent, #ff7f16) !important;
   }
 }
@@ -524,179 +473,6 @@
 .modeToggleActive {
   color: var(--majo-accent, #ff7f16) !important;
   background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.08);
-}
-
-// ─── Simple mode: flat nav + session list ─────────────────────────────────────
-
-.simpleNewChat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 38px;
-  padding: 0 12px;
-  margin: 4px 0;
-  border: none;
-  border-radius: 8px;
-  background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.08);
-  color: var(--majo-accent, #ff7f16);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.14);
-  }
-}
-
-.simpleNavItems {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-top: 4px;
-}
-
-.simpleNavItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: rgba(0, 0, 0, 0.75);
-  font-size: 14px;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-  text-align: left;
-
-  &:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: rgba(0, 0, 0, 0.88);
-  }
-}
-
-.simpleNavItemActive {
-  background: rgba(43, 18, 0, 0.08);
-  color: rgba(0, 0, 0, 0.88);
-}
-
-// Session list container
-.simpleSessionList {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  margin-top: 8px;
-}
-
-.simpleSessionHeader {
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(26, 23, 22, 0.35);
-  padding: 4px 12px 6px;
-  flex-shrink: 0;
-}
-
-.simpleSessionScroll {
-  flex: 1;
-  overflow-y: auto;
-  scrollbar-width: thin;
-
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.12);
-    border-radius: 2px;
-  }
-}
-
-.simpleSessionItem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s;
-  position: relative;
-
-  &:hover {
-    background: rgba(0, 0, 0, 0.06);
-
-    .simpleSessionActions {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-}
-
-.simpleSessionItemActive {
-  background: rgba(43, 18, 0, 0.08);
-}
-
-.simpleSessionItemDisabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.simpleSessionName {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  line-height: 20px;
-  color: rgba(0, 0, 0, 0.75);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.simpleSessionTime {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: rgba(26, 23, 22, 0.35);
-}
-
-.simpleSessionActions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s;
-}
-
-.simpleSessionActionBtn {
-  width: 22px !important;
-  height: 22px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(0, 0, 0, 0.45);
-
-  &:hover {
-    color: rgba(0, 0, 0, 0.88);
-    background: rgba(0, 0, 0, 0.06);
-  }
-}
-
-.simpleSessionActionBtnActive {
-  color: var(--majo-accent, #ff7f16) !important;
-}
-
-.simpleSessionLoading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px 0;
 }
 
 /* Collapsed nav (icon-only group list) */
@@ -726,12 +502,12 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.55));
   transition: all 0.15s;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: rgba(0, 0, 0, 0.88);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
+    color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
   }
 
   &.inboxShake {
@@ -831,12 +607,12 @@
   align-items: center;
   gap: 6px;
   background: var(--majo-color-bg-container, #fff);
-  border: 1px solid rgba(43, 18, 0, 0.12);
+  border: 1px solid var(--majo-color-border, rgba(43, 18, 0, 0.12));
   border-radius: 20px;
   padding: 3px 12px;
   font-size: 12px;
   font-weight: 500;
-  color: rgba(26, 23, 22, 0.65);
+  color: var(--majo-color-text-secondary, rgba(26, 23, 22, 0.65));
   width: fit-content;
 }
 
@@ -922,7 +698,7 @@
   border-radius: 4px;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
   }
 }
 
@@ -935,75 +711,11 @@
 }
 
 /* ─── Dark mode overrides ─────────────────────────────────────────────────── */
+// Only deliberate dark-mode divergences remain here (accent-tinted active
+// states); text/fill/border pairs auto-switch via the cssVar tokens above.
 :global(.dark-mode) {
-  .header {
-    background: var(--majo-color-bg-layout, #1a1a1a) !important;
-    border-bottom-color: rgba(255, 255, 255, 0.08) !important;
-    color: rgba(255, 255, 255, 0.85);
-
-    /* Text buttons (Docs / FAQ / GitHub / Changelog) */
-    :global(.majo-btn-text),
-    :global(.ant-btn-text) {
-      color: rgba(255, 255, 255, 0.75) !important;
-
-      &:hover {
-        color: #fff !important;
-        background: rgba(255, 255, 255, 0.08) !important;
-      }
-
-      .anticon,
-      svg {
-        color: inherit !important;
-      }
-    }
-
-    /* Fallback: any icon or text directly inside header */
-    :global(.anticon) {
-      color: rgba(255, 255, 255, 0.75);
-    }
-  }
-
-  .headerTitle {
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .sider {
-    background: var(--majo-color-bg-layout, #1a1a1a) !important;
-    border-right-color: rgba(255, 255, 255, 0.08) !important;
-  }
-
-  .siderTop {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  }
-
   .versionBadge {
     color: var(--majo-accent, #ff7f16);
-  }
-
-  .collapseBtn {
-    color: var(--majo-accent, #ff7f16);
-  }
-
-  .authActions {
-    border-top-color: rgba(255, 255, 255, 0.08);
-  }
-
-  .authBtn {
-    color: rgba(255, 255, 255, 0.75);
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.9) !important;
-      background: rgba(255, 255, 255, 0.06) !important;
-    }
-  }
-
-  .collapseToggle {
-    color: rgba(255, 255, 255, 0.45);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--majo-accent, #ff7f16);
-    }
   }
 
   .modeToggleActive {
@@ -1011,32 +723,9 @@
     background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.12);
   }
 
-  .collapsedNavItem {
-    color: rgba(255, 255, 255, 0.5);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.88);
-    }
-  }
-
   .collapsedNavItemActive {
     background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.5) !important;
     color: rgba(255, 255, 255, 0.88) !important;
-  }
-
-  .codeBlock {
-    background: var(--majo-color-fill-secondary, #2a2a2a);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .codeInline {
-    background: var(--majo-color-fill-secondary, #2a2a2a);
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .copyBtnDefault {
-    color: rgba(255, 255, 255, 0.3);
   }
 }
 
@@ -1081,7 +770,7 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.75));
   font-size: 14px;
   cursor: pointer;
   transition:
@@ -1090,14 +779,14 @@
   text-align: left;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: rgba(0, 0, 0, 0.88);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
+    color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
   }
 }
 
 .simpleNavItemActive {
   background: rgba(43, 18, 0, 0.08);
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
 }
 
 // Session list container
@@ -1112,7 +801,7 @@
 .simpleSessionHeader {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(26, 23, 22, 0.35);
+  color: var(--majo-color-text-quaternary, rgba(26, 23, 22, 0.35));
   padding: 4px 12px 6px;
   flex-shrink: 0;
 }
@@ -1127,7 +816,7 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.12);
+    background: var(--majo-color-fill, rgba(0, 0, 0, 0.12));
     border-radius: 2px;
   }
 }
@@ -1144,7 +833,7 @@
   position: relative;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
 
     .simpleSessionActions {
       opacity: 1;
@@ -1167,7 +856,7 @@
   min-width: 0;
   font-size: 13px;
   line-height: 20px;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.75));
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -1176,7 +865,7 @@
 .simpleSessionTime {
   flex-shrink: 0;
   font-size: 11px;
-  color: rgba(26, 23, 22, 0.35);
+  color: var(--majo-color-text-quaternary, rgba(26, 23, 22, 0.35));
 }
 
 .simpleSessionActions {
@@ -1194,11 +883,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
 
   &:hover {
-    color: rgba(0, 0, 0, 0.88);
-    background: rgba(0, 0, 0, 0.06);
+    color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
   }
 }
 
@@ -1214,7 +903,8 @@
 }
 
 // ─── Simple mode dark overrides ───────────────────────────────────────────────
-
+// Text/fill pairs above auto-switch via cssVar tokens; only the accent-tinted
+// active states (and the accent alpha tuning) stay explicit.
 .siderSimple {
   :global(.dark-mode) & {
     .simpleNewChat {
@@ -1226,49 +916,13 @@
       }
     }
 
-    .simpleNavItem {
-      color: rgba(255, 255, 255, 0.75);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.95);
-      }
-    }
-
     .simpleNavItemActive {
       background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.5);
       color: var(--majo-accent, #ff7f16);
     }
 
-    .simpleSessionHeader {
-      color: rgba(255, 255, 255, 0.35);
-    }
-
-    .simpleSessionItem {
-      &:hover {
-        background: rgba(255, 255, 255, 0.08);
-      }
-    }
-
     .simpleSessionItemActive {
       background: rgba(255, 255, 255, 0.08);
-    }
-
-    .simpleSessionName {
-      color: rgba(255, 255, 255, 0.75);
-    }
-
-    .simpleSessionTime {
-      color: rgba(255, 255, 255, 0.35);
-    }
-
-    .simpleSessionActionBtn {
-      color: rgba(255, 255, 255, 0.45);
-
-      &:hover {
-        color: rgba(255, 255, 255, 0.88);
-        background: rgba(255, 255, 255, 0.08);
-      }
     }
   }
 }
