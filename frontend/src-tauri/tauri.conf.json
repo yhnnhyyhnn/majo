@@ -72,10 +72,11 @@
       }
     }
   },
+  "createUpdaterArtifacts": true,
   "plugins": {
     "updater": {
-      "pubkey": "RWS0pH5Ubp0T0XKjQ71BwQ1Y9XcJqk4PztuW6yF3hTnQ5YzVcBd2H0UeF3rJYd4fJcWV5rRg1oZb3yW2nL1q9A3xZ8cE4vB7sK",
-      "endpoints": []
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdCNERDRDQ5QTgwMzY3MDcKUldRSFp3T29TYzFOZThya0NLZUJlUjd6Q1A5d0dsY2hpUTFKeSsxNXMxelpMUkxWdXBqQjRLV1oK",
+      "endpoints": ["https://github.com/yhnnhyyhnn/majo/releases/latest/download/latest.json"]
     }
   }
 }

@@ -138,6 +138,19 @@ if (Test-Path $BaseJsaAlt) { Remove-Item -Force $BaseJsaAlt }
 # 6. Build the Tauri app (npm run build:tauri-bootstrap + tauri build)
 # ---------------------------------------------------------------------------
 if (-not $SkipTauriBuild) {
+    # Updater signing (createUpdaterArtifacts): auto-load the minisign private
+    # key from %USERPROFILE%\.tauri\majo.key when present so local builds sign
+    # update artifacts without extra environment setup.
+    if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+        $UpdaterKey = Join-Path $env:USERPROFILE ".tauri\majo.key"
+        if (Test-Path $UpdaterKey) {
+            $env:TAURI_SIGNING_PRIVATE_KEY = (Get-Content $UpdaterKey -Raw).Trim()
+            $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
+            Write-Host "Loaded updater signing key from $UpdaterKey"
+        } else {
+            Write-Warning "No updater signing key found - update artifacts will NOT be signed"
+        }
+    }
     Step "Building Tauri desktop app"
     # cargo caches build.rs, so `tauri build` may skip re-copying resources
     # into target/release/ after a clean. Force the resources into place so

@@ -69,7 +69,9 @@ Key desktop behaviors:
 - The backend starts on **`SERVER_PORT=1911`** (avoids collisions with local services); the data directory is fixed to `MAJO_WORKING_DIR` (default `{data_dir}/majo`, e.g. `%APPDATA%/majo`)
 - The SPA is served under `/console` (`SpaFallbackController` forwards to index.html); `App.tsx` auto-detects the `/console` basename
 - The bundle embeds a **jlink-trimmed JRE** (~76MB), so end users don't need Java installed
-- Auto-update (updater) is currently disabled as a placeholder — before release, fill in your minisign public key and update server in `tauri.conf.json`
+- Auto-update (updater) is configured: the minisign/Ed25519 signing keypair was generated locally, the public key is embedded in the app, and the check endpoint points to the GitHub Releases `latest.json`
+- The local pack script auto-loads the signing private key from `%USERPROFILE%.taurimajo.key` (keep it secret — losing it means you can no longer push updates to installed users)
+- Publishing a desktop update = produce signed artifacts with the pack script, then upload the installers and `latest.json` to GitHub Releases
 
 ### Desktop build
 
