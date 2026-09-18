@@ -74,7 +74,16 @@ for (let i = 0; i < lines.length; i++) {
 
   if (rel === 1) {
     const m = lines[i].trim().match(/^(\.[^{},:]+)\s*\{$/);
-    if (m && opens === 1 && closes === 0) {
+    // Multi-selector rules may span lines (`.a,\n.b {`) — if the previous
+    // non-empty line ends with a comma, this opener continues that list.
+    let prevIsComma = false;
+    for (let j = i - 1; j >= 0; j--) {
+      const t = lines[j].trim();
+      if (!t) continue;
+      prevIsComma = t.endsWith(',');
+      break;
+    }
+    if (m && opens === 1 && closes === 0 && !prevIsComma) {
       curSel = m[1].trim();
       curProps = new Set();
       curStart = i + 1; // 1-based line of the opener itself
