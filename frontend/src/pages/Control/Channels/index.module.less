@@ -29,17 +29,17 @@
 }
 
 .breadcrumbParent {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-weight: 400;
 }
 
 .breadcrumbSeparator {
-  color: #ccc;
+  color: var(--majo-color-text-quaternary, #cccccc);
   margin: 0 4px;
 }
 
 .breadcrumbCurrent {
-  color: #333;
+  color: var(--majo-color-text, #333333);
   font-weight: 600;
   font-size: 20px;
 }
@@ -47,11 +47,11 @@
 .title {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--majo-color-text, #333333);
 }
 
 .description {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-size: 14px;
   margin: 0;
   display: none;
@@ -61,7 +61,7 @@
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
   border-radius: 10px;
   align-self: center;
 }
@@ -72,18 +72,18 @@
   border: none;
   background: transparent;
   font-size: 13px;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   cursor: pointer;
   transition: all 0.18s ease;
 
   &:hover {
-    color: #333;
-    background: rgba(0, 0, 0, 0.04);
+    color: var(--majo-color-text, #333333);
+    background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
   }
 }
 
 .filterTabActive {
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   color: rgba(38, 36, 76, 0.88);
   font-weight: 500;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
@@ -95,7 +95,7 @@
 }
 
 .loadingText {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 }
 
 .channelsGrid {
@@ -109,7 +109,7 @@
 
 .panelSection {
   background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   border-radius: 12px;
   padding: 16px;
   margin: 16px 16px 0;
@@ -117,7 +117,7 @@
 
 .panelSectionDashed {
   background: transparent;
-  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border: 1px dashed var(--majo-color-border, rgba(0, 0, 0, 0.15));
   border-radius: 12px;
   padding: 16px;
   margin: 16px;
@@ -129,7 +129,7 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.5));
   margin-bottom: 16px;
 }
 
@@ -144,7 +144,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--majo-color-fill, rgba(0, 0, 0, 0.2));
 }
 
 .panelCount {
@@ -155,7 +155,7 @@
 .emptyConfigured {
   text-align: center;
   padding: 48px 24px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
 
   p {
     margin: 0 0 16px;
@@ -179,15 +179,15 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: rgba(0, 0, 0, 0.01);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.01));
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
-    border-color: rgba(0, 0, 0, 0.1);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
+    border-color: var(--majo-color-border-secondary, rgba(0, 0, 0, 0.1));
 
     .availableItemAction {
-      color: rgba(0, 0, 0, 0.88);
+      color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
     }
   }
 
@@ -201,7 +201,7 @@
   flex: 1;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -209,7 +209,7 @@
 
 .availableItemAction {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
   flex-shrink: 0;
 }
 
@@ -418,7 +418,7 @@
 
 .cardDescription {
   font-size: 11px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -440,7 +440,7 @@
 
 .cardHint {
   font-size: 11px;
-  color: rgba(0, 0, 0, 0.25);
+  color: var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.25));
 }
 
 /* ---- Channel Drawer Styles ---- */
@@ -481,47 +481,10 @@
     border-bottom-color: rgba(255, 255, 255, 0.12);
   }
 
-  .breadcrumbParent {
-    color: rgba(255, 255, 255, 0.35);
-  }
-
-  .breadcrumbSeparator {
-    color: rgba(255, 255, 255, 0.2);
-  }
-
-  .breadcrumbCurrent {
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .title {
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .description {
-    color: rgba(255, 255, 255, 0.35);
-  }
-
-  .filterTabs {
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .filterTab {
-    color: rgba(255, 255, 255, 0.45);
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.75);
-      background: rgba(255, 255, 255, 0.06);
-    }
-  }
-
   .filterTabActive {
     background: #2a2a2a;
     color: var(--majo-accent, #ff7f16);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  }
-
-  .loadingText {
-    color: rgba(255, 255, 255, 0.35);
   }
 
   /* Card background and text */
@@ -578,14 +541,6 @@
     background-color: rgba(255, 255, 255, 0.4);
   }
 
-  .cardDescription {
-    color: rgba(255, 255, 255, 0.45);
-  }
-
-  .cardHint {
-    color: rgba(255, 255, 255, 0.25);
-  }
-
   .drawerHeaderActions {
     .cancelBtn {
       color: rgba(255, 255, 255, 0.65);
@@ -602,24 +557,12 @@
     border-color: rgba(255, 255, 255, 0.1);
   }
 
-  .panelTitle {
-    color: rgba(255, 255, 255, 0.5);
-  }
-
   .panelDotGreen {
     background: #34d399;
   }
 
-  .panelDotGray {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
   .panelCount {
     color: #34d399;
-  }
-
-  .emptyConfigured {
-    color: rgba(255, 255, 255, 0.45);
   }
 
   .availableItem {
@@ -640,17 +583,10 @@
     }
   }
 
-  .availableItemName {
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .availableItemAction {
-    color: rgba(255, 255, 255, 0.45);
-  }
 }
 
 .schemaDescription {
   margin-bottom: 12px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
   font-size: 13px;
 }

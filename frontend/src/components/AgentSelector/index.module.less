@@ -4,8 +4,8 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
-  background: #fff;
-  border: 1px solid rgba(26, 23, 22, 0.06);
+  background: var(--majo-color-bg-container, #fff);
+  border: 1px solid var(--majo-color-border-secondary, rgba(26, 23, 22, 0.06));
   border-radius: 8px;
   box-sizing: border-box;
   width: 100%;
@@ -21,8 +21,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(43, 18, 0, 0.04);
-  border: 1px solid rgba(26, 23, 22, 0.08);
+  background: var(--majo-color-fill-tertiary, rgba(43, 18, 0, 0.04));
+  border: 1px solid var(--majo-color-border-secondary, rgba(26, 23, 22, 0.08));
   border-radius: 8px;
   color: #f07e26;
   cursor: default;
@@ -50,7 +50,7 @@
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.4);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.4));
   white-space: nowrap;
   user-select: none;
 
@@ -62,7 +62,7 @@
 .agentCountBadge {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.4);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.4));
 }
 
 .managementLink {
@@ -118,7 +118,7 @@
     }
 
     .ant-select-arrow {
-      color: rgba(26, 23, 22, 0.35);
+      color: var(--majo-color-text-quaternary, rgba(26, 23, 22, 0.35));
       right: 8px;
 
       .ant-select-suffix {
@@ -142,7 +142,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: rgba(0, 0, 0, 0.85);
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.85));
 
   svg {
     flex-shrink: 0;
@@ -165,14 +165,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px 6px;
-  border-bottom: 1px solid rgba(26, 23, 22, 0.06);
+  border-bottom: 1px solid var(--majo-color-border-secondary, rgba(26, 23, 22, 0.06));
   margin-bottom: 2px;
 }
 
 .dropdownHeaderTitle {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.4);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.4));
 }
 
 // ─── Dropdown ─────────────────────────────────────────────────────────────────
@@ -182,7 +182,7 @@
   min-width: 242px !important;
   left: 15px !important;
   top: 140px !important;
-  border: 1px solid rgba(26, 23, 22, 0.06) !important;
+  border: 1px solid var(--majo-color-border-secondary, rgba(26, 23, 22, 0.06)) !important;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
     0 2px 8px rgba(0, 0, 0, 0.06) !important;
@@ -194,11 +194,11 @@
       transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
       &:hover {
-        background: rgba(43, 18, 0, 0.06) !important;
+        background: var(--majo-color-fill-secondary, rgba(43, 18, 0, 0.06)) !important;
       }
 
       &.majo-select-item-option-selected {
-        background: rgba(43, 18, 0, 0.06) !important;
+        background: var(--majo-color-fill-secondary, rgba(43, 18, 0, 0.06)) !important;
 
         .agentOptionIcon {
           background: linear-gradient(135deg, #f07e26 0%, #f5a05a 100%);
@@ -216,11 +216,11 @@
       transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
       &:hover {
-        background: rgba(43, 18, 0, 0.06) !important;
+        background: var(--majo-color-fill-secondary, rgba(43, 18, 0, 0.06)) !important;
       }
 
       &.ant-select-item-option-selected {
-        background: rgba(43, 18, 0, 0.06) !important;
+        background: var(--majo-color-fill-secondary, rgba(43, 18, 0, 0.06)) !important;
 
         .agentOptionIcon {
           background: linear-gradient(135deg, #f07e26 0%, #f5a05a 100%);
@@ -351,7 +351,7 @@
 }
 
 .disabledAgentSection {
-  border-top: 1px solid rgba(26, 23, 22, 0.08);
+  border-top: 1px solid var(--majo-color-border-secondary, rgba(26, 23, 22, 0.08));
   padding: 4px 6px 6px;
 }
 
@@ -373,7 +373,7 @@
   &:hover,
   &:focus-visible {
     color: rgba(26, 26, 46, 0.82);
-    background: rgba(43, 18, 0, 0.04);
+    background: var(--majo-color-fill-tertiary, rgba(43, 18, 0, 0.04));
     outline: none;
   }
 
@@ -398,7 +398,7 @@
 
   &:hover,
   &:focus-within {
-    background: rgba(43, 18, 0, 0.04);
+    background: var(--majo-color-fill-tertiary, rgba(43, 18, 0, 0.04));
   }
 }
 
@@ -558,17 +558,11 @@
     }
   }
 
-  .agentCountBadge {
-    color: rgba(255, 255, 255, 0.45);
-  }
 
   .dropdownHeader {
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
-  .dropdownHeaderTitle {
-    color: rgba(255, 255, 255, 0.4);
-  }
 
   .agentSelectorDropdown {
     :global {
@@ -716,12 +710,6 @@
     }
   }
 
-  .disabledAgentRow {
-    &:hover,
-    &:focus-within {
-      background: rgba(255, 255, 255, 0.05);
-    }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -31,17 +31,17 @@
 }
 
 .breadcrumbParent {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-weight: 400;
 }
 
 .breadcrumbSeparator {
-  color: #ccc;
+  color: var(--majo-color-text-quaternary, #cccccc);
   margin: 0 4px;
 }
 
 .breadcrumbCurrent {
-  color: #333;
+  color: var(--majo-color-text, #333333);
   font-weight: 600;
   font-size: 20px;
 }
@@ -49,11 +49,11 @@
 .title {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--majo-color-text, #333333);
 }
 
 .description {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-size: 14px;
   margin: 0;
   display: none;
@@ -93,12 +93,12 @@
 
   &:hover {
     color: rgba(20, 20, 19, 0.88);
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
   }
 
   &.viewToggleBtnActive {
     color: rgba(20, 20, 19, 0.88);
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
   }
 }
 
@@ -160,11 +160,11 @@
   padding: 8px;
   border-right: 1px solid #f5f5f5;
   border-bottom: 1px solid #f5f5f5;
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
 }
 
 .calendarCellMuted {
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
 }
 
 .calendarCellToday {
@@ -281,7 +281,7 @@
   padding: 8px 10px;
   border-radius: 6px;
   cursor: pointer;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
   transition: background 0.2s;
 
   &:hover {
@@ -332,7 +332,7 @@
   border: 1px solid #eaeaea;
   border-radius: 10px;
   padding: 14px;
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -399,7 +399,7 @@
   border: 1px solid #f0f0f0;
   border-radius: 8px;
   padding: 10px 12px;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
 }
 
 .historyItemMain {
@@ -564,13 +564,13 @@
 
 .mobileJobCard {
   border-radius: var(--border-radius, 8px);
-  background: #ffffff;
+  background: var(--majo-color-bg-container, #ffffff);
   border: 1px solid #eae8e7;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease-in-out;
 
   &:hover {
-    border-color: #d9d9d9;
+    border-color: var(--majo-color-border, #d9d9d9);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 }
@@ -629,13 +629,13 @@
     font-size: 13px;
     height: 28px;
     padding: 0 10px;
-    color: #666;
+    color: var(--majo-color-text-secondary, #666666);
     background: transparent;
     border: 1px solid #d9d9d9;
     border-radius: 7px;
 
     &:hover:not(:disabled) {
-      color: #333;
+      color: var(--majo-color-text, #333333);
       border-color: #bfbfbf;
     }
 
@@ -649,15 +649,15 @@
     font-size: 13px;
     width: 28px;
     height: 28px;
-    color: #666;
+    color: var(--majo-color-text-secondary, #666666);
     background: transparent;
     border: 1px solid #d9d9d9;
     border-radius: 7px;
 
     &:hover:not(:disabled) {
-      color: #333;
+      color: var(--majo-color-text, #333333);
       border-color: #bfbfbf;
-      background: rgba(0, 0, 0, 0.04);
+      background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
     }
   }
 }
@@ -729,25 +729,10 @@
     }
   }
 
-  .breadcrumbParent {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .breadcrumbSeparator {
-    color: rgba(255, 255, 255, 0.2);
-  }
 
-  .breadcrumbCurrent {
-    color: rgba(255, 255, 255, 0.85);
-  }
 
-  .title {
-    color: rgba(255, 255, 255, 0.85);
-  }
 
-  .description {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   .statusDot {
     &.enabled {
@@ -808,9 +793,6 @@
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
-  .calendarCellMuted {
-    background: #181818;
-  }
 
   .calendarCellToday {
     box-shadow: inset 0 0 0 1px rgba(105, 177, 255, 0.45);
