@@ -1553,7 +1553,14 @@
     "messagesByChannelTooltip": "按消息渠道分布的消息总数占比",
     "loadFailed": "加载统计数据失败",
     "noData": "所选时间段内暂无统计数据",
-    "retry": "重试"
+    "retry": "重试",
+    "agentUsageTitle": "各 Agent Token 用量",
+    "agentUsageTooltip": "按 Agent 汇总的输入/输出 token、轮次与平均每轮耗时（自开始日期起）",
+    "colAgent": "Agent",
+    "colInputTokens": "输入 Token",
+    "colOutputTokens": "输出 Token",
+    "colTurns": "轮次",
+    "colAvgDuration": "平均轮耗时"
   },
   "modelSelector": {
     "selectModel": "选择模型",

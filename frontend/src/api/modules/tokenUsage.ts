@@ -1,5 +1,9 @@
 import { request } from "../request";
-import type { TokenUsageSummary, TokenUsageRecord } from "../types/tokenUsage";
+import type {
+  TokenUsageAgentStat,
+  TokenUsageSummary,
+  TokenUsageRecord,
+} from "../types/tokenUsage";
 
 export interface GetTokenUsageParams {
   start_date: string;
@@ -26,4 +30,10 @@ export const tokenUsageApi = {
   // New details endpoint (raw records for frontend aggregation)
   getTokenUsageDetails: (params: GetTokenUsageParams) =>
     request<TokenUsageRecord[]>(`/token-usage/details${buildQuery(params)}`),
+
+  // Per-agent totals since a start date (defaults to the last 30 days)
+  getTokenUsageByAgent: (startDate?: string) =>
+    request<{ agents: TokenUsageAgentStat[] }>(
+      `/token-usage/agents${startDate ? `?start_date=${startDate}` : ""}`,
+    ),
 };

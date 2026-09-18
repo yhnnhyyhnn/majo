@@ -1533,7 +1533,14 @@
     "messagesByChannelTooltip": "Distribution of total messages by messaging channel",
     "loadFailed": "Falhou to load statistics",
     "noData": "No statistics data in the selected period",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "agentUsageTitle": "Uso de tokens por agente",
+    "agentUsageTooltip": "Tokens de entrada/saída, turnos e duração média por turno de cada agente desde a data inicial",
+    "colAgent": "Agente",
+    "colInputTokens": "Tokens de entrada",
+    "colOutputTokens": "Tokens de saída",
+    "colTurns": "Turnos",
+    "colAvgDuration": "Duração média por turno"
   },
   "models": {
     "llmConfiguration": "LLM Configuracao",

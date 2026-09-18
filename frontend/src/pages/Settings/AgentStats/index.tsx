@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, Empty, Button } from "@agentscope-ai/design";
-import { Spin, Tooltip } from "antd";
+import { Spin, Tooltip, Table } from "antd";
 import { DatePicker } from "antd";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
@@ -8,6 +8,8 @@ import { useTranslation } from "react-i18next";
 import { Column, Pie } from "@ant-design/plots";
 import api from "../../../api";
 import type { AgentStatsSummary } from "../../../api/types/agentStats";
+import type { TokenUsageAgentStat } from "../../../api/types/tokenUsage";
+import type { TableColumnsType } from "antd";
 import { PageHeader } from "@/components/PageHeader";
 import { useAppMessage } from "../../../hooks/useAppMessage";
 import { formatCompact } from "../../../utils/formatNumber";
@@ -99,10 +101,11 @@ function AgentStatsPage() {
   const { t } = useTranslation();
   const { message } = useAppMessage();
   const { isDark: isDarkMode } = useTheme();
-  const { selectedAgent } = useAgentStore();
+  const { selectedAgent, agents } = useAgentStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AgentStatsSummary | null>(null);
+  const [agentUsage, setAgentUsage] = useState<TokenUsageAgentStat[]>([]);
   const [startDate, setStartDate] = useState<Dayjs>(dayjs().subtract(7, "day"));
   const [endDate, setEndDate] = useState<Dayjs>(dayjs());
 
@@ -110,11 +113,18 @@ function AgentStatsPage() {
     setLoading(true);
     setError(null);
     try {
-      const summary = await api.getAgentStats({
-        start_date: start.format("YYYY-MM-DD"),
-        end_date: end.format("YYYY-MM-DD"),
-      });
+      const [summary, usageByAgent] = await Promise.all([
+        api.getAgentStats({
+          start_date: start.format("YYYY-MM-DD"),
+          end_date: end.format("YYYY-MM-DD"),
+        }),
+        // Non-fatal: the per-agent table hides when this endpoint fails
+        api
+          .getTokenUsageByAgent(start.format("YYYY-MM-DD"))
+          .catch(() => null),
+      ]);
       setData(summary);
+      setAgentUsage(usageByAgent?.agents ?? []);
     } catch (e) {
       console.error("Failed to load agent statistics:", e);
       const msg = t("agentStats.loadFailed");
@@ -278,6 +288,49 @@ function AgentStatsPage() {
       })),
     };
   }, [data?.channel_stats, pieCommon]);
+
+  const agentNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of agents) m.set(a.id, a.name);
+    return m;
+  }, [agents]);
+
+  const agentUsageColumns: TableColumnsType<TokenUsageAgentStat> = [
+    {
+      title: t("agentStats.colAgent"),
+      dataIndex: "agent_id",
+      key: "agent",
+      render: (id: string) => agentNameById.get(id) ?? id,
+    },
+    {
+      title: t("agentStats.colInputTokens"),
+      dataIndex: "input_tokens",
+      key: "input",
+      align: "right",
+      render: (v: number) => formatCompact(v),
+    },
+    {
+      title: t("agentStats.colOutputTokens"),
+      dataIndex: "output_tokens",
+      key: "output",
+      align: "right",
+      render: (v: number) => formatCompact(v),
+    },
+    {
+      title: t("agentStats.colTurns"),
+      dataIndex: "turns",
+      key: "turns",
+      align: "right",
+      render: (v: number) => v.toLocaleString(),
+    },
+    {
+      title: t("agentStats.colAvgDuration"),
+      key: "avgDuration",
+      align: "right",
+      render: (_, r) =>
+        r.turns > 0 ? `${(r.duration_ms / r.turns / 1000).toFixed(1)}s` : "—",
+    },
+  ];
 
   return (
     <div className={styles.page}>
@@ -471,6 +524,30 @@ function AgentStatsPage() {
                 description={t("agentStats.noData")}
                 style={{ marginTop: 48 }}
               />
+            )}
+
+            {agentUsage.length > 0 && (
+              <Card
+                className={styles.agentUsageCard}
+                title={
+                  <Tooltip
+                    title={t("agentStats.agentUsageTooltip")}
+                    placement="bottom"
+                  >
+                    <span className={styles.chartTitle}>
+                      {t("agentStats.agentUsageTitle")}
+                    </span>
+                  </Tooltip>
+                }
+              >
+                <Table
+                  size="small"
+                  columns={agentUsageColumns}
+                  dataSource={agentUsage}
+                  rowKey="agent_id"
+                  pagination={false}
+                />
+              </Card>
             )}
           </>
         )}

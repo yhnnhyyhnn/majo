@@ -777,7 +777,14 @@
     "tokenTrend": "Xu hướng token",
     "llmAndToolTrend": "Xu hướng LLM & công cụ",
     "sessionsByChannel": "Phiên theo kênh",
-    "messagesByChannel": "Tin nhắn theo kênh"
+    "messagesByChannel": "Tin nhắn theo kênh",
+    "agentUsageTitle": "Mức dùng token theo tác tử",
+    "agentUsageTooltip": "Token vào/ra, số lượt và thời lượng trung bình mỗi lượt của từng tác tử kể từ ngày bắt đầu",
+    "colAgent": "Tác tử",
+    "colInputTokens": "Token vào",
+    "colOutputTokens": "Token ra",
+    "colTurns": "Số lượt",
+    "colAvgDuration": "Thời lượng trung bình mỗi lượt"
   },
   "modelSelector": {
     "placeholder": "Chọn mô hình",

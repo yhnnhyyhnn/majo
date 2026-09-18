@@ -24,3 +24,12 @@ export interface TokenUsageSummary {
   by_model: Record<string, TokenUsageStats>;
   by_date: Record<string, TokenUsageStats>;
 }
+
+/** Per-agent aggregate token usage (GET /token-usage/agents, ADR-0011). */
+export interface TokenUsageAgentStat {
+  agent_id: string;
+  input_tokens: number;
+  output_tokens: number;
+  turns: number;
+  duration_ms: number;
+}

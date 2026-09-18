@@ -1284,7 +1284,14 @@
     "messagesByChannelTooltip": "メッセージチャンネル別のメッセージ総数分布",
     "loadFailed": "統計データの読み込みに失敗しました",
     "noData": "選択期間に統計データがありません",
-    "retry": "再試行"
+    "retry": "再試行",
+    "agentUsageTitle": "エージェント別トークン使用量",
+    "agentUsageTooltip": "開始日以降のエージェント別入出力トークン、ターン数、平均ターン時間",
+    "colAgent": "エージェント",
+    "colInputTokens": "入力トークン",
+    "colOutputTokens": "出力トークン",
+    "colTurns": "ターン数",
+    "colAvgDuration": "平均ターン時間"
   },
   "modelSelector": {
     "selectModel": "モデルを選択",

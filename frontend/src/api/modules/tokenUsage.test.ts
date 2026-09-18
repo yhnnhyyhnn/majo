@@ -55,4 +55,18 @@ describe("tokenUsageApi", () => {
       "/token-usage/details?start_date=2026-02-01&end_date=2026-02-28",
     );
   });
+
+  it("getTokenUsageByAgent passes start_date when provided", async () => {
+    const res = { agents: [{ agent_id: "default", input_tokens: 1 }] } as any;
+    vi.mocked(request).mockResolvedValue(res);
+    const result = await tokenUsageApi.getTokenUsageByAgent("2026-03-01");
+    expect(request).toHaveBeenCalledWith("/token-usage/agents?start_date=2026-03-01");
+    expect(result).toEqual(res);
+  });
+
+  it("getTokenUsageByAgent omits the query when no start date", async () => {
+    vi.mocked(request).mockResolvedValue({ agents: [] } as any);
+    await tokenUsageApi.getTokenUsageByAgent();
+    expect(request).toHaveBeenCalledWith("/token-usage/agents");
+  });
 });

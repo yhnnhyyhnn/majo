@@ -1522,7 +1522,14 @@
     "messagesByChannelTooltip": "Distribusi total pesan berdasarkan saluran pesan",
     "loadFailed": "Gagal memuat statistik",
     "noData": "Tidak ada data statistik pada periode yang dipilih",
-    "retry": "Coba Lagi"
+    "retry": "Coba Lagi",
+    "agentUsageTitle": "Penggunaan Token per Agen",
+    "agentUsageTooltip": "Token masuk/keluar, jumlah giliran, dan durasi rata-rata per giliran setiap agen sejak tanggal mulai",
+    "colAgent": "Agen",
+    "colInputTokens": "Token Masuk",
+    "colOutputTokens": "Token Keluar",
+    "colTurns": "Giliran",
+    "colAvgDuration": "Durasi Rata-rata Giliran"
   },
   "approval": {
     "title": "Persetujuan Keamanan Diperlukan",
