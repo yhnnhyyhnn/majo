@@ -279,6 +279,14 @@ export function useSkillPool() {
     setBroadcastInitialNames(skill ? [skill.name] : []);
   };
 
+  /** Batch-mode shortcut (#7852): pre-fill the broadcast modal with the
+   * checkbox selection instead of making the user re-pick. */
+  const openBatchBroadcast = () => {
+    if (selectedPoolSkills.size === 0) return;
+    setMode("broadcast");
+    setBroadcastInitialNames(Array.from(selectedPoolSkills));
+  };
+
   const openImportBuiltin = async () => {
     try {
       setImportBuiltinLoading(true);
@@ -1128,6 +1136,7 @@ export function useSkillPool() {
     closeModal,
     openCreate,
     openBroadcast,
+    openBatchBroadcast,
     openImportBuiltin,
     closeImportBuiltin,
     closeImportModal,

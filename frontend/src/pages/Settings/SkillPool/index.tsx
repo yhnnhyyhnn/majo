@@ -122,6 +122,18 @@ function SkillPoolPage() {
                 >
                   {t("common.delete")} ({pool.selectedPoolSkills.size})
                 </Button>
+                {pool.selectedPoolSkills.size > 0 && (
+                  <Tooltip title={t("skillPool.broadcastHint")}>
+                    <Button
+                      type="default"
+                      icon={<SendOutlined />}
+                      onClick={pool.openBatchBroadcast}
+                    >
+                      {t("skillPool.broadcast")} (
+                      {pool.selectedPoolSkills.size})
+                    </Button>
+                  </Tooltip>
+                )}
                 <Button type="primary" onClick={pool.toggleBatchMode}>
                   {t("skills.exitBatch")}
                 </Button>
