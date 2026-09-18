@@ -100,4 +100,48 @@ class DoomLoopGuardTest {
         assertNull(guard.check("s1", null, Map.of()));
         assertNull(guard.check("s1", "", Map.of()));
     }
+
+    // ── Config-explicit variant (security.doom_loop) ─────────────────
+
+    @Test
+    void disabledConfigDisablesTheGuard() {
+        DoomLoopGuard guard = new DoomLoopGuard();
+        Map<String, Object> cfg = Map.of("enabled", false);
+        for (int i = 0; i < 10; i++) {
+            assertNull(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg),
+                    "disabled guard must never deny");
+        }
+    }
+
+    @Test
+    void customThresholdsAreHonored() {
+        DoomLoopGuard guard = new DoomLoopGuard();
+        Map<String, Object> cfg = Map.of("warn_after", 2, "stop_after", 3);
+        assertNull(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg));
+        String warn = guard.check("s1", "read_file", Map.of("path", "a.md"), cfg);
+        assertTrue(warn.contains("疑似死循环"), warn);
+        String stop = guard.check("s1", "read_file", Map.of("path", "a.md"), cfg);
+        assertTrue(stop.contains("死循环保护"), stop);
+    }
+
+    @Test
+    void stopAfterClampedToExceedWarnAfter() {
+        DoomLoopGuard guard = new DoomLoopGuard();
+        // stop_after == warn_after would make the warn tier unreachable;
+        // the guard clamps stop to warn + 1.
+        Map<String, Object> cfg = Map.of("warn_after", 3, "stop_after", 3);
+        assertNull(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg));
+        assertNull(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg));
+        assertTrue(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg).contains("疑似死循环"));
+        assertTrue(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg).contains("死循环保护"));
+    }
+
+    @Test
+    void invalidConfigValuesFallBackToDefaults() {
+        DoomLoopGuard guard = new DoomLoopGuard();
+        Map<String, Object> cfg = Map.of("warn_after", "abc", "stop_after", "x");
+        assertNull(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg));
+        assertNull(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg));
+        assertTrue(guard.check("s1", "read_file", Map.of("path", "a.md"), cfg).contains("疑似死循环"));
+    }
 }

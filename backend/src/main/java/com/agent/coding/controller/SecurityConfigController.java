@@ -153,6 +153,31 @@ public class SecurityConfigController {
         return body;
     }
 
+    // ── Doom Loop ───────────────────────────────────────────────────
+
+    private static Map<String, Object> doomLoopDefaults() {
+        Map<String, Object> dl = new LinkedHashMap<>();
+        dl.put("enabled", true);
+        dl.put("warn_after", 3);
+        dl.put("stop_after", 6);
+        return dl;
+    }
+
+    @GetMapping("/doom-loop")
+    public Map<String, Object> getDoomLoop() {
+        Map<String, Object> dl = doomLoopDefaults();
+        dl.putAll(subsection(securitySection(), "doom_loop"));
+        return dl;
+    }
+
+    @PutMapping("/doom-loop")
+    public Map<String, Object> updateDoomLoop(@RequestBody Map<String, Object> body) {
+        Map<String, Object> sec = securitySection();
+        sec.put("doom_loop", body);
+        persistSecurity(sec);
+        return body;
+    }
+
     // ── Skill Scanner ───────────────────────────────────────────────
 
     private static Map<String, Object> skillScannerDefaults() {
