@@ -17,7 +17,7 @@
         border-radius: 0 !important;
       }
       .majo-drawer-mask {
-        background: rgba(0, 0, 0, 0.45) !important;
+        background: var(--majo-color-fill, rgba(0, 0, 0, 0.45)) !important;
       }
     }
   }
@@ -243,25 +243,9 @@
     border-left-color: rgba(255, 255, 255, 0.08);
   }
 
-  .drawer {
-    :global {
-      .majo-drawer-body {
-        background-color: #141414;
-      }
-    }
-  }
 
-  .header {
-    background-color: #141414;
-  }
 
-  .headerTitle {
-    color: rgba(255, 255, 255, 0.95);
-  }
 
-  .headerInfoIcon {
-    color: rgba(255, 255, 255, 0.5);
-  }
 
   .topGradient {
     background: linear-gradient(180deg, #141414 0%, rgba(31, 31, 31, 0) 100%);
@@ -271,25 +255,9 @@
     background: linear-gradient(0deg, #141414 0%, rgba(31, 31, 31, 0) 100%);
   }
 
-  .footer {
-    background-color: #141414;
-  }
 
-  .footerText {
-    color: rgba(255, 255, 255, 0.95);
-  }
 
-  .groupLabel {
-    color: var(--text-quaternary, rgba(255, 255, 255, 0.35));
 
-    &:hover {
-      color: var(--text-secondary, rgba(255, 255, 255, 0.55));
-    }
-  }
-
-  .emptyState {
-    color: var(--text-quaternary, rgba(255, 255, 255, 0.35));
-  }
 
 
 }

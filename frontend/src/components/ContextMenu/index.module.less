@@ -1,7 +1,7 @@
 .contextMenu {
   position: fixed;
   z-index: 10000;
-  background: #ffffff;
+  background: var(--majo-color-bg-container, #ffffff);
   border: 1px solid #e8ecf1;
   border-radius: 8px;
   box-shadow:
@@ -33,7 +33,7 @@
   user-select: none;
 
   &:hover {
-    background: #f5f5f5;
+    background: var(--majo-color-fill-tertiary, #f5f5f5);
   }
 
   &.danger {
@@ -72,7 +72,7 @@
 
 .divider {
   height: 1px;
-  background: #f0f0f0;
+  background: var(--majo-color-fill-tertiary, #f0f0f0);
   margin: 4px 0;
 }
 
@@ -110,7 +110,4 @@
     }
   }
 
-  .divider {
-    background: #3a3a3a;
-  }
 }

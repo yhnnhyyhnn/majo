@@ -53,11 +53,11 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--majo-color-fill, rgba(0, 0, 0, 0.2));
     border-radius: 4px;
 
     &:hover {
-      background: rgba(0, 0, 0, 0.3);
+      background: var(--majo-color-fill, rgba(0, 0, 0, 0.3));
     }
   }
 
@@ -104,7 +104,7 @@
   .historyPanelMask {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--majo-color-fill, rgba(0, 0, 0, 0.45));
     z-index: 999;
   }
 }
@@ -141,7 +141,7 @@
 .suggestionDescription {
   flex: 1;
   min-width: 0;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
@@ -166,9 +166,6 @@
     color: var(--majo-accent, #ff7f16);
   }
 
-  .suggestionDescription {
-    color: rgba(255, 255, 255, 0.65);
-  }
 }
 
 /* Prompt star icon - use theme color */

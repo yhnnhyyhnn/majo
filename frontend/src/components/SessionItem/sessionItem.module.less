@@ -98,7 +98,7 @@
   margin-bottom: 2px;
 
   &:hover {
-    background: var(--color-fill-tertiary, rgba(43, 18, 0, 0.05));
+    background: var(--color-fill-tertiary, var(--majo-color-fill-tertiary, rgba(43, 18, 0, 0.05)));
 
     .moreBtn {
       opacity: 1;
@@ -119,7 +119,7 @@
     }
 
     &:hover {
-      background: var(--color-fill-secondary, rgba(43, 18, 0, 0.1));
+      background: var(--color-fill-secondary, var(--majo-color-fill, rgba(43, 18, 0, 0.1)));
     }
   }
 
@@ -305,7 +305,7 @@
     font-weight: 500;
     line-height: 18px;
     color: var(--majo-color-text-secondary, rgba(26, 23, 22, 0.55));
-    background: var(--color-fill-tertiary, rgba(43, 18, 0, 0.06));
+    background: var(--color-fill-tertiary, var(--majo-color-fill-secondary, rgba(43, 18, 0, 0.06)));
     min-width: 0;
     opacity: 1;
   }
@@ -440,23 +440,6 @@
     }
   }
 
-  .sidebar {
-    &:hover {
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    &.active {
-      background: rgba(255, 255, 255, 0.1);
-
-      .name {
-        color: rgba(255, 255, 255, 0.95);
-      }
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.12);
-      }
-    }
-  }
 
   .iconPlaceholder {
     &::before {
@@ -469,32 +452,13 @@
     }
   }
 
-  .name {
-    color: rgba(255, 255, 255, 0.95);
-  }
 
   .statusDotIdle {
     background: rgba(255, 255, 255, 0.35);
   }
 
-  .time {
-    color: rgba(255, 255, 255, 0.5);
-  }
 
-  .channelTag {
-    .drawer & {
-      color: rgba(255, 255, 255, 0.65);
-      background: rgba(255, 255, 255, 0.1);
-    }
-  }
 
-  .pinButton {
-    color: rgba(255, 255, 255, 0.72);
-
-    &[data-pinned="true"] {
-      color: var(--majo-color-primary, #ff9d4d);
-    }
-  }
 
   .actionButton {
     color: rgba(255, 255, 255, 0.72);

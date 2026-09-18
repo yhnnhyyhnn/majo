@@ -517,7 +517,7 @@
 
 .collapsedNavItemActive {
   background: rgba(43, 18, 0, 0.08) !important;
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: var(--majo-color-text, rgba(0, 0, 0, 0.88)) !important;
 }
 
 @media (max-width: 768px) {
@@ -714,9 +714,6 @@
 // Only deliberate dark-mode divergences remain here (accent-tinted active
 // states); text/fill/border pairs auto-switch via the cssVar tokens above.
 :global(.dark-mode) {
-  .versionBadge {
-    color: var(--majo-accent, #ff7f16);
-  }
 
   .modeToggleActive {
     color: var(--majo-accent, #ff7f16) !important;

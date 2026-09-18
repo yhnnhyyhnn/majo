@@ -4,9 +4,9 @@
   gap: 5px;
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1.5px solid var(--border-color, rgba(0, 0, 0, 0.12));
+  border: 1.5px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.12)));
   background: transparent;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.55));
+  color: var(--text-secondary, var(--majo-color-text-secondary, rgba(0, 0, 0, 0.55)));
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -62,15 +62,15 @@
 .modalDesc {
   margin: 0;
   font-size: 14px;
-  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+  color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   line-height: 1.6;
 }
 
 .modalNote {
   margin: 0;
   font-size: 12px;
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.45));
-  background: var(--fill-tertiary, rgba(0, 0, 0, 0.04));
+  color: var(--text-tertiary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
+  background: var(--fill-tertiary, var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04)));
   border-left: 3px solid var(--warning-color, #faad14);
   padding: 8px 10px;
   border-radius: 0 4px 4px 0;
@@ -98,12 +98,5 @@
     }
   }
 
-  .modalDesc {
-    color: rgba(255, 255, 255, 0.88);
-  }
 
-  .modalNote {
-    color: rgba(255, 255, 255, 0.55);
-    background: rgba(255, 255, 255, 0.06);
-  }
 }

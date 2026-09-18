@@ -25,17 +25,17 @@
 }
 
 .breadcrumbParent {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-weight: 400;
 }
 
 .breadcrumbSeparator {
-  color: #ccc;
+  color: var(--majo-color-text-quaternary, #cccccc);
   margin: 0 4px;
 }
 
 .breadcrumbCurrent {
-  color: #333;
+  color: var(--majo-color-text, #333333);
   font-weight: 600;
   font-size: 20px;
 }
@@ -60,7 +60,7 @@
 
 .sectionDesc {
   margin: 0;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-size: 14px;
 }
 
@@ -78,7 +78,7 @@
 
 .stateText {
   font-size: 14px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 }
 
 .stateTextError {
@@ -93,11 +93,11 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
 
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    border-color: #d9d9d9;
+    border-color: var(--majo-color-border, #d9d9d9);
   }
 }
 
@@ -108,11 +108,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
   border-bottom: 1px solid #f0f0f0;
 
   &:hover {
-    background: #f5f5f5;
+    background: var(--majo-color-fill-tertiary, #f5f5f5);
   }
 }
 
@@ -124,7 +124,7 @@
 
 .toolbarCount {
   font-size: 13px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   user-select: none;
 }
 
@@ -198,7 +198,7 @@
   height: 42px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   overflow: hidden;
 
   &:focus-within {
@@ -222,12 +222,12 @@
   padding: 0 14px;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   white-space: nowrap;
   user-select: none;
   line-height: 42px;
   border-right: 1px solid #f0f0f0;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
   min-width: 60px;
   text-align: center;
 
@@ -279,7 +279,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   border-radius: 4px;
 
   &:hover {
@@ -344,10 +344,10 @@
   display: flex;
   padding: 16px 24px;
   border-top: 1px solid #f0f0f0;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
 
   &:hover {
-    background: #f5f5f5;
+    background: var(--majo-color-fill-tertiary, #f5f5f5);
   }
 }
 
@@ -361,7 +361,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 14px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 
   &:hover {
     color: var(--majo-accent, #ff7f16);
@@ -399,25 +399,10 @@
     border-bottom-color: rgba(255, 255, 255, 0.12);
   }
 
-  .breadcrumbParent {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .breadcrumbSeparator {
-    color: rgba(255, 255, 255, 0.2);
-  }
 
-  .breadcrumbCurrent {
-    color: rgba(255, 255, 255, 0.85);
-  }
 
-  .sectionDesc {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .stateText {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   /* Main card */
   .tableCard {
@@ -441,9 +426,6 @@
     }
   }
 
-  .toolbarCount {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   /* Env row */
   .envRow {
@@ -669,7 +651,7 @@
     height: 40px;
     font-size: 18px;
     color: #8c8c8c;
-    background: #f5f5f5;
+    background: var(--majo-color-fill-tertiary, #f5f5f5);
 
     &:hover {
       background: #e8e8e8;

@@ -37,17 +37,17 @@
 }
 
 .breadcrumbParent {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-weight: 400;
 }
 
 .breadcrumbSeparator {
-  color: #ccc;
+  color: var(--majo-color-text-quaternary, #cccccc);
   margin: 0 4px;
 }
 
 .breadcrumbCurrent {
-  color: #333;
+  color: var(--majo-color-text, #333333);
   font-weight: 600;
   font-size: 20px;
 }
@@ -67,11 +67,11 @@
 .title {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--majo-color-text, #333333);
 }
 
 .description {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-size: 14px;
   margin: 0;
   display: none;
@@ -103,13 +103,13 @@
 
 .mobileSessionCard {
   border-radius: var(--border-radius, 8px);
-  background: #ffffff;
+  background: var(--majo-color-bg-container, #ffffff);
   border: 1px solid #eae8e7;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease-in-out;
 
   &:hover {
-    border-color: #d9d9d9;
+    border-color: var(--majo-color-border, #d9d9d9);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 }
@@ -166,13 +166,13 @@
     font-size: 13px;
     height: 28px;
     padding: 0 10px;
-    color: #666;
+    color: var(--majo-color-text-secondary, #666666);
     background: transparent;
     border: 1px solid #d9d9d9;
     border-radius: 7px;
 
     &:hover:not(:disabled) {
-      color: #333;
+      color: var(--majo-color-text, #333333);
       border-color: #bfbfbf;
     }
 
@@ -239,25 +239,10 @@
     border-bottom-color: rgba(255, 255, 255, 0.12);
   }
 
-  .breadcrumbParent {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .breadcrumbSeparator {
-    color: rgba(255, 255, 255, 0.2);
-  }
 
-  .breadcrumbCurrent {
-    color: rgba(255, 255, 255, 0.85);
-  }
 
-  .title {
-    color: rgba(255, 255, 255, 0.85);
-  }
 
-  .description {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   /* Selected row styling */
   .selectedRow > td {

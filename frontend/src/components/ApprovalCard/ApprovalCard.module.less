@@ -1,5 +1,5 @@
 .approvalCard {
-  background: #ffffff;
+  background: var(--majo-color-bg-container, #ffffff);
   border: 1px solid #e8ecf1;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
@@ -127,7 +127,7 @@
     border-radius: 4px;
     padding: 1px 8px;
     font-size: 12px;
-    color: #333;
+    color: var(--majo-color-text, #333333);
     font-family: "SF Mono", "Monaco", "Consolas", monospace;
   }
 }
@@ -168,12 +168,12 @@
 }
 
 .scopeCode {
-  background: #ffffff;
+  background: var(--majo-color-bg-container, #ffffff);
   border: 1px solid #e8ecf1;
   border-radius: 4px;
   padding: 6px 10px;
   font-size: 12px;
-  color: #333;
+  color: var(--majo-color-text, #333333);
   font-family: "SF Mono", "Monaco", "Consolas", monospace;
   word-break: break-all;
   display: block;
@@ -246,8 +246,8 @@
   padding: 0;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.04);
-    border-color: #ccc;
+    background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+    border-color: var(--majo-color-border, #cccccc);
     color: #555;
   }
 
@@ -272,7 +272,7 @@
   summary {
     font-size: 12px;
     font-weight: 500;
-    color: #666;
+    color: var(--majo-color-text-secondary, #666666);
     user-select: none;
     outline: none;
     transition: color 0.2s;
@@ -284,7 +284,7 @@
     &::before {
       content: "▶";
       font-size: 8px;
-      color: #999;
+      color: var(--majo-color-text-tertiary, #999999);
       transition: transform 0.2s ease;
       display: inline-block;
       flex-shrink: 0;
@@ -296,7 +296,7 @@
     }
 
     &:hover {
-      color: #333;
+      color: var(--majo-color-text, #333333);
     }
   }
 
@@ -304,7 +304,7 @@
     margin-bottom: 8px;
     padding-bottom: 8px;
     border-bottom: 1px solid #eef0f3;
-    color: #333;
+    color: var(--majo-color-text, #333333);
 
     &::before {
       transform: rotate(90deg);
@@ -340,7 +340,7 @@
     &::before {
       content: "▶";
       font-size: 8px;
-      color: #999;
+      color: var(--majo-color-text-tertiary, #999999);
       transition: transform 0.2s ease;
       display: inline-block;
       flex-shrink: 0;
@@ -374,7 +374,7 @@
 .detailsText {
   margin: 0;
   padding: 10px 12px;
-  background: #ffffff;
+  background: var(--majo-color-bg-container, #ffffff);
   border: 1px solid #eef0f3;
   border-radius: 4px;
   color: #555;
@@ -392,7 +392,7 @@
 .paramsCode {
   margin: 0;
   padding: 10px 12px;
-  background: #ffffff;
+  background: var(--majo-color-bg-container, #ffffff);
   border: 1px solid #eef0f3;
   border-radius: 4px;
   color: #444;
@@ -411,7 +411,7 @@
   }
 
   &::-webkit-scrollbar-track {
-    background: #f5f5f5;
+    background: var(--majo-color-fill-tertiary, #f5f5f5);
     border-radius: 2px;
   }
 

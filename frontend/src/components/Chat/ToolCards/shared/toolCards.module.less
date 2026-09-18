@@ -59,7 +59,7 @@
 .toolCallSpinner {
   width: 14px;
   height: 14px;
-  border: 2px solid var(--ant-color-border, rgba(0, 0, 0, 0.1));
+  border: 2px solid var(--ant-color-border, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.1)));
   border-top-color: var(--ant-color-primary, #1677ff);
   border-radius: 50%;
   flex-shrink: 0;
@@ -73,7 +73,7 @@
 }
 
 .toolCallLabel {
-  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+  color: var(--ant-color-text, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -159,7 +159,7 @@
   max-width: 256px;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
+  border: 1px solid var(--ant-color-border-secondary, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06)));
 }
 
 // Bubble media (reused by MediaPreview)
@@ -167,13 +167,13 @@
   width: 256px;
   height: 144px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   overflow: hidden;
 }
 
 .bubbleAudio {
   background-color: var(--ant-color-bg-base, #fff);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   padding-right: 4px;
   border-radius: 20px;
   width: fit-content;
@@ -202,7 +202,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--majo-color-fill, rgba(0, 0, 0, 0.5));
   z-index: 1;
   opacity: 0;
   font-size: 16px;
@@ -219,7 +219,7 @@
 // Default block (input/output sections)
 .defaultBlock {
   margin: 4px 0 4px 0;
-  border: 1px solid var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
+  border: 1px solid var(--ant-color-border-secondary, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06)));
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
@@ -233,7 +233,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  background: var(--ant-color-fill-quaternary, var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.02)));
   border-bottom: 1px solid
     var(--ant-color-border-secondary, rgba(0, 0, 0, 0.06));
 }
@@ -260,7 +260,7 @@
   transition: all 0.15s;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
     color: var(--ant-color-text-secondary, #666);
   }
 }
@@ -299,12 +299,12 @@
   }
   :global(th),
   :global(td) {
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
     padding: 6px 10px;
     text-align: left;
   }
   :global(th) {
-    background: rgba(0, 0, 0, 0.02);
+    background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.02));
     font-weight: 500;
   }
 }
@@ -358,7 +358,7 @@
   line-height: 1.6;
   margin: 4px 0 2px 18px;
   padding: 8px 12px;
-  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.03));
+  background: var(--ant-color-fill-quaternary, var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.03)));
   border-radius: 8px;
   overflow-x: auto;
   max-height: 360px;
@@ -373,7 +373,7 @@
   }
   :global(pre) {
     padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.05));
     border-radius: 4px;
     overflow-x: auto;
   }
@@ -388,12 +388,12 @@
   }
   :global(th),
   :global(td) {
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
     padding: 6px 10px;
     text-align: left;
   }
   :global(th) {
-    background: rgba(0, 0, 0, 0.02);
+    background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.02));
     font-weight: 500;
   }
 }

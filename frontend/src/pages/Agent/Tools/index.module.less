@@ -24,7 +24,7 @@
 .loading {
   text-align: center;
   padding: 60px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 }
 
 .toolsGrid {
@@ -45,7 +45,7 @@
 }
 
 .panelSectionDashed {
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   border: 1px dashed #e5e7eb;
   border-radius: 12px;
   padding: 18px;
@@ -55,7 +55,7 @@
 .panelTitle {
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   margin-bottom: 14px;
   display: flex;
   align-items: center;
@@ -99,7 +99,7 @@
 
 .emptyEnabled p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   margin-bottom: 16px;
 }
 
@@ -116,13 +116,13 @@
   padding: 10px 14px;
   border: 1px solid #f3f4f6;
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .availableItem:hover {
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   border-color: #6366f1;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
 }
@@ -244,7 +244,7 @@
 
 .toolDescription {
   margin: 4px 0 12px 0;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   font-size: 12px;
   line-height: 1.5;
   min-height: 36px;
@@ -285,14 +285,14 @@
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 12px;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   background: transparent;
   border: 1px solid #d9d9d9;
   cursor: pointer;
   transition: all 0.18s ease;
 
   &:hover:not(:disabled) {
-    color: #333;
+    color: var(--majo-color-text, #333333);
     border-color: #bfbfbf;
   }
 
@@ -304,9 +304,6 @@
 
 /* ─── Dark mode ─────────────────────────────────────────────────────────────── */
 :global(.dark-mode) {
-  .loading {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   /* Tool card */
   .toolCard {
@@ -333,9 +330,6 @@
     color: rgba(20, 184, 166, 1);
   }
 
-  .toolDescription {
-    color: rgba(255, 255, 255, 0.65);
-  }
 
   .cardFooter {
     border-top-color: rgba(255, 255, 255, 0.08);
@@ -352,9 +346,6 @@
     border-color: rgba(255, 255, 255, 0.12);
   }
 
-  .panelTitle {
-    color: rgba(255, 255, 255, 0.45);
-  }
 
   .panelDotGray {
     background: rgba(255, 255, 255, 0.2);

@@ -8,7 +8,7 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--majo-color-text, #333333);
   transition: all 0.15s ease;
   user-select: none;
   max-width: 260px;
@@ -82,8 +82,8 @@
   width: 360px;
   max-height: 480px;
   border-radius: 8px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--majo-color-bg-container, #fff);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
@@ -102,13 +102,13 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   flex-shrink: 0;
 }
 
 .searchIcon {
   font-size: 14px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   flex-shrink: 0;
 }
 
@@ -118,7 +118,7 @@
   outline: none;
   background: transparent;
   font-size: 14px;
-  color: #333;
+  color: var(--majo-color-text, #333333);
   padding: 0;
   min-width: 0;
 
@@ -135,7 +135,7 @@
   transition: color 0.15s;
 
   &:hover {
-    color: #999;
+    color: var(--majo-color-text-tertiary, #999999);
   }
 }
 
@@ -144,7 +144,7 @@
   display: flex;
   gap: 0;
   padding: 0 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   flex-shrink: 0;
 }
 
@@ -156,13 +156,13 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   cursor: pointer;
   position: relative;
   transition: color 0.15s;
 
   &:hover {
-    color: #666;
+    color: var(--majo-color-text-secondary, #666666);
   }
 
   &.tabButtonActive {
@@ -204,13 +204,13 @@
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 500;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   letter-spacing: 0.5px;
   cursor: pointer;
   user-select: none;
 
   &:hover {
-    color: #666;
+    color: var(--majo-color-text-secondary, #666666);
   }
 }
 
@@ -229,7 +229,7 @@
   transition: color 0.2s;
 
   .providerHeader:hover & {
-    color: #666;
+    color: var(--majo-color-text-secondary, #666666);
   }
 }
 
@@ -242,14 +242,14 @@
   margin: 0 4px;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: var(--majo-color-text, #333333);
   transition: background 0.12s;
   gap: 8px;
   border-radius: 6px;
 
   &:hover {
     background: rgba(97, 92, 237, 0.06);
-    color: #333;
+    color: var(--majo-color-text, #333333);
   }
 
   &.modelItemActive {
@@ -350,7 +350,7 @@
   margin: 4px 8px 6px;
   padding: 6px 10px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.03));
   font-size: 12px;
   color: #8c8c8c;
   line-height: 1.4;
@@ -370,13 +370,13 @@
   padding: 8px 16px;
   margin: 4px 4px 0;
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   cursor: pointer;
   user-select: none;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
 
   &:hover {
-    color: #666;
+    color: var(--majo-color-text-secondary, #666666);
   }
 
   :global(.anticon) {
@@ -406,7 +406,7 @@
 .viewMore {
   text-align: center;
   font-size: 12px;
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.45));
+  color: var(--text-tertiary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
   padding: 6px 0;
   cursor: pointer;
   transition: color 0.2s;
@@ -467,9 +467,6 @@
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
-  .searchIcon {
-    color: rgba(255, 255, 255, 0.3);
-  }
 
   .searchInput {
     color: rgba(255, 255, 255, 0.85);
@@ -479,13 +476,6 @@
     }
   }
 
-  .searchClear {
-    color: rgba(255, 255, 255, 0.25);
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.4);
-    }
-  }
 
   .tabBar {
     border-bottom-color: rgba(255, 255, 255, 0.08);
@@ -503,21 +493,7 @@
     }
   }
 
-  .providerHeader {
-    color: rgba(255, 255, 255, 0.35);
 
-    &:hover {
-      color: rgba(255, 255, 255, 0.55);
-    }
-  }
-
-  .collapseIcon {
-    color: rgba(255, 255, 255, 0.2);
-
-    .providerHeader:hover & {
-      color: rgba(255, 255, 255, 0.45);
-    }
-  }
 
   .modelItem {
     color: rgba(255, 255, 255, 0.85);

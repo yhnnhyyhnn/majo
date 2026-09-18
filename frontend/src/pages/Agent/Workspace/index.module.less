@@ -37,17 +37,17 @@
 }
 
 .breadcrumbParent {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-weight: 400;
 }
 
 .breadcrumbSeparator {
-  color: #ccc;
+  color: var(--majo-color-text-quaternary, #cccccc);
   margin: 0 4px;
 }
 
 .breadcrumbCurrent {
-  color: #333;
+  color: var(--majo-color-text, #333333);
   font-weight: 600;
   font-size: 20px;
 }
@@ -121,7 +121,7 @@
   margin: 0;
   margin-bottom: 12px;
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   flex-shrink: 0;
 }
 
@@ -206,7 +206,7 @@
 
 .filePath {
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-family: monospace;
 }
 
@@ -334,7 +334,7 @@
 
 .toggleLabel {
   font-size: 12px;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   white-space: nowrap;
 }
 
@@ -343,7 +343,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   height: calc(100% - 20px);
 }
 
@@ -362,12 +362,12 @@
   border-radius: 8px;
   margin-bottom: 8px;
   cursor: pointer;
-  background-color: #fff;
+  background-color: var(--majo-color-bg-container, #fff);
   transition: all 0.2s;
 
   &:hover:not(.selected) {
-    border-color: #d9d9d9;
-    background-color: #fafafa;
+    border-color: var(--majo-color-border, #d9d9d9);
+    background-color: var(--majo-color-fill-quaternary, #fafafa);
   }
 
   &.selected {
@@ -441,12 +441,12 @@
 
 .fileItemMeta {
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 }
 
 .expandIcon {
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   margin-left: 8px;
   background: transparent;
   border: none;
@@ -466,12 +466,12 @@
   border-radius: 6px;
   margin-bottom: 6px;
   cursor: pointer;
-  background-color: #fff;
+  background-color: var(--majo-color-bg-container, #fff);
   transition: all 0.2s;
 
   &:hover:not(.selected) {
-    border-color: #d9d9d9;
-    background-color: #fafafa;
+    border-color: var(--majo-color-border, #d9d9d9);
+    background-color: var(--majo-color-fill-quaternary, #fafafa);
   }
 
   &.selected {
@@ -486,7 +486,7 @@
   min-height: 58px;
   padding: 10px;
   margin-bottom: 6px;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -510,7 +510,7 @@
   height: 14px;
   margin: 0;
   padding: 0;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -518,7 +518,7 @@
 
 .dailyMemoryMeta {
   font-size: 11px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 }
 
 .attribution {
@@ -535,53 +535,21 @@
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
-  .breadcrumbParent {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .breadcrumbSeparator {
-    color: rgba(255, 255, 255, 0.2);
-  }
 
-  .breadcrumbCurrent {
-    color: rgba(255, 255, 255, 0.85);
-  }
 
-  .infoText {
-    color: rgba(255, 255, 255, 0.3);
-  }
 
   .divider {
     background-color: rgba(255, 255, 255, 0.08);
   }
 
   /* File list items */
-  .fileItem {
-    background-color: #2a2a2a;
-    border-color: rgba(255, 255, 255, 0.1);
-
-    &:hover:not(.selected) {
-      border-color: rgba(255, 255, 255, 0.2);
-      background-color: #333;
-    }
-
-    &.selected {
-      border-color: var(--majo-accent, #ff7f16);
-      background-color: rgba(97, 92, 237, 0.15);
-    }
-  }
 
   .fileItemName {
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .fileItemMeta {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .expandIcon {
-    color: rgba(255, 255, 255, 0.3);
-  }
 
   .dragHandle {
     color: rgba(255, 255, 255, 0.2);
@@ -598,36 +566,13 @@
   }
 
   /* Daily memory items */
-  .dailyMemoryItem {
-    background-color: #2a2a2a;
-    border-color: rgba(255, 255, 255, 0.1);
-
-    &:hover:not(.selected) {
-      border-color: rgba(255, 255, 255, 0.2);
-      background-color: #333;
-    }
-
-    &.selected {
-      border-color: var(--majo-accent, #ff7f16);
-      background-color: rgba(97, 92, 237, 0.15);
-    }
-  }
 
   .dailyMemoryName {
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .memoryFolderItem {
-    color: rgba(255, 255, 255, 0.65);
-  }
 
-  .memoryInlineToggle {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .dailyMemoryMeta {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   /* Editor area */
   .editorHeader {
@@ -638,9 +583,6 @@
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .filePath {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   .markdownViewer {
     border-color: rgba(255, 255, 255, 0.1);
@@ -680,13 +622,7 @@
     }
   }
 
-  .toggleLabel {
-    color: rgba(255, 255, 255, 0.45);
-  }
 
-  .emptyState {
-    color: rgba(255, 255, 255, 0.3);
-  }
 
   .sectionTitle {
     color: rgba(255, 255, 255, 0.85);
@@ -778,7 +714,7 @@
     touch-action: manipulation;
 
     &:active:not(.selected) {
-      background-color: #f0f0f0;
+      background-color: var(--majo-color-fill-tertiary, #f0f0f0);
     }
 
     :global(.dark-mode) &:active:not(.selected) {
@@ -802,7 +738,7 @@
     flex-shrink: 0;
     background: transparent;
     border: none;
-    color: #999;
+    color: var(--majo-color-text-tertiary, #999999);
     position: relative;
 
     &::before {
@@ -812,7 +748,7 @@
     }
 
     &:active {
-      color: #333;
+      color: var(--majo-color-text, #333333);
     }
 
     :global(.dark-mode) & {
@@ -828,7 +764,7 @@
     touch-action: manipulation;
 
     &:active:not(.selected) {
-      background-color: #f0f0f0;
+      background-color: var(--majo-color-fill-tertiary, #f0f0f0);
     }
 
     :global(.dark-mode) &:active:not(.selected) {
@@ -866,7 +802,7 @@
     padding: 10px 12px;
     border-bottom: 1px solid #f0f0f0;
     flex-shrink: 0;
-    background: #fff;
+    background: var(--majo-color-bg-container, #fff);
   }
 
   .mobileToolbarTitle {

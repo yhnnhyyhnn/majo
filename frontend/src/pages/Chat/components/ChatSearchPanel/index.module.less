@@ -17,7 +17,7 @@
         border-radius: 0 !important;
       }
       .majo-drawer-mask {
-        background: rgba(0, 0, 0, 0.45) !important;
+        background: var(--majo-color-fill, rgba(0, 0, 0, 0.45)) !important;
       }
     }
   }
@@ -187,21 +187,8 @@
 
 /* Dark mode */
 :global(.dark-mode) {
-  .drawer {
-    :global {
-      .majo-drawer-body {
-        background-color: #141414;
-      }
-    }
-  }
 
-  .header {
-    background-color: #141414;
-  }
 
-  .headerTitle {
-    color: rgba(255, 255, 255, 0.95);
-  }
 
   .searchInput {
     background: rgba(255, 255, 255, 0.08);
@@ -226,28 +213,8 @@
     background: linear-gradient(0deg, #141414 0%, rgba(31, 31, 31, 0) 100%);
   }
 
-  .searchResultItem {
-    background: rgba(255, 255, 255, 0.04);
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-    }
-  }
 
-  .resultRole {
-    color: rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.06);
-  }
 
-  .resultChatName {
-    color: rgba(255, 255, 255, 0.95);
-  }
 
-  .resultContent {
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .resultTime {
-    color: rgba(255, 255, 255, 0.45);
-  }
 }

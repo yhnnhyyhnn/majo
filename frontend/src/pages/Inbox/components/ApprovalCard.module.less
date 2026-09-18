@@ -31,7 +31,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: var(--majo-color-fill-tertiary, #f5f5f5);
 }
 
 .typeLabel {
@@ -40,7 +40,7 @@
 
 .requestedBy {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.5));
 }
 
 .cardBody {
@@ -53,7 +53,7 @@
 }
 
 .description {
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.75));
   margin-bottom: 0;
   line-height: 1.7;
 }
@@ -67,7 +67,7 @@
 
 .timestamp {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
 .actions {
@@ -82,16 +82,10 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   }
 
-  .iconWrapper {
-    background: #2b2b2b;
-  }
 
   .requestedBy,
   .timestamp {
     color: rgba(255, 255, 255, 0.52);
   }
 
-  .description {
-    color: rgba(255, 255, 255, 0.76);
-  }
 }

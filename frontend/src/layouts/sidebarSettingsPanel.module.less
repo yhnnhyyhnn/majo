@@ -50,7 +50,7 @@
   white-space: nowrap;
 
   &:hover {
-    background: var(--color-fill-tertiary, rgba(0, 0, 0, 0.04));
+    background: var(--color-fill-tertiary, var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04)));
     border-color: var(--majo-color-border, rgba(0, 0, 0, 0.15));
     color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
   }
@@ -78,30 +78,4 @@
 }
 
 /* ── Dark mode ──────────────────────────────────────────────────────────── */
-
-:global(.dark-mode) {
-  .label {
-    color: rgba(255, 255, 255, 0.2);
-  }
-
-  .optBtn {
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.55);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: rgba(255, 255, 255, 0.88);
-    }
-
-    &Active {
-      background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.12);
-      border-color: var(--majo-accent, #ff7f16);
-      color: var(--majo-accent, #ff7f16);
-
-      &:hover {
-        background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.18);
-      }
-    }
-  }
-}
+
