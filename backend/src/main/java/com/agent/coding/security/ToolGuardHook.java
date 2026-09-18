@@ -46,6 +46,7 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
     private final com.agent.coding.mcp.McpToolBridge mcpToolBridge;
     private final com.agent.coding.memory.MemoryWritePipeline memoryWritePipeline;
     private final com.agent.coding.agent.CodingModePromptInjector codingModePromptInjector;
+    private final DoomLoopGuard doomLoopGuard;
 
     public ToolGuardHook(ToolGuardService toolGuardService,
                          FileGuardService fileGuardService,
@@ -54,7 +55,8 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
                          com.agent.coding.agent.ModelRequestNormalizerHook modelRequestNormalizerHook,
                          com.agent.coding.mcp.McpToolBridge mcpToolBridge,
                          com.agent.coding.memory.MemoryWritePipeline memoryWritePipeline,
-                         com.agent.coding.agent.CodingModePromptInjector codingModePromptInjector) {
+                         com.agent.coding.agent.CodingModePromptInjector codingModePromptInjector,
+                         DoomLoopGuard doomLoopGuard) {
         this.toolGuardService = toolGuardService;
         this.fileGuardService = fileGuardService;
         this.approvalHook = approvalHook;
@@ -63,6 +65,7 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
         this.mcpToolBridge = mcpToolBridge;
         this.memoryWritePipeline = memoryWritePipeline;
         this.codingModePromptInjector = codingModePromptInjector;
+        this.doomLoopGuard = doomLoopGuard;
     }
 
     @Override
@@ -73,6 +76,7 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
             log.info("[hook] runtime context unbound");
         }
         approvalHook.setRuntimeContext(ctx);
+        doomLoopGuard.setRuntimeContext(ctx);
     }
 
     @Override
@@ -82,6 +86,7 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
         if (event instanceof io.agentscope.core.hook.PreCallEvent preCall) {
             memoryWritePipeline.onPreCall(preCall);
             codingModePromptInjector.onPreCall(preCall);
+            doomLoopGuard.resetTurn(preCall);
             return Mono.just(event);
         }
         if (event instanceof io.agentscope.core.hook.PostCallEvent postCall) {
@@ -153,6 +158,15 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
         if (toolGuardReason != null) {
             log.warn("[tool-guard] blocked tool '{}' ({})", toolName, toolGuardReason);
             acting.setToolUse(reject(toolUse, toolGuardReason));
+            return Mono.just(event);
+        }
+
+        // 1.5) Doom-loop guard (QwenPaw doom_loop port): staged denial of
+        // identical repeated calls — warn first, hard-stop deeper in.
+        String doomReason = doomLoopGuard.check(event, toolName, input);
+        if (doomReason != null) {
+            log.warn("[doom-loop] blocked tool '{}': {}", toolName, doomReason);
+            acting.setToolUse(reject(toolUse, doomReason));
             return Mono.just(event);
         }
 
