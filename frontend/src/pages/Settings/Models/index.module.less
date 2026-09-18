@@ -47,17 +47,17 @@
 }
 
 .breadcrumbParent {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-weight: 400;
 }
 
 .breadcrumbSeparator {
-  color: #ccc;
+  color: var(--majo-color-text-quaternary, #cccccc);
   margin: 0 4px;
 }
 
 .breadcrumbCurrent {
-  color: #333;
+  color: var(--majo-color-text, #333333);
   font-weight: 600;
   font-size: 20px;
 }
@@ -68,7 +68,7 @@
 }
 
 .loadingText {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 }
 
 /* ---- Sections ---- */
@@ -89,7 +89,7 @@
 
 .sectionDesc {
   margin: 0 0 24px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-size: 14px;
 }
 
@@ -112,7 +112,7 @@
 .providerGroupTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   margin: 0 0 12px;
   letter-spacing: 0.02em;
 }
@@ -191,7 +191,7 @@
   transition: all 0.15s ease;
 }
 .availableItem:hover {
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   border-color: #6366f1;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
 }
@@ -295,7 +295,7 @@
   }
 
   &.disabled {
-    color: #999;
+    color: var(--majo-color-text-tertiary, #999999);
   }
 }
 
@@ -395,7 +395,7 @@
     }
 
     &.disabled {
-      color: #999;
+      color: var(--majo-color-text-tertiary, #999999);
     }
   }
 }
@@ -482,7 +482,7 @@
   bottom: 16px;
   left: 16px;
   right: 16px;
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   z-index: 10;
 }
 
@@ -627,13 +627,13 @@
 
 .groupCardFieldValue {
   font-size: 13px;
-  color: #333;
+  color: var(--majo-color-text, #333333);
 }
 
 .groupCardMono {
   font-family: "SF Mono", "Fira Code", monospace;
   font-size: 12px;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.03));
   padding: 8px 12px;
   border-radius: 8px;
@@ -680,7 +680,7 @@
   background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.03));
   border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   border-radius: 8px;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
@@ -738,7 +738,7 @@
   background: transparent;
   padding: 0 0 12px;
   cursor: pointer;
-  color: #333;
+  color: var(--majo-color-text, #333333);
 }
 
 .advancedConfigToggleLabel {
@@ -944,7 +944,7 @@
 }
 
 .panelSectionDashed {
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   border: 1px dashed var(--majo-color-border-secondary, #e5e7eb);
   border-radius: 12px;
   padding: 18px;
@@ -1019,7 +1019,7 @@
 .slotSection {
   padding: 24px;
   margin: 20px;
-  background: #ffffff;
+  background: var(--majo-color-bg-container, #ffffff);
   border-radius: 6px;
   border: 1px solid #e8e8e8;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -1027,7 +1027,7 @@
 
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    border-color: #d9d9d9;
+    border-color: var(--majo-color-border, #d9d9d9);
   }
 }
 
@@ -1096,7 +1096,7 @@
 
 .slotLabel {
   font-size: 14px;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -1496,7 +1496,7 @@
 .modelListEmpty {
   padding: 24px;
   text-align: center;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-size: 13px;
 }
 
@@ -1511,7 +1511,7 @@
 
 .modelListCount {
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 }
 
 .modelListItem {
@@ -1584,7 +1584,7 @@
 
 .customModelHint {
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   line-height: 1.4;
   white-space: normal;
 }
@@ -1607,7 +1607,7 @@
 
 .modelListItemId {
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-family: "SF Mono", "Menlo", monospace;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1792,33 +1792,12 @@
     border-bottom-color: rgba(255, 255, 255, 0.12);
   }
 
-  .breadcrumbParent {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .breadcrumbSeparator {
-    color: rgba(255, 255, 255, 0.2);
-  }
 
-  .breadcrumbCurrent {
-    color: rgba(255, 255, 255, 0.85);
-  }
 
-  .loadingText {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .sectionDesc {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
-  .providerGroupTitle {
-    color: rgba(255, 255, 255, 0.4);
-  }
 
-  .subSectionTitle {
-    color: rgba(255, 255, 255, 0.35);
-  }
   .subSectionTitle::after {
     background: rgba(255, 255, 255, 0.08);
   }
@@ -1829,9 +1808,6 @@
   .localSectionInfoValue,
   .localSectionInfoMeta,
   .localEngineStatusModelName,
-  .localLockedPanelTitle {
-    color: rgba(255, 255, 255, 0.88);
-  }
 
   .localModalDescription,
   .localSectionDescription,
@@ -1842,9 +1818,6 @@
   .localInlineProgress,
   .localSectionNotice,
   .localLockedPanelDescription,
-  .localEngineMetricLabel {
-    color: rgba(255, 255, 255, 0.5);
-  }
 
   .localSummaryPill,
   .localSectionInfoRow,
@@ -1900,9 +1873,6 @@
     }
   }
 
-  .localRuntimeProgressMeta {
-    color: rgba(255, 255, 255, 0.5);
-  }
 
   .modelListItemStatusButton {
     color: #5eead4;
@@ -1945,15 +1915,9 @@
     color: #34d399;
   }
 
-  .availableHint {
-    color: rgba(255, 255, 255, 0.4);
-  }
 
   .emptyConfigured {
     border-color: rgba(255, 255, 255, 0.1);
-  }
-  .emptyConfigured p {
-    color: rgba(255, 255, 255, 0.5);
   }
 
   .availableItem {
@@ -1980,9 +1944,6 @@
     }
   }
 
-  .variantItemName {
-    color: rgba(255, 255, 255, 0.9);
-  }
 
   .localTag {
     background-color: rgba(29, 212, 215, 0.15);
@@ -1993,17 +1954,8 @@
     color: rgba(255, 255, 255, 0.5);
   }
 
-  .infoLabel {
-    color: rgba(255, 255, 255, 0.3);
-  }
 
-  .infoValue {
-    color: rgba(255, 255, 255, 0.65);
-  }
 
-  .infoEmpty {
-    color: rgba(255, 255, 255, 0.2);
-  }
 
   .cardActions {
     border-top-color: rgba(255, 255, 255, 0.08);
@@ -2023,9 +1975,6 @@
     color: rgba(255, 255, 255, 0.9);
   }
 
-  .groupSegmented {
-    background: rgba(255, 255, 255, 0.04);
-  }
 
   .groupSegBtn {
     color: #666;
@@ -2048,9 +1997,6 @@
     color: #555;
   }
 
-  .groupCardFieldValue {
-    color: rgba(255, 255, 255, 0.7);
-  }
 
   .groupCardMono {
     color: #888;
@@ -2124,17 +2070,8 @@
       box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
     }
   }
-  .llmPillLabel {
-    color: rgba(255, 255, 255, 0.5);
-  }
-  .llmPillValue {
-    color: rgba(255, 255, 255, 0.85);
-  }
   .llmPillEdit {
     color: #a5b4fc;
-  }
-  .llmDescription {
-    color: rgba(255, 255, 255, 0.45);
   }
   .panelSection {
     background: rgba(255, 255, 255, 0.03);
@@ -2143,9 +2080,6 @@
   .panelSectionDashed {
     background: transparent;
     border-color: rgba(255, 255, 255, 0.1);
-  }
-  .panelTitle {
-    color: rgba(255, 255, 255, 0.5);
   }
   .panelDotGreen {
     background: #34d399;
@@ -2158,13 +2092,6 @@
   }
   .tabsNav {
     border-bottom-color: rgba(255, 255, 255, 0.08);
-  }
-  .tabItem {
-    color: rgba(255, 255, 255, 0.4);
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.6);
-    }
   }
   .tabItemActive {
     color: #a5b4fc;
@@ -2197,9 +2124,6 @@
     border-color: rgba(82, 196, 26, 0.3);
   }
 
-  .slotLabel {
-    color: rgba(255, 255, 255, 0.5);
-  }
 
   .slotActions {
     border-top-color: rgba(255, 255, 255, 0.08);
@@ -2214,13 +2138,7 @@
     border-top-color: rgba(255, 255, 255, 0.08);
   }
 
-  .advancedConfigToggle {
-    color: rgba(255, 255, 255, 0.65);
-  }
 
-  .localAdvancedConfigLabel {
-    color: rgba(255, 255, 255, 0.88);
-  }
 
   /* JSON editor */
   .jsonEditorContainer {
@@ -2232,9 +2150,6 @@
     }
   }
 
-  .jsonEditorHighlight {
-    color: rgba(255, 255, 255, 0.45);
-  }
 
   .jsonEditorTextarea {
     caret-color: rgba(255, 255, 255, 0.85);
@@ -2245,17 +2160,11 @@
     border-color: rgba(255, 255, 255, 0.08);
   }
 
-  .modelListEmpty {
-    color: rgba(255, 255, 255, 0.3);
-  }
 
   .modelListLoadMore {
     border-top-color: rgba(255, 255, 255, 0.08);
   }
 
-  .modelListCount {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   .modelListItem {
     border-bottom-color: rgba(255, 255, 255, 0.06);
@@ -2286,13 +2195,7 @@
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .modelListItemId {
-    color: rgba(255, 255, 255, 0.3);
-  }
 
-  .customModelHint {
-    color: rgba(255, 255, 255, 0.45);
-  }
 
   .modelAddForm {
     background: rgba(255, 255, 255, 0.03);
@@ -2313,17 +2216,8 @@
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .infoLabel {
-    color: rgba(255, 255, 255, 0.5);
-  }
 
-  .infoValue {
-    color: rgba(255, 255, 255, 0.65);
-  }
 
-  .infoEmpty {
-    color: rgba(255, 255, 255, 0.3);
-  }
 }
 
 /* ---- Custom Headers Editor ---- */
@@ -2347,7 +2241,7 @@
 
   .customHeaderDelete {
     flex: 0 0 auto;
-    color: #999;
+    color: var(--majo-color-text-tertiary, #999999);
     cursor: pointer;
     transition: color 0.2s;
 

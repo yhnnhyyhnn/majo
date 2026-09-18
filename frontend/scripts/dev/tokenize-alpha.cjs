@@ -43,17 +43,32 @@ function fillToken(a, fb) {
 }
 
 // Hex allowlist → token (property-disambiguated by the caller).
+// 3-digit forms normalize to 6 before lookup (#999 → #999999).
 const HEX_TEXT = new Map([
   ['#1f2937', TEXT], ['#111827', TEXT], ['#1a1716', TEXT], ['#374151', TEXT2],
   ['#4b5563', TEXT2], ['#6b7280', TEXT2], ['#7a7f8f', TEXT3], ['#9ca3af', TEXT3],
+  ['#333333', TEXT], ['#666666', TEXT2], ['#999999', TEXT3], ['#cccccc', TEXT4],
 ]);
 const HEX_BG = new Map([
   ['#fafafa', FILL4], ['#f9f8f4', FILL4], ['#f3f4f6', FILL3], ['#f5f5f5', FILL3],
-  ['#f0f0f0', FILL3], ['#e5e7eb', FILL2], ['#eae9e7', BORD2],
+  ['#f0f0f0', FILL3], ['#e5e7eb', FILL2], ['#eae9e7', BORD2], ['#eae8e7', BORD2],
+  ['#eeeeee', FILL3], ['#ffffff', FILL4],
 ]);
 const HEX_BORDER = new Map([
-  ['#eae9e7', BORD2], ['#e5e7eb', BORD2], ['#d1d5db', BORD], ['#f0f0f0', BORD2],
+  ['#eae9e7', BORD2], ['#eae8e7', BORD2], ['#e5e7eb', BORD2], ['#d1d5db', BORD],
+  ['#f0f0f0', BORD2], ['#d9d9d9', BORD], ['#dddddd', BORD2], ['#cccccc', BORD],
 ]);
+const HEX_BGC = new Map([
+  ['#ffffff', 'var(--majo-color-bg-container, #ffffff)'],
+  ['#fff', 'var(--majo-color-bg-container, #fff)'],
+]);
+
+function normalizeHex(h) {
+  if (h.length === 4) {
+    return '#' + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+  }
+  return h.toLowerCase();
+}
 
 function mapDeclaration(line) {
   // Skip anything already tokenized, accent-based, or in the keep-list.
@@ -82,16 +97,20 @@ function mapDeclaration(line) {
     else if (isBg) token = fillToken(a, matchText);
   }
 
-  // 2) Hex allowlist by property. #1a1a1a backgrounds are constant-dark panels — keep.
-  if (!token) {
-    const hex = value.match(/#[0-9a-fA-F]{6}\b/);
-    if (hex) {
-      const h = hex[0].toLowerCase();
-      matchText = hex[0];
-      if (isColor && HEX_TEXT.has(h)) token = HEX_TEXT.get(h)(h);
-      else if (isBorder && HEX_BORDER.has(h)) token = HEX_BORDER.get(h)(h);
-      else if (isBg && HEX_BG.has(h)) token = HEX_BG.get(h)(h);
+  // 2) Hex by property. Exact-value only (no gradients/multi-values).
+  //    #1a1a1a backgrounds are constant-dark panels — never mapped.
+  if (!token && /^[#][0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(value.trim())) {
+    const h = normalizeHex(value.trim());
+    if (isColor && HEX_TEXT.has(h)) token = HEX_TEXT.get(h)(h);
+    else if (isBorder && HEX_BORDER.has(h)) token = HEX_BORDER.get(h)(h);
+    else if (isBg && h !== '#1a1a1a') {
+      if (HEX_BGC.has(value.trim().toLowerCase())) {
+        token = HEX_BGC.get(value.trim().toLowerCase());
+      } else if (HEX_BG.has(h)) {
+        token = HEX_BG.get(h)(h);
+      }
     }
+    if (token) matchText = value.trim();
   }
 
   if (!token) return line;
@@ -130,9 +149,13 @@ for (const file of files) {
   const dark = darkRegions(lines);
   const out = lines.map((line, i) => {
     if (dark[i]) return line; // dark patches untouched in B1a
-    const mapped = mapDeclaration(line);
-    if (mapped !== line) total++;
-    return mapped;
+    // CRLF-safe: match against the \r-stripped line, re-append afterwards
+    // (JS regex `.` does not match \r, so a raw CRLF line never matches).
+    const cr = line.endsWith('\r');
+    const clean = cr ? line.slice(0, -1) : line;
+    const mapped = mapDeclaration(clean);
+    if (mapped !== clean) total++;
+    return mapped === clean ? line : mapped + (cr ? '\r' : '');
   });
   const result = out.join('\n');
   if (apply) {

@@ -27,17 +27,17 @@
 }
 
 .breadcrumbParent {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   font-weight: 400;
 }
 
 .breadcrumbSeparator {
-  color: #ccc;
+  color: var(--majo-color-text-quaternary, #cccccc);
   margin: 0 4px;
 }
 
 .breadcrumbCurrent {
-  color: #333;
+  color: var(--majo-color-text, #333333);
   font-weight: 600;
   font-size: 20px;
 }
@@ -66,7 +66,7 @@
 
 .creationActionButton {
   min-width: 108px;
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
   border-color: #d0d7e2;
   color: var(--majo-color-text, #1f2937);
 }
@@ -81,7 +81,7 @@
 }
 
 .loadingText {
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
 }
 
 .noSearchResults {
@@ -135,7 +135,7 @@
 
 .batchCount {
   font-size: 13px;
-  color: #666;
+  color: var(--majo-color-text-secondary, #666666);
   margin-right: 4px;
 }
 
@@ -537,7 +537,7 @@
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: #fff;
+  background: var(--majo-color-bg-container, #fff);
 }
 
 .actionButton {
@@ -869,7 +869,7 @@
 
 .pickerCardMeta {
   font-size: 12px;
-  color: #999;
+  color: var(--majo-color-text-tertiary, #999999);
   margin-top: 4px;
 }
 
@@ -1132,7 +1132,7 @@
   transition: all 0.15s ease;
 
   &:hover {
-    background: #fff;
+    background: var(--majo-color-bg-container, #fff);
     border-color: #6366f1;
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
   }
@@ -1556,17 +1556,8 @@
     border-bottom-color: rgba(255, 255, 255, 0.2);
   }
 
-  .breadcrumbParent {
-    color: rgba(255, 255, 255, 0.7);
-  }
 
-  .breadcrumbSeparator {
-    color: rgba(255, 255, 255, 0.5);
-  }
 
-  .breadcrumbCurrent {
-    color: rgba(255, 255, 255, 1);
-  }
 
   .description {
     color: rgba(255, 255, 255, 0.35);
@@ -1587,17 +1578,8 @@
     color: #c7d2fe;
   }
 
-  .emptyStateTitle {
-    color: rgba(255, 255, 255, 0.92);
-  }
 
-  .emptyStateText {
-    color: rgba(255, 255, 255, 0.62);
-  }
 
-  .loadingText {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   .noSearchResults {
     color: rgba(255, 255, 255, 0.45);
@@ -1636,9 +1618,6 @@
     }
   }
 
-  .cardFooter {
-    background: #1f1f1f;
-  }
 
   .skillTitle {
     color: rgba(255, 255, 255, 1);
@@ -1674,9 +1653,6 @@
     color: rgba(255, 255, 255, 0.6);
   }
 
-  .descriptionLabel {
-    color: rgba(255, 255, 255, 0.7);
-  }
 
   .descriptionText {
     color: rgba(255, 255, 255, 0.85);
@@ -1684,9 +1660,6 @@
     border-color: rgba(255, 255, 255, 0.15);
   }
 
-  .metaLabel {
-    color: rgba(255, 255, 255, 0.7);
-  }
 
   .channelValue {
     color: rgba(255, 255, 255, 0.88);
@@ -1707,9 +1680,6 @@
     color: rgba(255, 255, 255, 0.88);
   }
 
-  .calendarIcon {
-    color: rgba(255, 255, 255, 0.45);
-  }
 
   .builtinTag {
     background-color: rgba(255, 255, 255, 0.15);
@@ -1766,9 +1736,6 @@
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
 
-  .filterGroupTitle {
-    color: rgba(255, 255, 255, 0.45);
-  }
 
   .filterOption {
     background: rgba(255, 255, 255, 0.08);
@@ -1814,9 +1781,6 @@
     box-shadow: 0 0 0 1px rgba(var(--majo-accent-rgb, 255, 127, 22), 0.3) !important;
   }
 
-  .batchCount {
-    color: rgba(255, 255, 255, 0.65);
-  }
 
   /* Card picker */
   .pickerCard {
@@ -1839,9 +1803,6 @@
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .pickerCardMeta {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   /* Pool Transfer Modal - dark mode */
   .poolTransferModal {
