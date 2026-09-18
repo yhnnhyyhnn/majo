@@ -1,3 +1,6 @@
+majo:
+  version: @project.version@
+
 server:
   port: 18789
 

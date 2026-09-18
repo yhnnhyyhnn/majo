@@ -44,6 +44,11 @@ import java.util.*;
 public class ConsoleController {
 
     private static final Logger log = LoggerFactory.getLogger(ConsoleController.class);
+
+    /** Single version source: filtered from the POM via application.yml. */
+    @org.springframework.beans.factory.annotation.Value("${majo.version:0.3.0}")
+    private String appVersion;
+
     private static final String SYS_PROMPT = "你是一个专业的编码助手。工具包括: read_file/write_file/edit_file/append_file(读写编辑), search_code/find_symbol/list_directory(搜索), execute_command(执行命令), git_status/git_diff/git_branch/git_commit/git_add/git_log(Git操作), web_search/web_fetch(联网搜索), get_current_time(当前时间), get_token_usage(token用量), send_file_to_user(发送文件), spawn_subagent/chat_with_agent/submit_to_agent/check_agent_task(子Agent协作), view_image/desktop_screenshot(视觉分析), browser_use(网页浏览), materialize_skill(技能物化), delegate_external_agent(ACP外部Agent)。回答简洁专业。";
     private static final Path DEFAULT_WORKSPACE = com.agent.coding.skill.SkillStore.WORKING_DIR;
 
@@ -722,7 +727,7 @@ public class ConsoleController {
 
     @GetMapping("/version")
     public VersionResponse version() {
-        return new VersionResponse("0.1.0");
+        return new VersionResponse(appVersion);
     }
 
     @GetMapping("/healthz")
