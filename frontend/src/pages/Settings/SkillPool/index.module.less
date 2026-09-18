@@ -16,7 +16,7 @@
   align-items: center;
   position: relative;
   padding: 20px;
-  border-bottom: 1px solid #eae9e7;
+  border-bottom: 1px solid var(--majo-color-border-secondary, #eae9e7);
   flex-shrink: 0;
 }
 
@@ -78,7 +78,7 @@
 .importToolbarDivider {
   width: 1px;
   height: 16px;
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--majo-color-fill, rgba(0, 0, 0, 0.12));
   margin: 0 4px;
 
   :global(.dark-mode) & {
@@ -226,7 +226,7 @@
 
 .filterGroup {
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--majo-color-border-secondary, #f0f0f0);
 
   &:last-child {
     border-bottom: none;
@@ -237,7 +237,7 @@
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
 .filterOptions {
@@ -253,8 +253,8 @@
   padding: 2px 8px;
   font-size: 12px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.04);
-  color: rgba(0, 0, 0, 0.65);
+  background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.65));
   cursor: pointer;
   transition: all 0.2s;
 
@@ -298,12 +298,12 @@
 
   &:hover {
     color: rgba(20, 20, 19, 0.88);
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
   }
 
   &.viewToggleBtnActive {
     color: rgba(20, 20, 19, 0.88);
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
   }
 }
 
@@ -343,7 +343,7 @@
   }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.02);
+    background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.02));
   }
 }
 
@@ -613,7 +613,7 @@
   color: #8e8c99;
   flex-shrink: 0;
   white-space: nowrap;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
 }
 
 .customTag {
@@ -668,7 +668,7 @@
 
   .calendarIcon {
     font-size: 11px;
-    color: rgba(26, 23, 22, 0.45);
+    color: var(--majo-color-text-tertiary, rgba(26, 23, 22, 0.45));
   }
 }
 
@@ -693,7 +693,7 @@
 
 .infoLabel {
   font-size: 12px;
-  color: rgba(26, 23, 22, 0.65);
+  color: var(--majo-color-text-secondary, rgba(26, 23, 22, 0.65));
 }
 
 .infoBlock {
@@ -794,7 +794,7 @@
 /* ─── Tags ────────────────────────────────────────────────────────────────── */
 .descriptionText {
   border-radius: 4px;
-  background: rgba(43, 18, 0, 0.02);
+  background: var(--majo-color-fill-quaternary, rgba(43, 18, 0, 0.02));
   box-sizing: border-box;
   border: 1px solid #f3f1f0;
   padding: 2px 4px;
@@ -825,7 +825,7 @@
 
 .metaLabel {
   font-size: 11px;
-  color: rgba(26, 23, 22, 0.65);
+  color: var(--majo-color-text-secondary, rgba(26, 23, 22, 0.65));
   min-width: 60px;
 }
 
@@ -852,7 +852,7 @@
   flex: 1;
   height: 34px;
   font-size: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.1));
   background-color: #ffffff;
   color: rgba(20, 20, 19, 0.88);
   cursor: pointer;
@@ -865,7 +865,7 @@
   font-size: 14px;
   cursor: pointer;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.1));
   background-color: #ffffff;
   color: rgba(20, 20, 19, 0.55);
 }

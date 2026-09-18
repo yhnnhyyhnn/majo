@@ -14,7 +14,7 @@
   align-items: center;
   position: relative;
   padding: 20px;
-  border-bottom: 1px solid #eae9e7;
+  border-bottom: 1px solid var(--majo-color-border-secondary, #eae9e7);
   flex-shrink: 0;
 }
 
@@ -68,7 +68,7 @@
   min-width: 108px;
   background: #fff;
   border-color: #d0d7e2;
-  color: #1f2937;
+  color: var(--majo-color-text, #1f2937);
 }
 
 .primaryActionButton {
@@ -267,12 +267,12 @@
 
   .channelIcon {
     font-size: 12px;
-    color: rgba(26, 23, 22, 0.45);
+    color: var(--majo-color-text-tertiary, rgba(26, 23, 22, 0.45));
     flex-shrink: 0;
   }
 
   .channelLabel {
-    color: rgba(26, 23, 22, 0.65);
+    color: var(--majo-color-text-secondary, rgba(26, 23, 22, 0.65));
     flex-shrink: 0;
   }
 
@@ -356,13 +356,13 @@
 .descriptionLabel {
   margin: 0 0 4px 0;
   font-size: 12px;
-  color: rgba(26, 23, 22, 0.65);
+  color: var(--majo-color-text-secondary, rgba(26, 23, 22, 0.65));
   font-weight: normal;
 }
 
 .descriptionText {
   border-radius: 4px;
-  background: rgba(43, 18, 0, 0.02);
+  background: var(--majo-color-fill-quaternary, rgba(43, 18, 0, 0.02));
   box-sizing: border-box;
   border: 1px solid #f3f1f0;
   padding: 2px 4px;
@@ -413,7 +413,7 @@
 
 .calendarIcon {
   font-size: 11px;
-  color: rgba(26, 23, 22, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(26, 23, 22, 0.45));
 }
 
 .metaContainer {
@@ -431,7 +431,7 @@
 
 .metaLabel {
   font-size: 12px;
-  color: rgba(26, 23, 22, 0.65);
+  color: var(--majo-color-text-secondary, rgba(26, 23, 22, 0.65));
   min-width: 80px;
   flex-shrink: 0;
 }
@@ -463,7 +463,7 @@
   color: #8e8c99;
   flex-shrink: 0;
   white-space: nowrap;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
 }
 
 .customTag {
@@ -609,13 +609,13 @@
   margin: 0 0 10px;
   font-size: 24px;
   font-weight: 600;
-  color: #111827;
+  color: var(--majo-color-text, #111827);
 }
 
 .emptyStateText {
   max-width: 640px;
   margin: 0 auto;
-  color: #4b5563;
+  color: var(--majo-color-text-secondary, #4b5563);
   font-size: 15px;
   line-height: 1.65;
 }
@@ -977,7 +977,7 @@
 
 .filterGroup {
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--majo-color-border-secondary, #f0f0f0);
 
   &:last-child {
     border-bottom: none;
@@ -988,7 +988,7 @@
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
 .filterOptions {
@@ -1004,8 +1004,8 @@
   padding: 2px 8px;
   font-size: 12px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.04);
-  color: rgba(0, 0, 0, 0.65);
+  background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.65));
   cursor: pointer;
   transition: all 0.2s;
 
@@ -1049,12 +1049,12 @@
 
   &:hover {
     color: rgba(20, 20, 19, 0.88);
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
   }
 
   &.viewToggleBtnActive {
     color: rgba(20, 20, 19, 0.88);
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
   }
 }
 
@@ -1127,7 +1127,7 @@
   padding: 10px 14px;
   border: 1px solid #f3f4f6;
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
   cursor: pointer;
   transition: all 0.15s ease;
 
@@ -1209,7 +1209,7 @@
   }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.02);
+    background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.02));
   }
 }
 

@@ -26,7 +26,7 @@
   align-items: center;
   position: relative;
   padding: 20px;
-  border-bottom: 1px solid #eae9e7;
+  border-bottom: 1px solid var(--majo-color-border-secondary, #eae9e7);
   margin-bottom: 0;
   flex-shrink: 0;
 }
@@ -120,7 +120,7 @@
 .subSectionTitle {
   font-size: 12px;
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--majo-color-text-tertiary, #9ca3af);
   margin: 16px 0 10px;
   display: flex;
   align-items: center;
@@ -130,7 +130,7 @@
   content: "";
   flex: 1;
   height: 1px;
-  background: #e5e7eb;
+  background: var(--majo-color-fill-secondary, #e5e7eb);
 }
 
 /* ---- Provider Cards ---- */
@@ -152,7 +152,7 @@
 .availableHint {
   font-size: 12px;
   font-weight: 400;
-  color: #9ca3af;
+  color: var(--majo-color-text-tertiary, #9ca3af);
   margin-left: 8px;
 }
 
@@ -162,14 +162,14 @@
   align-items: center;
   justify-content: center;
   padding: 48px 24px;
-  border: 2px dashed #e5e7eb;
+  border: 2px dashed var(--majo-color-border-secondary, #e5e7eb);
   border-radius: 12px;
   margin-bottom: 24px;
   text-align: center;
 }
 .emptyConfigured p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   margin-bottom: 16px;
 }
 
@@ -186,7 +186,7 @@
   padding: 10px 14px;
   border: 1px solid #f3f4f6;
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -235,7 +235,7 @@
 .variantItemName {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--majo-color-text, #1f2937);
   flex: 1;
 }
 
@@ -244,7 +244,7 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   transition: all 0.2s;
   cursor: pointer;
   position: relative;
@@ -338,8 +338,8 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
-  background-color: rgba(0, 0, 0, 0.06);
-  color: rgba(0, 0, 0, 0.65);
+  background-color: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.65));
 }
 
 .customTag {
@@ -442,14 +442,14 @@
 }
 
 .infoLabel {
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
   min-width: 60px;
   flex-shrink: 0;
   font-weight: 400;
 }
 
 .infoValue {
-  color: rgba(0, 0, 0, 0.65);
+  color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.65));
   font-family: "SF Mono", "Menlo", monospace;
   font-size: 12px;
   overflow: hidden;
@@ -460,7 +460,7 @@
 }
 
 .infoEmpty {
-  color: rgba(0, 0, 0, 0.25);
+  color: var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.25));
   font-style: italic;
 }
 
@@ -500,7 +500,7 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   padding: 22px;
   transition: all 0.2s;
   cursor: default;
@@ -555,7 +555,7 @@
 /* Segmented Control */
 .groupSegmented {
   display: flex;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04));
   border-radius: 10px;
   padding: 3px;
   gap: 2px;
@@ -634,10 +634,10 @@
   font-family: "SF Mono", "Fira Code", monospace;
   font-size: 12px;
   color: #666;
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.03));
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.04));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -672,13 +672,13 @@
   display: flex;
   gap: 8px;
   padding-top: 14px;
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  border-top: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.04));
 }
 
 .groupCardActBtn {
   padding: 7px 14px;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.03));
+  border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   border-radius: 8px;
   color: #666;
   font-size: 12px;
@@ -725,7 +725,7 @@
 
 .advancedConfigSection {
   margin-top: 4px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--majo-color-border-secondary, #f0f0f0);
   padding-top: 16px;
 }
 
@@ -800,7 +800,7 @@
 }
 
 .jsonEditorHighlight {
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   pointer-events: none;
   overflow: auto;
 }
@@ -845,7 +845,7 @@
 }
 
 .jsonEditorTokenPunctuation {
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
 }
 
 /* ---- LLM Floating Pill ---- */
@@ -903,14 +903,14 @@
 
 .llmPillLabel {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   white-space: nowrap;
 }
 
 .llmPillValue {
   font-size: 13px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--majo-color-text, #1f2937);
   white-space: nowrap;
 }
 
@@ -928,7 +928,7 @@
 
 .llmDescription {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--majo-color-text-tertiary, #9ca3af);
   margin: 0 0 16px;
   line-height: 1.5;
 }
@@ -945,7 +945,7 @@
 
 .panelSectionDashed {
   background: #fff;
-  border: 1px dashed #e5e7eb;
+  border: 1px dashed var(--majo-color-border-secondary, #e5e7eb);
   border-radius: 12px;
   padding: 18px;
   margin: 0 16px 16px;
@@ -954,7 +954,7 @@
 .panelTitle {
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   margin-bottom: 14px;
   display: flex;
   align-items: center;
@@ -997,7 +997,7 @@
   padding: 10px 20px;
   font-size: 13px;
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--majo-color-text-tertiary, #9ca3af);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
@@ -1007,7 +1007,7 @@
   user-select: none;
 }
 .tabItem:hover {
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
 }
 .tabItemActive {
   color: #6366f1;
@@ -1037,7 +1037,7 @@
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--majo-color-border-secondary, #f0f0f0);
 }
 
 .slotTitle {
@@ -1048,7 +1048,7 @@
 
 .slotDescription {
   margin: 8px 0 0;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -1112,7 +1112,7 @@
   justify-content: flex-end;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--majo-color-border-secondary, #f0f0f0);
 }
 
 /* ---- Section Header Row (title + button) ---- */
@@ -1184,7 +1184,7 @@
 
 .localModalDescription {
   margin-top: 4px;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   font-size: 13px;
   line-height: 1.6;
   max-width: 420px;
@@ -1215,7 +1215,7 @@
 .localSummaryValue {
   display: block;
   margin-top: 2px;
-  color: #1f2937;
+  color: var(--majo-color-text, #1f2937);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1246,18 +1246,18 @@
 .localSectionTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--majo-color-text, #111827);
 }
 
 .localSectionDescription {
   margin-top: 3px;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .localSectionMeta {
-  color: #7a7f8f;
+  color: var(--majo-color-text-tertiary, #7a7f8f);
   font-size: 12px;
   font-family: "SF Mono", "Menlo", monospace;
 }
@@ -1283,12 +1283,12 @@
 }
 
 .localSectionInfoLabel {
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   font-size: 12px;
 }
 
 .localSectionInfoValue {
-  color: #111827;
+  color: var(--majo-color-text, #111827);
   font-size: 12px;
   font-weight: 600;
   font-family: "SF Mono", "Menlo", monospace;
@@ -1300,7 +1300,7 @@
 }
 
 .localSectionInfoMeta {
-  color: #7a7f8f;
+  color: var(--majo-color-text-tertiary, #7a7f8f);
   font-size: 12px;
   font-family: "SF Mono", "Menlo", monospace;
   line-height: 1.5;
@@ -1309,7 +1309,7 @@
 .localAdvancedConfigSection {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--majo-color-border-secondary, #f0f0f0);
 }
 
 .localAdvancedConfigHeader {
@@ -1332,14 +1332,14 @@
 }
 
 .localAdvancedConfigLabel {
-  color: #111827;
+  color: var(--majo-color-text, #111827);
   font-size: 13px;
   font-weight: 600;
 }
 
 .localAdvancedConfigHint {
   margin-top: 4px;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1376,7 +1376,7 @@
   border-radius: 8px;
   background: #fbfcfe;
   border: 1px solid #edf1f7;
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1403,7 +1403,7 @@
 
 .localEngineMetricLabel {
   display: block;
-  color: #7a7f8f;
+  color: var(--majo-color-text-tertiary, #7a7f8f);
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
@@ -1420,7 +1420,7 @@
 .localEngineStatusModelName {
   min-width: 0;
   max-width: 160px;
-  color: #111827;
+  color: var(--majo-color-text, #111827);
   font-size: 12px;
   font-weight: 500;
   overflow: hidden;
@@ -1468,9 +1468,9 @@
 }
 
 .localStatusBadgeMuted {
-  color: #6b7280;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  color: var(--majo-color-text-secondary, #6b7280);
+  background: var(--majo-color-fill-tertiary, #f3f4f6);
+  border: 1px solid var(--majo-color-border-secondary, #e5e7eb);
 }
 
 .localStatusBadgeDead {
@@ -1488,7 +1488,7 @@
 .modelList {
   max-height: 480px;
   overflow-y: auto;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--majo-color-border-secondary, #f0f0f0);
   border-radius: 8px;
   margin-top: 8px;
 }
@@ -1506,7 +1506,7 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--majo-color-border-secondary, #f0f0f0);
 }
 
 .modelListCount {
@@ -1529,7 +1529,7 @@
   }
 
   &:hover {
-    background: #fafafa;
+    background: var(--majo-color-fill-quaternary, #fafafa);
   }
 }
 
@@ -1643,7 +1643,7 @@
 .modelAddForm {
   margin-top: 12px;
   padding: 16px;
-  background: #fafafa;
+  background: var(--majo-color-fill-quaternary, #fafafa);
   border-radius: 8px;
   border: 1px dashed #d9d9d9;
 }
@@ -1658,7 +1658,7 @@
 .localStatusCard {
   margin-top: 12px;
   padding: 16px;
-  background: linear-gradient(180deg, #fafafa 0%, #f7f8fc 100%);
+  background: linear-gradient(180deg, var(--majo-color-fill-quaternary, #fafafa) 0%, #f7f8fc 100%);
   border-radius: 10px;
   border: 1px solid #e8ebf2;
 }
@@ -1692,7 +1692,7 @@
 }
 
 .localStatusHint {
-  color: #7a7f8f;
+  color: var(--majo-color-text-tertiary, #7a7f8f);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1738,14 +1738,14 @@
 .localRuntimeProgressMeta {
   display: block;
   margin-top: 6px;
-  color: #7a7f8f;
+  color: var(--majo-color-text-tertiary, #7a7f8f);
   font-size: 11px;
   line-height: 1.4;
   font-family: "SF Mono", "Menlo", monospace;
 }
 
 .localInlineProgress {
-  color: #7a7f8f;
+  color: var(--majo-color-text-tertiary, #7a7f8f);
   font-size: 12px;
   font-family: "SF Mono", "Menlo", monospace;
 }
@@ -1763,13 +1763,13 @@
 }
 
 .localLockedPanelTitle {
-  color: #111827;
+  color: var(--majo-color-text, #111827);
   font-size: 14px;
   font-weight: 600;
 }
 
 .localLockedPanelDescription {
-  color: #6b7280;
+  color: var(--majo-color-text-secondary, #6b7280);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -2584,7 +2584,7 @@
   .cardActions {
     position: static;
     padding-top: 12px;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    border-top: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
     background: transparent;
   }
 
