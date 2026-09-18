@@ -78,13 +78,14 @@ export const compareVersions = (a: string, b: string): number => {
 
 // ── Update markdown ───────────────────────────────────────────────────────
 export const UPDATE_MD: Record<string, string> = {
-  zh: `### Majo 0.2.0 更新亮点
+  zh: `### Majo 0.3.0 更新亮点
 
-- 长期记忆闭环:自动记忆提炼(LLM 摘要)、/memory 命令、自动召回
-- Coding Mode 实际生效,新增 lsp 与 ast_search 代码智能工具
-- 心跳调度:按周期执行 HEARTBEAT.md 任务,支持活动时段窗口与最近渠道回传
-- 控制台:自定义主题色、分组会话分页、多文件夹默认工作区、已发送文件抽屉
-- 多项正确性修复:命令超时强制生效、进程树清理、启动迁移不再覆盖配置
+
+- 死循环防护:同一工具以相同参数反复调用时自动警告并拒绝,不再空烧 token
+- 记忆索引自动刷新:直接编辑 memory/ 文件后检索即时生效,无需手动重建
+- 外部 Agent 委派支持后台运行:立即返回 task_id,进度与结果用 check_agent_task 查询
+- 控制台:Agent 统计页新增各 Agent Token 用量表;侧栏会话列表支持按时间/按渠道/平铺三种分组
+- 界面:语义化设计 token 全面落地,深色模式大量手工覆盖块退役;修复 pt-BR 语言选择失效
 
 ### 如何更新
 
@@ -105,13 +106,13 @@ docker compose up -d
 
 升级后重启后端服务即可。`,
 
-  ru: `### Основные изменения в Majo 0.2.0
+  ru: `### Основные изменения в Majo 0.3.0
 
-- Замкнутый цикл долгосрочной памяти: авто-извлечение (LLM-резюме), команда /memory, автоматический recall
-- Coding Mode реально работает, новые инструменты lsp и ast_search
-- Планировщик Heartbeat: периодические задачи из HEARTBEAT.md, окно активности, доставка в последний канал
-- Консоль: настраиваемый цвет темы, пагинация групп сессий, мульти-папочные рабочие каталоги, панель отправленных файлов
-- Серия исправлений: принудительный таймаут команд, очистка дерева процессов, миграция больше не перезаписывает конфигурацию
+- Защита от бесконечных циклов: повторные вызовы одного инструмента с теми же аргументами предупреждаются и отклоняются
+- Индекс памяти обновляется автоматически: правки файлов memory/ сразу видны поиску
+- Делегирование внешнему агенту в фоне: мгновенный task_id, прогресс и результат через check_agent_task
+- Консоль: таблица расхода токенов по агентам в статистике; три режима группировки сессий (по дате / по каналу / плоский)
+- Интерфейс: семантические дизайн-токены внедрены повсеместно, множество ручных тёмных переопределений удалено; исправлен выбор языка pt-BR
 
 ### Как обновить
 
@@ -132,13 +133,13 @@ docker compose up -d
 
 После обновления перезапустите бэкенд.`,
 
-  en: `### Majo 0.2.0 highlights
+  en: `### Majo 0.3.0 highlights
 
-- Long-term memory loop: automatic LLM distillation, /memory command, auto recall
-- Coding Mode now takes effect at runtime, with new lsp and ast_search code-intelligence tools
-- Heartbeat scheduler: periodic HEARTBEAT.md tasks with active-hours window and last-channel delivery
-- Console: customizable accent color, grouped session pagination, multi-folder default workspaces, sent-files drawer
-- Multiple correctness fixes: enforced command timeouts, process-tree cleanup, startup migration no longer overwrites config
+- Doom-loop protection: repeated identical tool calls are warned and denied instead of burning tokens
+- Memory index auto-refresh: edits to memory/ files are picked up by search immediately, no manual rebuild
+- External agent delegation in the background: returns a task_id instantly; poll progress and results via check_agent_task
+- Console: per-agent token usage table in Agent Statistics; session list grouping by date / channel / flat
+- UI: semantic design tokens fully adopted, large swaths of manual dark-mode overrides retired; pt-BR language selection fixed
 
 ### How to update
 

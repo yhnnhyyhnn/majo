@@ -2,6 +2,30 @@
 
 All notable changes to Majo are documented here. Format follows Keep a Changelog; versions are semver-ish (MAJOR.MINOR.PATCH).
 
+## [0.3.0] — 2026-09-18
+
+Reliability and polish release: doom-loop protection, self-refreshing memory index, background external-agent delegation with live progress, per-agent token statistics, sidebar session-list grouping modes, and a large design-token migration. Ported from the QwenPaw September 17–18 batch (references `#NNNN` are QwenPaw PRs).
+
+### Reliability
+
+- **Doom-loop detection** (#7808 semantics): identical repeated tool calls (name + args hash, sliding window per session) are denied in stages — a change-of-approach warning from the 3rd call, a hard stop from the 6th. State resets on a differing call or a new turn; wired into the tool-guard hook so the model sees the denial instead of wasting executions
+- **Memory index auto-refresh**: searches compare a `path:size:mtime` signature of the indexed files and rebuild lazily on drift — externally edited `memory/` files are picked up without a manual rebuild; legacy persisted indexes self-heal on first search
+- **Background external-agent delegation** (ACP phase 3): `delegate_external_agent(background=true)` registers a task and returns a `task_id` immediately; every `session/update` publishes a progress snapshot pollable via `check_agent_task`. Sync path unchanged
+
+### Console
+
+- **Per-agent token usage table** in Agent Statistics (backed by `GET /token-usage/agents`, ADR-0011): input/output tokens, turns, and average per-turn duration per agent; agent ids resolve to display names; localized in all 7 languages
+- **Sidebar session-list grouping modes** (#7788): by date / by channel / flat, persisted with window-event sync across mounted lists; collapse state now survives reloads; duplicate simple-mode stylesheet block (171 lines) removed
+- **Design tokens fully adopted**: all black/white alpha colors in the main layout stylesheet migrated to semantic antd tokens — ~60 hand-written dark-mode overrides retired, fixed invisible scrollbar thumb and dividers in dark mode
+- **pt-BR language selection fixed** (#7752 port): `nonExplicitSupportedLngs` reduced `pt-BR` to `pt` and silently fell back to English; regression-tested
+
+### Quality
+
+- `HarnessAgentFactory` consolidates five divergent hand-rolled `HarnessAgent.builder()` sites (fixed dropped `agentId`s, ignored display names, a guaranteed-to-fail model fallback)
+- `StreamTextCollector` replaces duplicated reflection-based stream-delta accumulation with typed event handling
+- Auth interceptor caches `allow_no_auth_hosts` by file mtime instead of re-parsing per request
+- New upstream issue drafted: ast-grep cannot match Java field declarations at all, even with exact literals (see `AI-Coding-Agent-Spec/07-Operation/`)
+
 ## [0.2.0] — 2026-09-17
 
 Major capability release: completes the long-term memory loop, Coding Mode with real code intelligence, heartbeat scheduling, theming, and a series of correctness fixes traced through end-to-end testing. Aligned with QwenPaw 2.2.x September batch (references `#NNNN` are QwenPaw PRs).
