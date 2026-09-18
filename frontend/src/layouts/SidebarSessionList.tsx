@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Input, Spin } from "antd";
+import { Input, Segmented, Spin } from "antd";
 import { VariableSizeList, type ListChildComponentProps } from "react-window";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
@@ -21,8 +21,19 @@ import {
   syncSessionsGlobal,
   type ExtendedSession,
 } from "../stores/sessionListStore";
-import { type DateGroup, groupSessions } from "../utils/sessionGrouping";
+import {
+  groupSessions,
+  groupSessionsByChannel,
+  type StringKeyedSessionGroup,
+} from "../utils/sessionGrouping";
 import SessionItem from "../components/SessionItem";
+import {
+  getSessionGroupModePreference,
+  setSessionGroupModePreference,
+  SESSION_GROUP_MODE_CHANGE_EVENT,
+  type SessionGroupMode,
+} from "../utils/sessionGroupModePreference";
+import { useCollapsedDateGroups } from "../hooks/useCollapsedDateGroups";
 import styles from "./sidebarSessionList.module.less";
 
 /** Fixed height of each session item row */
@@ -37,13 +48,13 @@ const GROUP_PAGE_SIZE = 10;
 type FlatRow =
   | {
       kind: "groupHeader";
-      groupKey: DateGroup;
+      groupKey: string;
       label: string;
       count: number;
       collapsed: boolean;
     }
   | { kind: "session"; session: ExtendedChatSession }
-  | { kind: "loadMore"; groupKey: DateGroup; remaining: number };
+  | { kind: "loadMore"; groupKey: string; remaining: number };
 
 // ── Component ─────────────────────────────────────────────────────────────
 
@@ -62,8 +73,8 @@ interface VirtualRowData {
   handleEditChange: (value: string) => void;
   handleEditSubmit: () => void;
   handleEditCancel: () => void;
-  toggleGroup: (key: DateGroup) => void;
-  loadMoreGroup: (key: DateGroup) => void;
+  toggleGroup: (key: string) => void;
+  loadMoreGroup: (key: string) => void;
 }
 
 /** Virtual list row renderer */
@@ -168,10 +179,28 @@ export default function SidebarSessionList({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
-  /** Collapsed date groups — default: "month" and "older" are collapsed */
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<DateGroup>>(
-    () => new Set<DateGroup>(["month", "older"]),
+  /** Grouping mode: date buckets / channel groups / flat list (#7788 port) */
+  const [groupMode, setGroupMode] = useState<SessionGroupMode>(
+    getSessionGroupModePreference,
   );
+  /** Collapsed sections — persisted (memory-only default: month/older folded) */
+  const { collapsedGroups, toggleGroup } = useCollapsedDateGroups([
+    "month",
+    "older",
+  ]);
+
+  // Stay in sync when the mode changes elsewhere (another mounted list).
+  useEffect(() => {
+    const onChange = () => setGroupMode(getSessionGroupModePreference());
+    window.addEventListener(SESSION_GROUP_MODE_CHANGE_EVENT, onChange);
+    return () =>
+      window.removeEventListener(SESSION_GROUP_MODE_CHANGE_EVENT, onChange);
+  }, []);
+
+  const handleGroupModeChange = useCallback((mode: SessionGroupMode) => {
+    setSessionGroupModePreference(mode);
+    setGroupMode(mode);
+  }, []);
 
   const storeSessionsRaw = useSessionListStore((s) => s.sessions);
   const storeSessions = storeSessionsRaw as ExtendedChatSession[];
@@ -235,30 +264,35 @@ export default function SidebarSessionList({
     );
   }, [sortedSessions, searchQuery]);
 
-  const groups = useMemo(
-    () => (searchQuery.trim() ? null : groupSessions(sortedSessions, t)),
-    [sortedSessions, searchQuery, t],
-  );
-
-  const toggleGroup = useCallback((key: DateGroup) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
-
   /** Per-group pagination: first page is implicit, each click adds a page. */
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>(
     {},
   );
-  const loadMoreGroup = useCallback((key: DateGroup) => {
+  const loadMoreGroup = useCallback((key: string) => {
     setVisibleCounts((prev) => ({
       ...prev,
       [key]: (prev[key] ?? GROUP_PAGE_SIZE) + GROUP_PAGE_SIZE,
     }));
   }, []);
+
+  /**
+   * Groups for the current mode — null while searching (flat filtered
+   * list). Flat mode is a single implicit group so pagination still
+   * applies to long histories.
+   */
+  const groups = useMemo<StringKeyedSessionGroup<ExtendedChatSession>[] | null>(
+    () => {
+      if (searchQuery.trim()) return null;
+      if (groupMode === "none") {
+        return [{ key: "all", label: "", sessions: sortedSessions }];
+      }
+      if (groupMode === "channel") {
+        return groupSessionsByChannel(sortedSessions, t);
+      }
+      return groupSessions(sortedSessions, t);
+    },
+    [groupMode, sortedSessions, searchQuery, filteredSessions, t],
+  );
 
   /** Flatten groups into a single array of rows for virtual list */
   const flatRows = useMemo<FlatRow[]>(() => {
@@ -271,28 +305,37 @@ export default function SidebarSessionList({
     if (!groups) return [];
     const rows: FlatRow[] = [];
     for (const group of groups) {
-      const collapsed = collapsedGroups.has(group.key);
-      rows.push({
-        kind: "groupHeader",
-        groupKey: group.key,
-        label: group.label,
-        count: group.sessions.length,
-        collapsed,
-      });
-      if (!collapsed) {
-        const visible = visibleCounts[group.key] ?? GROUP_PAGE_SIZE;
-        const shown = group.sessions.slice(0, visible);
-        for (const session of shown) {
-          rows.push({ kind: "session", session });
-        }
-        const remaining = group.sessions.length - shown.length;
-        if (remaining > 0) {
-          rows.push({ kind: "loadMore", groupKey: group.key, remaining });
-        }
+      const showHeader = groupMode !== "none";
+      if (showHeader) {
+        const collapsed = collapsedGroups.has(group.key);
+        rows.push({
+          kind: "groupHeader",
+          groupKey: group.key,
+          label: group.label,
+          count: group.sessions.length,
+          collapsed,
+        });
+        if (collapsed) continue;
+      }
+      const visible = visibleCounts[group.key] ?? GROUP_PAGE_SIZE;
+      const shown = group.sessions.slice(0, visible);
+      for (const session of shown) {
+        rows.push({ kind: "session", session });
+      }
+      const remaining = group.sessions.length - shown.length;
+      if (remaining > 0) {
+        rows.push({ kind: "loadMore", groupKey: group.key, remaining });
       }
     }
     return rows;
-  }, [groups, collapsedGroups, searchQuery, filteredSessions, visibleCounts]);
+  }, [
+    groups,
+    collapsedGroups,
+    searchQuery,
+    filteredSessions,
+    visibleCounts,
+    groupMode,
+  ]);
 
   // Keep the active session visible even when it sits beyond its group's
   // rendered page (e.g. returning to an old session).
@@ -413,6 +456,22 @@ export default function SidebarSessionList({
             <SparkDownArrowLine size={12} />
           </span>
         </button>
+
+        {/* Grouping mode switcher (date / channel / flat) */}
+        {!historyCollapsed && (
+          <Segmented
+            size="small"
+            block
+            className={styles.modeSwitcher}
+            value={groupMode}
+            onChange={(v) => handleGroupModeChange(v as SessionGroupMode)}
+            options={[
+              { value: "date", label: t("chat.group.modeDate") },
+              { value: "channel", label: t("chat.group.modeChannel") },
+              { value: "none", label: t("chat.group.modeFlat") },
+            ]}
+          />
+        )}
 
         {/* Search bar */}
         {!historyCollapsed && (

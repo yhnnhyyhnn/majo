@@ -2284,7 +2284,10 @@
       "today": "Сегодня",
       "week": "За 7 дней",
       "month": "За 30 дней",
-      "older": "Ранее"
+      "older": "Ранее",
+      "modeDate": "По дате",
+      "modeChannel": "По каналам",
+      "modeFlat": "Плоский"
     },
     "sessionPanel": {
       "searchConversations": "Поиск…",

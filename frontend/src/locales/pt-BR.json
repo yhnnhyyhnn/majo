@@ -2512,7 +2512,10 @@
       "today": "Hoje",
       "week": "Últimos 7 dias",
       "month": "Últimos 30 dias",
-      "older": "Anteriores"
+      "older": "Anteriores",
+      "modeDate": "Por data",
+      "modeChannel": "Por canal",
+      "modeFlat": "Simples"
     },
     "sessionPanel": {
       "searchConversations": "Pesquisar…",

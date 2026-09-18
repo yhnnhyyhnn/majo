@@ -2269,7 +2269,10 @@
       "today": "今日",
       "week": "7日以内",
       "month": "30日以内",
-      "older": "それ以前"
+      "older": "それ以前",
+      "modeDate": "日付順",
+      "modeChannel": "チャネル順",
+      "modeFlat": "フラット"
     },
     "sessionPanel": {
       "searchConversations": "会話を検索…",

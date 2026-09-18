@@ -298,7 +298,10 @@
       "today": "Hari ini",
       "week": "7 hari terakhir",
       "month": "30 hari terakhir",
-      "older": "Sebelumnya"
+      "older": "Sebelumnya",
+      "modeDate": "Per Tanggal",
+      "modeChannel": "Per Kanal",
+      "modeFlat": "Rata"
     },
     "sessionPanel": {
       "searchConversations": "Cari…",

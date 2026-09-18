@@ -2693,7 +2693,10 @@
       "today": "Today",
       "week": "Within 7 days",
       "month": "Within 30 days",
-      "older": "Earlier"
+      "older": "Earlier",
+      "modeDate": "Date",
+      "modeChannel": "Channel",
+      "modeFlat": "Flat"
     },
     "sessionPanel": {
       "searchConversations": "Search conversations…",

@@ -2552,7 +2552,10 @@
       "today": "今天",
       "week": "7天内",
       "month": "30天内",
-      "older": "更早"
+      "older": "更早",
+      "modeDate": "按时间",
+      "modeChannel": "按渠道",
+      "modeFlat": "平铺"
     },
     "sessionPanel": {
       "searchConversations": "搜索对话…",

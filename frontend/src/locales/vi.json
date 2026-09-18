@@ -269,7 +269,10 @@
       "today": "Hôm nay",
       "week": "7 ngày qua",
       "month": "30 ngày qua",
-      "older": "Cũ hơn"
+      "older": "Cũ hơn",
+      "modeDate": "Theo ngày",
+      "modeChannel": "Theo kênh",
+      "modeFlat": "Phẳng"
     },
     "sessionPanel": {
       "searchConversations": "Tìm kiếm…",
