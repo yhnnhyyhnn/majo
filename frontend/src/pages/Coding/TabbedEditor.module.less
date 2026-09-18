@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.55));
+  color: var(--text-secondary, var(--majo-color-text-secondary, rgba(0, 0, 0, 0.55)));
   font-size: 13px;
 }
 
@@ -23,7 +23,7 @@
   overflow-y: hidden;
   flex-shrink: 0;
   background: var(--header-background, #fafafa);
-  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-bottom: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.08)));
   scrollbar-width: none;
 
   &::-webkit-scrollbar {
@@ -38,10 +38,10 @@
   padding: 5px 10px 5px 12px;
   font-size: 12px;
   font-family: "SFMono-Regular", Consolas, monospace;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--text-secondary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
   white-space: nowrap;
   cursor: pointer;
-  border-right: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+  border-right: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06)));
   background: transparent;
   transition: background 0.12s;
   min-width: 0;
@@ -49,14 +49,14 @@
   max-width: 200px;
 
   &:hover {
-    background: var(--item-hover-bg, rgba(0, 0, 0, 0.04));
-    color: var(--text-primary, rgba(0, 0, 0, 0.88));
+    background: var(--item-hover-bg, var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04)));
+    color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   }
 }
 
 .tabActive {
   background: var(--body-background, #fff);
-  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+  color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   border-bottom: 2px solid var(--primary-color, #1677ff);
 }
 
@@ -95,7 +95,7 @@
   background: transparent;
   cursor: pointer;
   border-radius: 3px;
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.25));
+  color: var(--text-tertiary, var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.25)));
   padding: 0;
   flex-shrink: 0;
   opacity: 0;
@@ -112,8 +112,8 @@
   }
 
   &:hover {
-    background: var(--item-hover-bg, rgba(0, 0, 0, 0.08));
-    color: var(--text-primary, rgba(0, 0, 0, 0.88));
+    background: var(--item-hover-bg, var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.08)));
+    color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
     opacity: 1 !important;
   }
 }
@@ -124,14 +124,14 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+  border-bottom: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06)));
   flex-shrink: 0;
   min-height: 30px;
 }
 
 .fileName {
   font-size: 11px;
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.35));
+  color: var(--text-tertiary, var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.35)));
   font-family: "SFMono-Regular", Consolas, monospace;
   flex: 1;
   overflow: hidden;
@@ -209,15 +209,15 @@
   background: transparent;
   cursor: pointer;
   border-radius: 4px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--text-secondary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
   padding: 0;
   transition:
     background 0.12s,
     color 0.12s;
 
   &:hover:not(:disabled) {
-    background: var(--item-hover-bg, rgba(0, 0, 0, 0.06));
-    color: var(--text-primary, rgba(0, 0, 0, 0.88));
+    background: var(--item-hover-bg, var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06)));
+    color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   }
 
   &:disabled {
@@ -315,12 +315,12 @@
 }
 
 .emptyIcon {
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.15));
+  color: var(--text-tertiary, var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.15)));
 }
 
 .emptyText {
   font-size: 13px;
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.25));
+  color: var(--text-tertiary, var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.25)));
   margin: 0;
 }
 
@@ -352,44 +352,19 @@
     border-bottom-color: #4da3ff;
   }
 
-  .closeBtn {
-    color: rgba(255, 255, 255, 0.4);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.88);
-    }
-  }
 
   .toolbar {
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
-  .fileName {
-    color: rgba(255, 255, 255, 0.45);
-  }
 
-  .iconBtn {
-    color: rgba(255, 255, 255, 0.55);
-
-    &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.88);
-    }
-  }
 
   .previewActiveBtn {
     color: #4da3ff !important;
     background: rgba(22, 119, 255, 0.18) !important;
   }
 
-  .emptyIcon {
-    color: rgba(255, 255, 255, 0.15);
-  }
 
-  .emptyText {
-    color: rgba(255, 255, 255, 0.35);
-  }
 
   .hunkBtn {
     background: #2a2a2a;

@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   background: var(--layout-sider-background, #fafafa);
-  border-right: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-right: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.08)));
 }
 
 // ---- Project bar (above file tree header) --------------------------------
@@ -13,7 +13,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px 6px;
-  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+  border-bottom: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06)));
   background: var(--layout-sider-background, #fafafa);
   flex-shrink: 0;
 }
@@ -21,7 +21,7 @@
 .projectName {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+  color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -39,7 +39,7 @@
   background: transparent;
   cursor: pointer;
   border-radius: 4px;
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.3));
+  color: var(--text-tertiary, var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.3)));
   padding: 0;
   transition:
     background 0.12s,
@@ -47,8 +47,8 @@
   flex-shrink: 0;
 
   &:hover {
-    background: var(--item-hover-bg, rgba(0, 0, 0, 0.06));
-    color: var(--text-secondary, rgba(0, 0, 0, 0.55));
+    background: var(--item-hover-bg, var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06)));
+    color: var(--text-secondary, var(--majo-color-text-secondary, rgba(0, 0, 0, 0.55)));
   }
 }
 
@@ -59,7 +59,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px 8px;
-  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+  border-bottom: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06)));
   flex-shrink: 0;
 }
 
@@ -68,7 +68,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--text-secondary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
 }
 
 .refreshBtn {
@@ -81,15 +81,15 @@
   background: transparent;
   cursor: pointer;
   border-radius: 4px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--text-secondary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
   padding: 0;
   transition:
     background 0.15s,
     color 0.15s;
 
   &:hover:not(:disabled) {
-    background: var(--item-hover-bg, rgba(0, 0, 0, 0.04));
-    color: var(--text-primary, rgba(0, 0, 0, 0.88));
+    background: var(--item-hover-bg, var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04)));
+    color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   }
 
   &:disabled {
@@ -127,7 +127,7 @@
   user-select: none;
 
   &:hover {
-    background: var(--item-hover-bg, rgba(0, 0, 0, 0.04));
+    background: var(--item-hover-bg, var(--majo-color-fill-tertiary, rgba(0, 0, 0, 0.04)));
   }
 
   &.selected {
@@ -144,7 +144,7 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--text-secondary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
 }
 
 .folderIcon {
@@ -152,12 +152,12 @@
 }
 
 .fileIcon {
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.25));
+  color: var(--text-tertiary, var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.25)));
 }
 
 .nodeName {
   font-size: 12.5px;
-  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+  color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -231,35 +231,13 @@
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
-  .projectName {
-    color: rgba(255, 255, 255, 0.88);
-  }
 
-  .projectSwitchBtn {
-    color: rgba(255, 255, 255, 0.45);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.7);
-    }
-  }
 
   .treeHeader {
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
-  .treeTitle {
-    color: rgba(255, 255, 255, 0.55);
-  }
 
-  .refreshBtn {
-    color: rgba(255, 255, 255, 0.55);
-
-    &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.88);
-    }
-  }
 
   .node {
     &:hover {
@@ -276,15 +254,6 @@
     }
   }
 
-  .nodeIcon {
-    color: rgba(255, 255, 255, 0.55);
-  }
 
-  .fileIcon {
-    color: rgba(255, 255, 255, 0.4);
-  }
 
-  .nodeName {
-    color: rgba(255, 255, 255, 0.85);
-  }
 }

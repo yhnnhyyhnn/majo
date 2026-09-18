@@ -17,7 +17,7 @@
   padding: 8px 0;
   gap: 4px;
   background: var(--header-background, #f0f0f0);
-  border-right: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  border-right: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.1)));
 }
 
 .actBtn {
@@ -30,15 +30,15 @@
   background: transparent;
   cursor: pointer;
   border-radius: 6px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--text-secondary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
   padding: 0;
   transition:
     background 0.12s,
     color 0.12s;
 
   &:hover {
-    background: var(--item-hover-bg, rgba(0, 0, 0, 0.07));
-    color: var(--text-primary, rgba(0, 0, 0, 0.88));
+    background: var(--item-hover-bg, var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.07)));
+    color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   }
 }
 
@@ -80,7 +80,7 @@
     position: absolute;
     inset: 0;
     margin: 0 1px;
-    background: var(--border-color, rgba(0, 0, 0, 0.08));
+    background: var(--border-color, var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.08)));
     transition: background 0.15s;
   }
 
@@ -92,7 +92,7 @@
 
 .leftPanel {
   overflow: hidden;
-  border-right: 1px solid var(--border-color, rgba(0, 0, 0, 0.07));
+  border-right: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.07)));
 }
 
 // ---- Right panel (Chat) --------------------------------------------------
@@ -100,14 +100,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-left: 1px solid var(--border-color, rgba(0, 0, 0, 0.07));
+  border-left: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.07)));
 }
 
 .chatHeader {
   display: flex;
   align-items: center;
   padding: 5px 10px;
-  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.07));
+  border-bottom: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.07)));
   flex-shrink: 0;
   height: 30px;
   background: var(--header-background, #fafafa);
@@ -118,7 +118,7 @@
   align-items: center;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.55));
+  color: var(--text-secondary, var(--majo-color-text-secondary, rgba(0, 0, 0, 0.55)));
   flex: 1;
 }
 
@@ -132,12 +132,12 @@
   background: transparent;
   cursor: pointer;
   border-radius: 3px;
-  color: var(--text-tertiary, rgba(0, 0, 0, 0.3));
+  color: var(--text-tertiary, var(--majo-color-text-quaternary, rgba(0, 0, 0, 0.3)));
   padding: 0;
 
   &:hover {
-    background: var(--item-hover-bg, rgba(0, 0, 0, 0.06));
-    color: var(--text-primary, rgba(0, 0, 0, 0.88));
+    background: var(--item-hover-bg, var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06)));
+    color: var(--text-primary, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
   }
 }
 
@@ -157,11 +157,11 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+  border: 1px solid var(--border-color, var(--majo-color-border-secondary, rgba(0, 0, 0, 0.12)));
   background: var(--body-background, #fff);
   cursor: pointer;
   border-radius: 6px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.55));
+  color: var(--text-secondary, var(--majo-color-text-secondary, rgba(0, 0, 0, 0.55)));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 0;
   z-index: 10;
@@ -183,14 +183,6 @@
     border-right-color: rgba(255, 255, 255, 0.08);
   }
 
-  .actBtn {
-    color: rgba(255, 255, 255, 0.55);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.88);
-    }
-  }
 
   .actBtnActive {
     color: #4da3ff;
@@ -215,18 +207,7 @@
     border-bottom-color: rgba(255, 255, 255, 0.08);
   }
 
-  .chatTitle {
-    color: rgba(255, 255, 255, 0.65);
-  }
 
-  .chatCloseBtn {
-    color: rgba(255, 255, 255, 0.45);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.88);
-    }
-  }
 
   .chatReopenBtn {
     background: #1f1f1f;
