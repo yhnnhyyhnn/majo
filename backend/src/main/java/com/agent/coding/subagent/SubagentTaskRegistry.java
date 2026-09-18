@@ -28,6 +28,8 @@ public class SubagentTaskRegistry {
         public volatile String status;   // running | completed | failed | cancelled
         public volatile String result;
         public volatile String error;
+        /** Live progress note while running (delegated ACP turns stream here). */
+        public volatile String progress;
         /** Live agent while running — cancelled/interrupted on stop. */
         public volatile io.agentscope.harness.agent.HarnessAgent agent;
 
@@ -66,6 +68,14 @@ public class SubagentTaskRegistry {
         if (task != null) {
             task.status = "failed";
             task.error = error;
+        }
+    }
+
+    /** Publish a live progress snapshot for a running task. */
+    public void updateProgress(String taskId, String progress) {
+        Task task = tasks.get(taskId);
+        if (task != null) {
+            task.progress = progress;
         }
     }
 

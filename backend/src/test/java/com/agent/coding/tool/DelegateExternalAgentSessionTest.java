@@ -103,7 +103,9 @@ class DelegateExternalAgentSessionTest {
         });
         feeder.start();
 
-        JsonNode resp = pump(new DelegateExternalAgentTool(null), out, in, 3, collector, deadline);
+        JsonNode resp = pump(new DelegateExternalAgentTool(
+                null, new com.agent.coding.subagent.SubagentTaskRegistry()),
+                out, in, 3, collector, deadline);
         feeder.join(2000);
 
         assertNotNull(resp, "prompt response must be returned");
@@ -133,7 +135,63 @@ class DelegateExternalAgentSessionTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Object collector = newCollector();
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(300);
-        JsonNode resp = pump(new DelegateExternalAgentTool(null), out, in, 3, collector, deadline);
+        JsonNode resp = pump(new DelegateExternalAgentTool(
+                null, new com.agent.coding.subagent.SubagentTaskRegistry()),
+                out, in, 3, collector, deadline);
         assertNull(resp, "EOF without response → null");
+    }
+
+    // ── Phase 3: background progress ─────────────────────────────────
+
+    @Test
+    void frameCollectorPublishesProgressSnapshots() throws Exception {
+        Class<?> c = Class.forName(
+                "com.agent.coding.tool.DelegateExternalAgentTool$FrameCollector");
+        java.util.List<String> snapshots =
+                java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        Object collector = c.getDeclaredConstructor(java.util.function.Consumer.class)
+                .newInstance((java.util.function.Consumer<String>) snapshots::add);
+
+        Method onUpdate = c.getDeclaredMethod("onSessionUpdate",
+                com.fasterxml.jackson.databind.JsonNode.class);
+        onUpdate.setAccessible(true);
+
+        onUpdate.invoke(collector, MAPPER.readTree(MAPPER.writeValueAsString(Map.of(
+                "sessionUpdate", "agent_message_chunk",
+                "content", Map.of("type", "text", "text", "进度测试")))));
+        onUpdate.invoke(collector, MAPPER.readTree(MAPPER.writeValueAsString(Map.of(
+                "sessionUpdate", "tool_call", "toolCallId", "t1",
+                "title", "read_file", "status", "in_progress"))));
+
+        assertEquals(2, snapshots.size(), "one snapshot per update");
+        String latest = snapshots.get(snapshots.size() - 1);
+        assertTrue(latest.contains("4 字回复"), latest);
+        assertTrue(latest.contains("1 次工具调用"), latest);
+        assertTrue(latest.contains("read_file"), latest);
+    }
+
+    @Test
+    void backgroundDelegateRejectsUnconfiguredAgent() {
+        var registry = new com.agent.coding.subagent.SubagentTaskRegistry();
+        DelegateExternalAgentTool tool = new DelegateExternalAgentTool(null, registry);
+        String reply = tool.delegateExternalAgent("do something", "no-such-acp-agent", true);
+        assertTrue(reply.contains("未配置"), reply);
+        assertEquals(0, registry.size(), "no task registered for unconfigured agent");
+    }
+
+    @Test
+    void backgroundTaskResultStreamsIntoRegistry() {
+        // The wrapper contract: progress lands before completion and a
+        // completed task is no longer mutated by late progress updates.
+        var registry = new com.agent.coding.subagent.SubagentTaskRegistry();
+        var task = registry.register("acp:test");
+        registry.updateProgress(task.taskId, "已收集 12 字回复、2 次工具调用");
+        assertEquals("running", task.status);
+        assertEquals("已收集 12 字回复、2 次工具调用", task.progress);
+
+        registry.complete(task.taskId, "done");
+        registry.updateProgress(task.taskId, "late update after completion");
+        assertEquals("completed", task.status);
+        assertEquals("done", task.result);
     }
 }

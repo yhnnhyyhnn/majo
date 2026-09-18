@@ -34,6 +34,12 @@ import java.util.concurrent.TimeUnit;
  * ({@code session/request_permission} etc.) are answered on the pipe —
  * permission requests are denied (no human watches this pipe), anything else
  * is rejected with a JSON-RPC error — so a runner can never hang us.
+ *
+ * <p><b>Phase 3</b>: {@code background=true} registers the delegation in
+ * {@link com.agent.coding.subagent.SubagentTaskRegistry}, returns a task id
+ * immediately and runs the blocking flow on a daemon pool; every
+ * {@code session/update} publishes a progress snapshot the caller can poll
+ * via {@code check_agent_task}.
  */
 @Component
 public class DelegateExternalAgentTool {
@@ -42,23 +48,73 @@ public class DelegateExternalAgentTool {
     private static final long TIMEOUT_SECONDS = 300;
     private static final int MAX_RESULT_CHARS = 16_000;
 
-    private final com.agent.coding.acp.AcpPermissionBridge permissionBridge;
+    /** Daemon pool for background delegations (phase 3). */
+    private static final java.util.concurrent.ExecutorService BACKGROUND_POOL =
+            java.util.concurrent.Executors.newCachedThreadPool(r -> {
+                Thread t = new Thread(r, "acp-delegate");
+                t.setDaemon(true);
+                return t;
+            });
 
-    public DelegateExternalAgentTool(com.agent.coding.acp.AcpPermissionBridge permissionBridge) {
+    private final com.agent.coding.acp.AcpPermissionBridge permissionBridge;
+    private final com.agent.coding.subagent.SubagentTaskRegistry taskRegistry;
+
+    public DelegateExternalAgentTool(com.agent.coding.acp.AcpPermissionBridge permissionBridge,
+                                     com.agent.coding.subagent.SubagentTaskRegistry taskRegistry) {
         this.permissionBridge = permissionBridge;
+        this.taskRegistry = taskRegistry;
     }
     private static final int MAX_TRACE_LINES = 12;
 
     @Tool(name = "delegate_external_agent",
-            description = "把任务委托给外部 ACP Agent(如 opencode/qwen --acp/claude-code-acp)")
+            description = "把任务委托给外部 ACP Agent(如 opencode/qwen --acp/claude-code-acp)。"
+                    + "background=true 时立即返回 task_id 并后台执行,进度与结果用 check_agent_task 查询。")
     public String delegateExternalAgent(
         @ToolParam(name = "task", description = "要委托的任务描述") String task,
-        @ToolParam(name = "agent_name", description = "ACP Agent 名称(默认 opencode)") String agentName
+        @ToolParam(name = "agent_name", description = "ACP Agent 名称(默认 opencode)") String agentName,
+        @ToolParam(name = "background", required = false,
+                description = "true=后台运行并立即返回 task_id;默认同步等待结果") Boolean background
     ) {
         if (task == null || task.isBlank()) {
             return "错误: task 不能为空";
         }
         String name = agentName == null || agentName.isBlank() ? "opencode" : agentName.trim();
+        if (Boolean.TRUE.equals(background)) {
+            return submitBackground(name, task);
+        }
+        return runBlocking(name, task, null);
+    }
+
+    /** Register a background task and run the blocking flow on the daemon pool. */
+    private String submitBackground(String name, String task) {
+        var entry = acpAgentEntry(name);
+        if (entry == null) {
+            return "错误: ACP Agent '" + name + "' 未配置或在 /api/config/acp 中已禁用";
+        }
+        var registered = taskRegistry.register("acp:" + name);
+        String taskId = registered.taskId;
+        BACKGROUND_POOL.submit(() -> {
+            try {
+                String result = runBlocking(name, task, taskId);
+                // A cancelled task keeps its cancelled status (wrapper skips complete).
+                if ("running".equals(registered.status)) {
+                    if (result == null || result.isBlank()) {
+                        taskRegistry.fail(taskId, "外部 Agent 未返回结果(可能不支持 ACP 协议或执行超时)");
+                    } else {
+                        taskRegistry.complete(taskId, result);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("[delegate:{}] background task {} failed: {}", name, taskId, e.getMessage());
+                taskRegistry.fail(taskId, String.valueOf(e.getMessage()));
+            }
+        });
+        return "已在后台启动外部 Agent '" + name + "'。\ntask_id: " + taskId
+                + "\n进度与结果用 check_agent_task(task_id=\"" + taskId + "\") 查询。";
+    }
+
+    /** Blocking delegation; {@code progressTaskId} non-null streams live progress into the registry. */
+    private String runBlocking(String name, String task, String progressTaskId) {
         try {
             Map<String, Object> entry = acpAgentEntry(name);
             if (entry == null) {
@@ -88,7 +144,9 @@ public class DelegateExternalAgentTool {
                 sendRaw(out, 1, "initialize", Map.of("protocolVersion", 1, "clientCapabilities", Map.of()));
                 readResponse(in); // initialize reply
 
-                result = runSessionFlow(out, in, process, task);
+                java.util.function.Consumer<String> progressSink = progressTaskId == null
+                        ? null : snapshot -> taskRegistry.updateProgress(progressTaskId, snapshot);
+                result = runSessionFlow(out, in, process, task, progressSink);
                 if (result == null) {
                     // Runner rejected session/new (legacy agent/task only).
                     log.info("[delegate:{}] no session API, falling back to agent/task", name);
@@ -113,11 +171,12 @@ public class DelegateExternalAgentTool {
 
     /** Returns the agent's answer, or null when the runner has no session API. */
     private String runSessionFlow(Writer out, java.io.InputStream in, Process process,
-                                  String task) throws Exception {
+                                  String task, java.util.function.Consumer<String> progressSink)
+            throws Exception {
         sendRaw(out, 2, "session/new", Map.of(
                 "cwd", com.agent.coding.WorkspaceContext.get().toString(),
                 "mcpServers", List.of()));
-        FrameCollector collector = new FrameCollector();
+        FrameCollector collector = new FrameCollector(progressSink);
         com.fasterxml.jackson.databind.JsonNode newSess =
                 pumpUntilResponse(out, in, process, 2, permissionBridge, collector, System.nanoTime());
         if (newSess == null) {
@@ -187,6 +246,16 @@ public class DelegateExternalAgentTool {
         /** toolCallId → "title — status" (insertion-ordered trace). */
         final LinkedHashMap<String, String> toolTrace = new LinkedHashMap<>();
         boolean expectStopReason;
+        /** Nullable: receives a compact progress snapshot after each update (phase 3). */
+        private final java.util.function.Consumer<String> progressSink;
+
+        FrameCollector() {
+            this(null);
+        }
+
+        FrameCollector(java.util.function.Consumer<String> progressSink) {
+            this.progressSink = progressSink;
+        }
 
         void onSessionUpdate(com.fasterxml.jackson.databind.JsonNode update) {
             String variant = update.path("sessionUpdate").asText("");
@@ -218,6 +287,22 @@ public class DelegateExternalAgentTool {
                     // plan / available_commands_update / etc. — not surfaced in phase 1
                 }
             }
+            publishProgress();
+        }
+
+        /** Push a compact snapshot to the background task (null sink = no-op). */
+        void publishProgress() {
+            if (progressSink == null) {
+                return;
+            }
+            String last = null;
+            for (String v : toolTrace.values()) {
+                last = v;
+            }
+            String snapshot = "已收集 " + agentText.length() + " 字回复、"
+                    + toolTrace.size() + " 次工具调用"
+                    + (last == null || last.isBlank() ? "" : " · 最近: " + last);
+            progressSink.accept(snapshot);
         }
 
         /** Compact footer summarizing tool calls (capped). */

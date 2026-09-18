@@ -151,6 +151,7 @@ public class SubagentService {
         m.put("status", t.status);
         m.put("result", t.result);
         m.put("error", t.error);
+        m.put("progress", t.progress);
         return m;
     }
 
