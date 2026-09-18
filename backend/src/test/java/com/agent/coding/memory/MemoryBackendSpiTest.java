@@ -3,6 +3,7 @@ package com.agent.coding.memory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.attribute.FileTime;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -66,6 +67,63 @@ class MemoryBackendSpiTest {
         KeywordMemoryBackend second = new KeywordMemoryBackend();
         second.start(new MemoryBackendContext("default", workspace, Map.of(), "zh"));
         assertEquals(1, second.search("ansible", 5).size());
+    }
+
+    @Test
+    void searchAutoRefreshesOnExternalFileChange() throws Exception {
+        KeywordMemoryBackend backend = startedBackend();
+        backend.rebuild();
+        assertEquals(1, backend.search("ansible", 5).size());
+
+        // External rewrite: ansible gone, kubernetes in. Size and mtime
+        // both change so the drift signature cannot miss it.
+        Path deploy = workspace.resolve("memory").resolve("deploy.md");
+        Files.writeString(deploy,
+                "# Deploy notes\nRun the kubernetes rollout on staging servers weekly.");
+        Files.setLastModifiedTime(deploy,
+                FileTime.fromMillis(System.currentTimeMillis() + 2000));
+
+        assertEquals(0, backend.search("ansible", 5).size(),
+                "stale index served after external edit");
+        assertEquals(1, backend.search("kubernetes", 5).size(),
+                "externally added term not indexed on search");
+    }
+
+    @Test
+    void externallyAddedFileIsIndexedOnNextSearch() throws Exception {
+        KeywordMemoryBackend backend = startedBackend();
+        backend.rebuild();
+        assertTrue(backend.search("grafana", 5).isEmpty());
+
+        Files.writeString(workspace.resolve("memory").resolve("ops.md"),
+                "# Ops\nThe grafana dashboard lives at grafana.internal.");
+        Files.setLastModifiedTime(workspace.resolve("memory").resolve("ops.md"),
+                FileTime.fromMillis(System.currentTimeMillis() + 2000));
+
+        assertEquals(1, backend.search("grafana", 5).size(),
+                "externally added memory file not picked up on search");
+    }
+
+    @Test
+    void legacyPersistedIndexWithoutSignatureIsRebuiltOnce() throws Exception {
+        // An index persisted by a pre-signature build: no files_sig key.
+        Path memory = workspace.resolve("memory");
+        Files.createDirectories(memory);
+        Files.writeString(memory.resolve("deploy.md"),
+                "# Deploy notes\nRun the ansible playbook on staging servers weekly.");
+        Files.writeString(memory.resolve(".index.json"),
+                "{\"agent_id\":\"default\",\"built_at\":\"2020-01-01T00:00:00Z\","
+                        + "\"files\":{},\"index\":{}}");
+
+        KeywordMemoryBackend backend = new KeywordMemoryBackend();
+        backend.start(new MemoryBackendContext("default", workspace, Map.of(), "zh"));
+
+        // The missing files_sig counts as drift: the very first search
+        // rebuilds instead of serving the empty legacy index.
+        assertEquals(1, backend.search("ansible", 5).size(),
+                "legacy index without files_sig not refreshed on search");
+        // And the refreshed index now carries the signature.
+        assertTrue(backend.search("kubernetes", 5).isEmpty());
     }
 
     // ── Registry selection & fallback ────────────────────────────────

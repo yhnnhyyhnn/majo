@@ -21,7 +21,9 @@ import java.util.regex.Pattern;
  * Zero-dependency default memory backend: keyword inverted index over the
  * workspace {@code memory/} directory and top-level markdown files, persisted
  * to {@code memory/.index.json} (ADR-0008). Absorbs the former
- * MemoryIndexService.
+ * MemoryIndexService. Searches lazily auto-refresh when the indexed file
+ * surface drifts (path:size:mtime signature mismatch), so externally edited
+ * memory files are picked up without a manual rebuild.
  */
 @Component
 public class KeywordMemoryBackend implements MemoryBackend {
@@ -41,6 +43,8 @@ public class KeywordMemoryBackend implements MemoryBackend {
     // exactly that — search served a pre-forget index).
     private final ConcurrentHashMap<String, Map<String, Object>> lastIndexes = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Path> workspaces = new ConcurrentHashMap<>();
+    /** Per-workspace lock so concurrent searches don't double-rebuild. */
+    private final ConcurrentHashMap<String, Object> refreshLocks = new ConcurrentHashMap<>();
 
     @Override
     public String id() {
@@ -190,6 +194,7 @@ public class KeywordMemoryBackend implements MemoryBackend {
         Map<String, Object> index = new LinkedHashMap<>();
         index.put("agent_id", agentId);
         index.put("built_at", java.time.Instant.now().toString());
+        index.put("files_sig", filesSignature(workspace));
         index.put("files", fileMeta);
         index.put("index", inverted);
         lastIndexes.put(cacheKey(workspace), index);
@@ -208,14 +213,49 @@ public class KeywordMemoryBackend implements MemoryBackend {
     }
 
     private Map<String, Object> lastIndexFor(String agentId, Path workspace) {
-        Map<String, Object> index = lastIndexes.get(cacheKey(workspace));
+        String key = cacheKey(workspace);
+        Map<String, Object> index = lastIndexes.get(key);
         if (index == null) {
             index = loadPersisted(workspace);
             if (index != null) {
-                lastIndexes.put(cacheKey(workspace), index);
+                lastIndexes.put(key, index);
+            }
+        }
+        if (index != null && !filesSignature(workspace).equals(index.get("files_sig"))) {
+            // The indexed file surface drifted (agent or user edited memory
+            // files directly) — refresh lazily before serving, instead of
+            // waiting for the next remember()/explicit rebuild.
+            Object lock = refreshLocks.computeIfAbsent(key, k -> new Object());
+            synchronized (lock) {
+                index = lastIndexes.get(key);
+                if (index == null || !filesSignature(workspace).equals(index.get("files_sig"))) {
+                    rebuildForPath(workspace);
+                    index = lastIndexes.get(key);
+                }
             }
         }
         return index;
+    }
+
+    /**
+     * Cheap drift signature of the indexed file surface —
+     * {@code relPath:size:mtime} pairs in collection order. Compared
+     * against the {@code files_sig} stored in the index to detect external
+     * changes without a WatchService thread.
+     */
+    static String filesSignature(Path workspace) {
+        StringBuilder sb = new StringBuilder();
+        for (Path file : collectFiles(workspace)) {
+            sb.append(workspace.relativize(file)).append(':');
+            try {
+                sb.append(Files.size(file)).append(':')
+                        .append(Files.getLastModifiedTime(file).toMillis());
+            } catch (IOException ignored) {
+                sb.append("?:?");
+            }
+            sb.append(';');
+        }
+        return sb.toString();
     }
 
     private List<String> searchIndex(Map<String, Object> index, String query) {
