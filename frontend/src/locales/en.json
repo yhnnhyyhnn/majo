@@ -2939,6 +2939,17 @@
         "goToWhitelist": "Go to Whitelist",
         "moreFindings": "{{count}} more issues not shown (see Security → Skill Scanner for the full list)."
       }
+    },
+    "doomLoop": {
+      "title": "Doom Loop",
+      "enabled": "Enable doom-loop detection",
+      "description": "Denies repeated identical tool calls in stages — a warning first, then a hard stop. Protects the agent from burning tokens in loops.",
+      "warnAfter": "Warn after N identical calls",
+      "stopAfter": "Hard-stop after N identical calls",
+      "saved": "Doom-loop settings saved",
+      "saveFailed": "Failed to save doom-loop settings",
+      "loadFailed": "Failed to load doom-loop settings",
+      "stopMustExceedWarn": "Stop threshold must exceed the warn threshold"
     }
   },
   "login": {

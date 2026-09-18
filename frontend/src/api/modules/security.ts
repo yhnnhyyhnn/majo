@@ -100,6 +100,14 @@ export interface AllowNoAuthHostsUpdateBody {
   hosts: string[];
 }
 
+// ── Doom Loop types ────────────────────────────────────────────────
+
+export interface DoomLoopConfig {
+  enabled: boolean;
+  warn_after: number;
+  stop_after: number;
+}
+
 export const securityApi = {
   // ── Tool Guard ──────────────────────────────────────────────────
 
@@ -194,6 +202,16 @@ export const securityApi = {
 
   updateAllowNoAuthHosts: (body: AllowNoAuthHostsUpdateBody) =>
     request<AllowNoAuthHostsResponse>("/config/security/allow-no-auth-hosts", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  // ── Doom Loop ───────────────────────────────────────────────────
+
+  getDoomLoop: () => request<DoomLoopConfig>("/config/security/doom-loop"),
+
+  updateDoomLoop: (body: DoomLoopConfig) =>
+    request<DoomLoopConfig>("/config/security/doom-loop", {
       method: "PUT",
       body: JSON.stringify(body),
     }),

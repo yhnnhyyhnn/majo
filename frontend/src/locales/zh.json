@@ -2798,6 +2798,17 @@
         "goToWhitelist": "前往白名单",
         "moreFindings": "另有 {{count}} 条未列出（完整列表见 设置 → 安全 → 技能扫描）。"
       }
+    },
+    "doomLoop": {
+      "title": "死循环防护",
+      "enabled": "启用死循环检测",
+      "description": "对完全相同的重复工具调用分级拒绝——先警告后硬停止,避免智能体在循环中空烧 token。",
+      "warnAfter": "警告阈值(连续相同调用次数)",
+      "stopAfter": "硬停止阈值(连续相同调用次数)",
+      "saved": "死循环防护设置已保存",
+      "saveFailed": "保存死循环防护设置失败",
+      "loadFailed": "加载死循环防护设置失败",
+      "stopMustExceedWarn": "硬停止阈值必须大于警告阈值"
     }
   },
   "login": {

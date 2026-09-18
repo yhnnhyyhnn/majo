@@ -2475,6 +2475,17 @@
         "goToWhitelist": "ホワイトリストへ",
         "moreFindings": "他に {{count}} 件は表示していません（一覧は 設定 → セキュリティ → スキルスキャナ を参照）。"
       }
+    },
+    "doomLoop": {
+      "title": "無限ループ対策",
+      "enabled": "無限ループ検出を有効化",
+      "description": "同一ツールの同一引数での繰り返し呼び出しを段階的に拒否します(警告→強制停止)。",
+      "warnAfter": "警告しきい値(連続回数)",
+      "stopAfter": "強制停止しきい値(連続回数)",
+      "saved": "設定を保存しました",
+      "saveFailed": "保存に失敗しました",
+      "loadFailed": "読み込みに失敗しました",
+      "stopMustExceedWarn": "停止しきい値は警告しきい値より大きくしてください"
     }
   },
   "login": {

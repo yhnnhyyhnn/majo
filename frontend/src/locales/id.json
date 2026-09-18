@@ -770,6 +770,17 @@
       "edit": "Edit",
       "delete": "Hapus",
       "add": "Tambah Aturan"
+    },
+    "doomLoop": {
+      "title": "Perlindungan loop tak berujung",
+      "enabled": "Aktifkan deteksi loop",
+      "description": "Menolak panggilan alat yang identik berulang secara bertahap — peringatan dulu, lalu penghentian.",
+      "warnAfter": "Peringatan setelah N panggilan",
+      "stopAfter": "Hentikan setelah N panggilan",
+      "saved": "Pengaturan disimpan",
+      "saveFailed": "Gagal menyimpan pengaturan",
+      "loadFailed": "Gagal memuat pengaturan",
+      "stopMustExceedWarn": "Ambang penghentian harus melebihi ambang peringatan"
     }
   },
   "workspace": {

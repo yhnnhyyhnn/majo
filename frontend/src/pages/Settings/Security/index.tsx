@@ -8,6 +8,7 @@ import {
   SkillScannerSection,
   FileGuardSection,
   AllowNoAuthHostsTab,
+  DoomLoopTab,
 } from "./components";
 import { PageHeader } from "@/components/PageHeader";
 import styles from "./index.module.less";
@@ -170,6 +171,15 @@ function SecurityPage() {
               children: (
                 <AllowNoAuthHostsTab onSave={onAllowNoAuthHostsHandlersReady} />
               ),
+            },
+            {
+              key: "doomLoop",
+              label: (
+                <span className={styles.tabLabel}>
+                  {t("security.doomLoop.title")}
+                </span>
+              ),
+              children: <DoomLoopTab />,
             },
           ]}
         />

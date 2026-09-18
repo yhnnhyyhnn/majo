@@ -1425,6 +1425,17 @@
       "saveSuccess": "Đã lưu cài đặt Skill Scanner",
       "saveFailed": "Lưu thất bại",
       "loadFailed": "Tải thất bại"
+    },
+    "doomLoop": {
+      "title": "Chống vòng lặp vô hạn",
+      "enabled": "Bật phát hiện vòng lặp",
+      "description": "Từ chối theo cấp các lệnh gọi công cụ lặp lại giống hệt nhau — cảnh báo trước, dừng hẳn sau.",
+      "warnAfter": "Cảnh báo sau N lượt",
+      "stopAfter": "Dừng sau N lượt",
+      "saved": "Đã lưu cài đặt",
+      "saveFailed": "Lưu cài đặt thất bại",
+      "loadFailed": "Tải cài đặt thất bại",
+      "stopMustExceedWarn": "Ngưỡng dừng phải lớn hơn ngưỡng cảnh báo"
     }
   },
   "channels": {

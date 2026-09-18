@@ -158,4 +158,17 @@ describe("securityApi", () => {
     );
     expect(result).toEqual({ removed: true, skill_name: "my/skill" });
   });
+
+  it('getDoomLoop and updateDoomLoop hit the doom-loop endpoint', async () => {
+    const cfg = { enabled: true, warn_after: 3, stop_after: 6 } as any;
+    vi.mocked(request).mockResolvedValue(cfg);
+    const got = await securityApi.getDoomLoop();
+    expect(request).toHaveBeenCalledWith('/config/security/doom-loop');
+    expect(got).toEqual(cfg);
+    await securityApi.updateDoomLoop(cfg);
+    expect(request).toHaveBeenCalledWith('/config/security/doom-loop', {
+      method: 'PUT',
+      body: JSON.stringify(cfg),
+    });
+  });
 });

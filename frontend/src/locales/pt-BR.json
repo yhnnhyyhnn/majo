@@ -2748,6 +2748,17 @@
         "goToWhitelist": "Go to Whitelist",
         "moreFindings": "{{count}} more issues not shown (see Security → Skill Scanner for the full list)."
       }
+    },
+    "doomLoop": {
+      "title": "Proteção contra loops",
+      "enabled": "Ativar detecção de loops",
+      "description": "Recusa chamadas de ferramenta repetidas e idênticas em estágios — primeiro um aviso, depois uma parada total.",
+      "warnAfter": "Avisar após N chamadas",
+      "stopAfter": "Parar após N chamadas",
+      "saved": "Configurações salvas",
+      "saveFailed": "Falha ao salvar configurações",
+      "loadFailed": "Falha ao carregar configurações",
+      "stopMustExceedWarn": "O limite de parada deve exceder o de aviso"
     }
   },
   "login": {
