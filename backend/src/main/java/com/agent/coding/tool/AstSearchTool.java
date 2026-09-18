@@ -58,19 +58,32 @@ public class AstSearchTool {
 
     @Tool(name = "ast_search",
             description = "结构化代码搜索（ast-grep 语法）: $NAME 匹配单节点, $$$NAME 匹配多节点, "
-                    + "如 \"def $FUNC($$$ARGS): $$$BODY\"。只读; language 必填(java/python/typescript/...")
+                    + "如 \"def $FUNC($$$ARGS): $$$BODY\"。只读; language 必填(java/python/typescript/...)。"
+                    + "类字段等节点 pattern 不可达(上游限制),改用 kind 搜索:"
+                    + " Java 字段用 kind=field_declaration,方法用 method_declaration,类用 class_declaration;"
+                    + " kind 模式下 pattern 可选,解释为节点文本的正则过滤器。")
     public String astSearch(
-        @ToolParam(name = "pattern", description = "ast-grep 模式") String pattern,
+        @ToolParam(name = "pattern", description = "ast-grep 模式(kind 省略时必填;kind 模式下为节点文本正则过滤器)") String pattern,
         @ToolParam(name = "language", description = "语言(java/python/typescript/javascript/go/rust/c/cpp...)")
         String language,
         @ToolParam(name = "path", description = "限定目录或文件(可选,相对工作区,空=全项目)") String path,
-        @ToolParam(name = "max_matches", description = "最大匹配数(可选,默认200,上限1000)") Integer maxMatches
+        @ToolParam(name = "max_matches", description = "最大匹配数(可选,默认200,上限1000)") Integer maxMatches,
+        @ToolParam(name = "kind", required = false,
+                description = "AST 节点类型(可选,如 field_declaration)。用于 pattern 不可达的节点;"
+                        + " 提供 kind 时 pattern 变为可选的节点文本正则过滤器") String kind
     ) {
         if (!codingModeService.isEnabled(agentIdOf())) {
             return CodingModeService.disabledReply();
         }
-        if (pattern == null || pattern.isBlank() || language == null || language.isBlank()) {
-            return "错误: pattern 与 language 均为必填。";
+        boolean kindMode = kind != null && !kind.isBlank();
+        if (kindMode && !kind.strip().matches("[A-Za-z0-9_]+")) {
+            return "错误: kind 仅允许字母/数字/下划线(如 field_declaration)。";
+        }
+        if ((pattern == null || pattern.isBlank()) && !kindMode) {
+            return "错误: pattern 与 kind 至少一项必填。";
+        }
+        if (language == null || language.isBlank()) {
+            return "错误: language 为必填。";
         }
         int limit = maxMatches == null ? 200 : Math.max(1, Math.min(maxMatches, 1000));
 
@@ -83,12 +96,21 @@ public class AstSearchTool {
         Path workspace = WorkspaceContext.get();
         List<String> cmd = new ArrayList<>();
         cmd.add(binary);
-        cmd.add("run");
-        cmd.add("--pattern");
-        cmd.add(pattern);
-        cmd.add("--lang");
-        cmd.add(language.strip());
-        cmd.add("--json=compact");
+        if (kindMode) {
+            // Structural rule (official workaround for nodes unreachable by
+            // patterns — Java field declarations, #see ast-grep catalog/java).
+            cmd.add("scan");
+            cmd.add("--inline-rules");
+            cmd.add(buildRuleYaml(kind.strip(), pattern, language.strip()));
+            cmd.add("--json=compact");
+        } else {
+            cmd.add("run");
+            cmd.add("--pattern");
+            cmd.add(pattern);
+            cmd.add("--lang");
+            cmd.add(language.strip());
+            cmd.add("--json=compact");
+        }
         if (path != null && !path.isBlank()) {
             cmd.add(workspace.resolve(path.strip()).normalize().toString());
         }
@@ -125,6 +147,25 @@ public class AstSearchTool {
                 proc.destroyForcibly();
             }
         }
+    }
+
+    /**
+     * Build the inline rule YAML for kind-based search. A pattern given in
+     * kind mode acts as a text-regex filter on the node — ast-grep patterns
+     * cannot reduce to children of the kind node (verified against 0.45.3:
+     * {@code has}/{@code inside} compositions both return nothing), while
+     * {@code regex} reliably filters the node's own text.
+     */
+    static String buildRuleYaml(String kind, String pattern, String language) {
+        StringBuilder yaml = new StringBuilder("rule:\n");
+        yaml.append("  kind: ").append(kind).append('\n');
+        if (pattern != null && !pattern.isBlank()) {
+            yaml.append("  regex: '")
+                    .append(pattern.strip().replace("'", "''"))
+                    .append("'\n");
+        }
+        yaml.append("language: ").append(language);
+        return yaml.toString();
     }
 
     /** Parse ast-grep compact JSON output into the model-facing report. */

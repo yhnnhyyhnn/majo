@@ -47,7 +47,7 @@ class CodingToolsTest {
     void astSearchDisabledReturnsReadableGateReply() {
         AstSearchTool tool = new AstSearchTool(toggle(false));
         WorkspaceContext.set(workspace.toString());
-        String out = tool.astSearch("def $F(): $$$B", "python", "", null);
+        String out = tool.astSearch("def $F(): $$$B", "python", "", null, null);
         assertTrue(out.contains("Coding Mode 未启用"), out);
     }
 
@@ -55,15 +55,15 @@ class CodingToolsTest {
     void astSearchRequiresPatternAndLanguage() {
         AstSearchTool tool = new AstSearchTool(toggle(true));
         WorkspaceContext.set(workspace.toString());
-        assertTrue(tool.astSearch(" ", "python", "", null).contains("必填"));
-        assertTrue(tool.astSearch("def $F()", " ", "", null).contains("必填"));
+        assertTrue(tool.astSearch(" ", "python", "", null, null).contains("必填"));
+        assertTrue(tool.astSearch("def $F()", " ", "", null, null).contains("必填"));
     }
 
     @Test
     void astSearchMissingBinaryGivesInstallHint() {
         AstSearchTool tool = new AstSearchTool(toggle(true));
         WorkspaceContext.set(workspace.toString());
-        String out = tool.astSearch("def $F(): $$$B", "python", "", null);
+        String out = tool.astSearch("def $F(): $$$B", "python", "", null, null);
         if (AstSearchTool.detectBinary() == null) {
             assertTrue(out.contains("ast-grep 未安装"), out);
             assertTrue(out.contains("pip install ast-grep-cli"), out);
