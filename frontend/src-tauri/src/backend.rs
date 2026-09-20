@@ -354,6 +354,8 @@ fn start(app: &tauri::AppHandle) {
     state.clear_startup_state();
     let shutdown_token = Uuid::new_v4().to_string();
 
+    kill_orphaned_backend();
+
     let command = match command::create(app) {
         Ok(command) => command,
         Err(message) => {
@@ -382,6 +384,9 @@ fn start(app: &tauri::AppHandle) {
 
     let child_pid = child.pid();
     log::info!("[backend] spawned generation={generation} pid={child_pid}");
+    // Record the sidecar PID so the next launch can clean up an orphan left
+    // behind by an externally force-killed shell.
+    let _ = std::fs::write(std::path::Path::new(&majo_working_dir()).join("backend.pid"), child_pid.to_string());
     let (terminated_sender, terminated_receiver) = watch::channel(false);
     state.with_inner(|inner| {
         inner.child = Some(child);
@@ -390,6 +395,33 @@ fn start(app: &tauri::AppHandle) {
         inner.stopping = false;
     });
     events::watch(app.clone(), generation, rx, terminated_sender);
+}
+
+/// Kills backend sidecars orphaned by a previous run whose shell was
+/// externally force-killed (crash / Task Manager): the shell's own graceful
+/// handlers cannot run in that case, so the sidecar lingers holding the
+/// desktop port and the data-dir lock. Any java process carrying the
+/// packaged backend jar on its command line is an orphaned sidecar of
+/// ours — no pid bookkeeping needed.
+fn kill_orphaned_backend() {
+    let output = std::process::Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-Command",
+            "Get-CimInstance Win32_Process -Filter \"name='java.exe'\" | Where-Object { $_.CommandLine -like '*majo-backend.jar*' } | Select-Object -ExpandProperty ProcessId",
+        ])
+        .output();
+    let Ok(out) = output else {
+        return;
+    };
+    for pid in String::from_utf8_lossy(&out.stdout).split_whitespace() {
+        if let Ok(pid) = pid.parse::<u32>() {
+            log::info!("[backend] killing orphaned sidecar pid={pid}");
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/PID", &pid.to_string()])
+                .output();
+        }
+    }
 }
 
 /// Resolve the Majo data directory for the sidecar.
