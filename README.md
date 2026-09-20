@@ -72,7 +72,7 @@ Majo 可以打包成原生桌面应用：`frontend/src-tauri/` 是一套 Tauri 2
 - 自动更新（updater）已配置:更新签名密钥对（minisign/Ed25519）在本机生成,公钥烧入应用,检查端点指向 GitHub Releases 的 `latest.json`
 - 签名私钥位于 `frontend/src-tauri/keys/majo.key`(已加入 .gitignore,**永不提交**;备份到密码管理器,丢失将无法为已装用户推送更新;回退查找 `%USERPROFILE%\.tauri\majo.key`)
 - 打包脚本按上述顺序自动加载私钥;CI 自动签名需将私钥配置为仓库 Secret `TAURI_SIGNING_PRIVATE_KEY`
-- 发布桌面更新 = 用打包脚本产出签名工件,把安装包与 `latest.json` 上传到 GitHub Releases
+- 发布桌面更新:推送 `v*` tag 触发 `desktop-release` 工作流——自动构建+签名,并把安装包、`.sig` 与 `latest.json` 附到 GitHub Release(工作流在 Secret 缺失时快速失败并提示);本地手动发布仍可用打包脚本 + 手动上传
 
 ### 桌面构建
 

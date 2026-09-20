@@ -1,0 +1,89 @@
+name: Desktop Release
+
+# On a version tag: build the Windows desktop bundle, sign the updater
+# artifacts with TAURI_SIGNING_PRIVATE_KEY, and attach the installer +
+# signature + latest.json to the GitHub Release so the in-app updater
+# (endpoint = releases/latest/download/latest.json) can serve it.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  desktop:
+    name: Build and sign Windows desktop bundle
+    runs-on: windows-latest
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fail fast when the signing secret is missing
+        shell: pwsh
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            Write-Error "Repository secret TAURI_SIGNING_PRIVATE_KEY is not configured - desktop updates cannot be signed. Add it under Settings > Secrets and variables > Actions (content of frontend/src-tauri/keys/majo.key)."
+            exit 1
+          }
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/src-tauri/target
+          key: desktop-cargo-${{ runner.os }}-${{ hashFiles('frontend/src-tauri/Cargo.lock') }}
+
+      - name: Build desktop bundle (signing key loaded via env)
+        shell: pwsh
+        run: ./scripts/pack-tauri/build-desktop.ps1
+
+      - name: Collect updater artifacts (latest.json)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:GITHUB_REF_NAME
+          $ver = $tag.TrimStart('v')
+          $bundleDir = 'frontend/src-tauri/target/release/bundle/nsis'
+          $setup = Get-ChildItem "$bundleDir/*_x64-setup.exe" | Select-Object -First 1
+          if (-not $setup) { Write-Error 'installer not found'; exit 1 }
+          $signature = (Get-Content "$($setup.FullName).sig" -Raw).Trim()
+          $encodedName = $setup.Name -replace ' ', '%20'
+          $url = "https://github.com/${{ github.repository }}/releases/download/$tag/$encodedName"
+          $latest = @{
+            version = $ver
+            notes = "Majo $ver desktop installer (Windows x64)"
+            platforms = @{
+              'windows-x86_64' = @{ signature = $signature; url = $url }
+            }
+          } | ConvertTo-Json -Depth 5
+          Set-Content -Path latest.json -Value $latest -Encoding utf8
+          Write-Host "latest.json -> $url"
+
+      - name: Attach artifacts to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            frontend/src-tauri/target/release/bundle/nsis/*_x64-setup.exe
+            frontend/src-tauri/target/release/bundle/nsis/*_x64-setup.exe.sig
+            latest.json
