@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
-import "./i18n";
+import { i18nReady } from "./i18n";
 // Configure Monaco to load from the local bundle instead of the CDN so the
 // Coding page works offline (issue #6261). Side-effect import, must run before
 // any Monaco editor mounts.
@@ -89,4 +89,20 @@ if (typeof window !== "undefined") {
   };
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Mount after the active locale settles (lazy-loaded via the i18next
+// backend), but never wait longer than 3s — a slow locale chunk must not
+// block the first paint; the UI re-renders translated once it lands.
+const INITIAL_RENDER_TIMEOUT_MS = 3000;
+
+const i18nSettled = Promise.race([
+  i18nReady.catch((error: unknown) => {
+    console.error("Failed to initialize translations:", error);
+  }),
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, INITIAL_RENDER_TIMEOUT_MS);
+  }),
+]);
+
+void i18nSettled.then(() => {
+  createRoot(document.getElementById("root")!).render(<App />);
+});

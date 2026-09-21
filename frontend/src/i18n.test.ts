@@ -10,9 +10,13 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 //
 // src/i18n.ts initializes the singleton from localStorage at import time,
 // so every test needs a fresh module graph.
-const freshI18n = async () => {
+const freshI18nModule = async () => {
   vi.resetModules();
-  const mod = await import("./i18n");
+  return import("./i18n");
+};
+
+const freshI18n = async () => {
+  const mod = await freshI18nModule();
   const i18n = mod.default;
   if (!i18n.isInitialized) {
     await new Promise((resolve) => i18n.on("initialized", resolve));
@@ -63,5 +67,41 @@ describe("i18n regional-variant bundle resolution", () => {
     await i18n.changeLanguage("vi");
 
     expect(i18n.resolvedLanguage).toBe("vi");
+  });
+
+  // ── Lazy locale loading (#7829 port) ─────────────────────────────
+
+  it("retries a locale after its first load fails", async () => {
+    const mod = await freshI18nModule();
+    vi.spyOn(mod.localeLoaders, "zh")
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockResolvedValueOnce({ common: { loading: "加载中..." } });
+
+    await expect(mod.loadLocale("zh")).rejects.toThrow("network error");
+    await expect(mod.loadLocale("zh")).resolves.toEqual({
+      common: { loading: "加载中..." },
+    });
+  });
+
+  it("logs and falls back to English when a locale fails to load", async () => {
+    const error = new Error("network error");
+    const mod = await freshI18nModule();
+    vi.spyOn(mod.localeLoaders, "zh").mockRejectedValueOnce(error);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    const i18n = await (async () => mod.default)();
+    await i18n.changeLanguage("zh");
+
+    expect(i18n.resolvedLanguage).toBe("zh");
+    expect(consoleError).toHaveBeenCalledWith(
+      'Failed to load locale "zh", falling back:',
+      error,
+    );
+    // Fallback to bundled English keeps the UI functional.
+    expect(i18n.t("agentStats.agentUsageTitle")).toBe(
+      "Token Usage by Agent",
+    );
   });
 });
