@@ -3146,7 +3146,9 @@
       "submitted": "Отправлено"
     },
     "execute": "Запустить {{tool}}",
-    "executeDefault": "Запустить инструмент"
+    "executeDefault": "Запустить инструмент",
+    "interrupted": "Вызов инструмента был прерван до возврата результата.",
+    "interruptedTitle": "Прервано"
   },
   "loop": {
     "gotoSettings": "Настройки Loop агента",

@@ -5,6 +5,24 @@ majo master）。原则:只移植 majo 架构下可验证、有真实价值的�
 上游专属子系统(Hub/creator/pawapp/telemetry/数据应用)与绑定其
 vendor SDK 内部的修复一律跳过。
 
+## 2026-09-21 扫描(main @ 24567462,新增 10 提交)
+
+- **#7345 工具卡停止后悬挂 calling → 已移植**:新增
+  ToolCallTurnContext(turn 结束信号,Chat 页以 !chatLoading 提供),
+  v1Adapter 派生状态收口悬挂调用为 interrupted;ToolCardShell 区分
+  "中断"与"工具失败";i18n 全 7 语言;4 个新单测。
+- #7902 文件标签激活时刷新缓存 → 后续候选:其 FilesWorkspace 与
+  majo 的 codingTabsStore 结构不同,需单独评估 majo 编辑器是否有
+  同类陈旧缓存问题。
+- #7897 项目目录选择器改进 → 后续候选(其 FilesWorkspace 专属)。
+- #7829 聊天依赖拆分 + locale 懒加载 → 后续候选(纯性能,majo 打包
+  1.7MB 主 chunk 同样受益)。
+- #6399 ReMe reranker 配置面板 → 跳过:其 ReMe 记忆子系统专属,
+  majo 记忆后端无 reranker 概念。
+- #7886 input_audio 拒绝处理 → 低价值(边界错误处理)。
+- #7894 纯测试(覆盖 Statement+1027)/ #7863 Windows CI 稳定 /
+  #7901 发布 CI / v2.2.2b4 bump → 上游专属,跳过。
+
 ## 2026-09-18 扫描(main @ 549a7f3c,新增 12 提交)
 
 - **#7852 技能池批量广播 → 已移植**(cbedbef):批量模式工具栏新增

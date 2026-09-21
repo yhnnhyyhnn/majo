@@ -3,6 +3,7 @@ import {
   IAgentScopeRuntimeWebUIOptions,
   type IAgentScopeRuntimeWebUIRef,
 } from "@agentscope-ai/chat";
+import { ToolCallTurnEndedContext } from "../../components/Chat/ToolCards/shared/ToolCallTurnContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Drawer, Empty, Modal, Result, Tooltip } from "antd";
 import { useAppMessage } from "../../hooks/useAppMessage";
@@ -3226,11 +3227,13 @@ export default function ChatPage() {
               : styles.chatMessagesArea
           }
         >
-          <AgentScopeRuntimeWebUI
-            ref={chatRef}
-            key={refreshKey}
-            options={options}
-          />
+          <ToolCallTurnEndedContext.Provider value={chatLoading === false}>
+            <AgentScopeRuntimeWebUI
+              ref={chatRef}
+              key={refreshKey}
+              options={options}
+            />
+          </ToolCallTurnEndedContext.Provider>
         </div>
 
         {/* Rate-limit guidance banner */}

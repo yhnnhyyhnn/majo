@@ -3364,7 +3364,9 @@
       "submitted": "已提交"
     },
     "execute": "执行 {{tool}}",
-    "executeDefault": "执行 工具"
+    "executeDefault": "执行 工具",
+    "interrupted": "工具调用在返回结果前被中断。",
+    "interruptedTitle": "已中断"
   },
   "preview": {
     "error": {

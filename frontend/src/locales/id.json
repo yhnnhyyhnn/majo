@@ -1736,7 +1736,9 @@
       "submitted": "Dikirim"
     },
     "execute": "Jalankan {{tool}}",
-    "executeDefault": "Jalankan alat"
+    "executeDefault": "Jalankan alat",
+    "interrupted": "Panggilan alat dihentikan sebelum mengembalikan hasil.",
+    "interruptedTitle": "Dihentikan"
   },
   "models": {
     "llmConfiguration": "Konfigurasi LLM",

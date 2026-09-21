@@ -3186,7 +3186,9 @@
       "submitted": "Enviado"
     },
     "execute": "Executar {{tool}}",
-    "executeDefault": "Executar ferramenta"
+    "executeDefault": "Executar ferramenta",
+    "interrupted": "A chamada da ferramenta foi interrompida antes de retornar um resultado.",
+    "interruptedTitle": "Interrompida"
   },
   "loop": {
     "gotoSettings": "Configurações de Loop do Agente",

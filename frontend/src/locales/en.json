@@ -3345,7 +3345,9 @@
       "submitted": "Submitted"
     },
     "execute": "Run {{tool}}",
-    "executeDefault": "Run tool"
+    "executeDefault": "Run tool",
+    "interrupted": "Tool call was interrupted before it returned a result.",
+    "interruptedTitle": "Interrupted"
   },
   "preview": {
     "error": {

@@ -3131,7 +3131,9 @@
       "submitted": "送信済み"
     },
     "execute": "{{tool}} を実行",
-    "executeDefault": "ツールを実行"
+    "executeDefault": "ツールを実行",
+    "interrupted": "ツール呼び出しは結果を返す前に中断されました。",
+    "interruptedTitle": "中断済み"
   },
   "loop": {
     "gotoSettings": "エージェント Loop 設定",

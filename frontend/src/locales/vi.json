@@ -1667,7 +1667,9 @@
     "updateMemory": "Cập nhật bộ nhớ",
     "deleteMemory": "Xóa bộ nhớ",
     "inputProgress": "Đã nhận {{count}} ký tự",
-    "rawInputPreview": "Đầu vào thô trực tiếp (4.096 ký tự cuối)"
+    "rawInputPreview": "Đầu vào thô trực tiếp (4.096 ký tự cuối)",
+    "interrupted": "Lời gọi công cụ bị gián đoạn trước khi trả về kết quả.",
+    "interruptedTitle": "Đã gián đoạn"
   },
   "sessions": {
     "title": "Phiên làm việc",
