@@ -12,7 +12,6 @@ WORKDIR /src
 
 COPY pom.xml ./
 COPY backend/pom.xml backend/
-COPY backend/local-repo/ backend/local-repo/
 RUN mvn -f backend/pom.xml dependency:go-offline -B -q
 
 COPY backend/ backend/

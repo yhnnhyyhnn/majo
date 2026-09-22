@@ -267,7 +267,6 @@ majo/
 │   │   ├── application-desktop.yml          # desktop profile (lazy-init + no swagger)
 │   │   ├── builtin-skills/                  # 17 built-in skills (classpath)
 │   │   └── db/migration/                    # Flyway migrations (V1-V27)
-│   └── local-repo/                          # AgentScope jars (local Maven repo)
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/Chat/                      # chat UI

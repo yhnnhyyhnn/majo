@@ -267,7 +267,6 @@ majo/
 │   │   ├── application-desktop.yml          # 桌面 profile (lazy-init + 关 swagger)
 │   │   ├── builtin-skills/                  # 17 个内置技能 (classpath)
 │   │   └── db/migration/                    # Flyway 迁移脚本 (V1-V27)
-│   └── local-repo/                          # AgentScope jar (本地 Maven 仓库)
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/Chat/                      # 聊天界面
