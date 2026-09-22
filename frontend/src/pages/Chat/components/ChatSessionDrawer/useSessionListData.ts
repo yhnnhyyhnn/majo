@@ -310,7 +310,9 @@ export function useSessionListData(
     if (!editingSessionId) return;
     const session = sessions.find((s) => s.id === editingSessionId);
     const backendId = session ? getBackendId(session) : null;
-    const newName = editValue.trim();
+    // Bound persisted names (#7846 port): unbounded strings bloat the
+    // session list UI and the database.
+    const newName = editValue.trim().slice(0, 500);
     if (backendId && newName) {
       await chatApi.updateChat(backendId, { name: newName });
     }

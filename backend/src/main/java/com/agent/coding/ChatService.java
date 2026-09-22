@@ -16,6 +16,10 @@ import java.util.UUID;
 @Service
 public class ChatService {
 
+    /** Bound for persisted chat names (QwenPaw #7846): the rename field is
+     *  free-form user input and unbounded strings bloat the session list. */
+    public static final int CHAT_NAME_MAX_LENGTH = 500;
+
     private final ChatRepository chatRepo;
     private final MessageRepository msgRepo;
 
@@ -162,11 +166,19 @@ public class ChatService {
     public ChatEntity rename(String chatId, String title) {
         var chat = chatRepo.findById(chatId).orElse(null);
         if (chat != null) {
-            chat.setTitle(title);
+            chat.setTitle(boundName(title));
             chat.setUpdatedAt(LocalDateTime.now());
             chatRepo.save(chat);
         }
         return chat;
+    }
+
+    /** Truncate over-long names so unbounded user input can't bloat the
+     *  session list (QwenPaw #7846). */
+    private static String boundName(String title) {
+        if (title == null) return "New Chat";
+        return title.length() > CHAT_NAME_MAX_LENGTH
+                ? title.substring(0, CHAT_NAME_MAX_LENGTH) : title;
     }
 
     @Transactional

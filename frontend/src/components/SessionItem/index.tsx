@@ -181,6 +181,7 @@ const SessionItem: React.FC<SessionItemProps> = ({
             autoFocus
             size="small"
             value={editValue}
+            maxLength={500}
             className={styles.renameInput}
             onChange={(e) => onEditChange?.(e.target.value)}
             onCompositionStart={() => {
