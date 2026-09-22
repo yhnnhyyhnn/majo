@@ -42,6 +42,10 @@ import { isDesktopTauriRuntime } from "./utils/openExternalLink";
 import { interceptBlankLinkClicks } from "./utils/interceptBlankLinkClicks";
 import "./styles/layout.css";
 import "./styles/form-override.css";
+// KaTeX base styles so math in AI responses (rendered by @ant-design/x-markdown)
+// displays properly (QwenPaw #7909 port). The katex JS ships transitively
+// with the markdown renderer; only the stylesheet was missing.
+import "katex/dist/katex.min.css";
 
 const antdLocaleMap: Record<string, Locale> = {
   zh: zhCN,
