@@ -187,4 +187,40 @@ describe("codingTabsStore", () => {
     expect(result.current).toHaveLength(1);
     expect(result.current[0].path).toBe("x.ts");
   });
+
+  // ---------------------------------------------------------------------------
+  // Action: refreshTab (#7902 port)
+  // ---------------------------------------------------------------------------
+
+  it("refreshTab updates content of a clean tab", () => {
+    useCodingTabsStore.setState({
+      tabsByAgent: {
+        "agent-x": [{ path: "a.md", content: "stale", dirty: false }],
+      },
+      activeTabByAgent: {},
+      diffsByAgent: {},
+    });
+
+    useCodingTabsStore.getState().refreshTab("agent-x", "a.md", "fresh");
+
+    const tabs = useCodingTabsStore.getState().tabsByAgent["agent-x"];
+    expect(tabs[0].content).toBe("fresh");
+    expect(tabs[0].dirty).toBe(false);
+  });
+
+  it("refreshTab never clobbers a tab with unsaved edits", () => {
+    useCodingTabsStore.setState({
+      tabsByAgent: {
+        "agent-x": [{ path: "a.md", content: "my edits", dirty: true }],
+      },
+      activeTabByAgent: {},
+      diffsByAgent: {},
+    });
+
+    useCodingTabsStore.getState().refreshTab("agent-x", "a.md", "disk content");
+
+    const tabs = useCodingTabsStore.getState().tabsByAgent["agent-x"];
+    expect(tabs[0].content).toBe("my edits");
+    expect(tabs[0].dirty).toBe(true);
+  });
 });

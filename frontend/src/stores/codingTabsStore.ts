@@ -41,6 +41,9 @@ interface CodingTabsState {
   setActiveTab: (agentId: string, path: string) => void;
   setTabContent: (agentId: string, path: string, content: string) => void;
   setTabDirty: (agentId: string, path: string, dirty: boolean) => void;
+  /** Activation-time disk refresh (#7902): update content of a NON-dirty
+   *  tab only — user edits are never clobbered. */
+  refreshTab: (agentId: string, path: string, content: string) => void;
 
   clearAgent: (agentId: string) => void;
 
@@ -127,6 +130,19 @@ export const useCodingTabsStore = create<CodingTabsState>()(
               ...state.tabsByAgent,
               [agentId]: tabs.map((t) =>
                 t.path === path ? { ...t, dirty } : t,
+              ),
+            },
+          };
+        }),
+
+      refreshTab: (agentId, path, content) =>
+        set((state) => {
+          const tabs = state.tabsByAgent[agentId] ?? [];
+          return {
+            tabsByAgent: {
+              ...state.tabsByAgent,
+              [agentId]: tabs.map((t) =>
+                t.path === path && !t.dirty ? { ...t, content } : t,
               ),
             },
           };

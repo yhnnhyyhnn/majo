@@ -230,6 +230,8 @@ export default function TabbedEditor({
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const activeTabPathRef = useRef(activeTabPath);
   activeTabPathRef.current = activeTabPath;
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
 
   const [saving, setSaving] = useState(false);
   const [hasSelection, setHasSelection] = useState(false);
@@ -322,8 +324,45 @@ export default function TabbedEditor({
    */
   const { selectedAgent } = useAgentStore();
   const pendingDiffs = useCurrentDiffs();
-  const { setDiff, removeDiff, updateDiffModified, updateDiffOriginal } =
-    useCodingTabsStore();
+  const {
+    setDiff,
+    removeDiff,
+    updateDiffModified,
+    updateDiffOriginal,
+    refreshTab,
+  } = useCodingTabsStore();
+
+  // ---- Activation-time revalidation (#7902 port) -------------------------
+  // The workspace watcher only observes the ACTIVE path, so a cached tab's
+  // file can change on disk while its tab sits in the background. When the
+  // user switches back to it, re-read the file (skipping tabs with unsaved
+  // edits, preview-only files and the not-yet-hydrated ones) so stale
+  // content is never shown. Debounced so switching tabs fires once.
+  useEffect(() => {
+    if (!activeTabPath) return;
+    const timer = window.setTimeout(() => {
+      if (activeTabPathRef.current !== activeTabPath) return;
+      const tab = tabsRef.current.find((t) => t.path === activeTabPath);
+      if (!tab || tab.dirty || tab.content === "" || isPreviewable(tab.path)) {
+        return;
+      }
+      workspaceApi
+        .loadCodeFile(activeTabPath)
+        .then((res) => {
+          if (activeTabPathRef.current !== activeTabPath) return;
+          const disk = res.content ?? "";
+          const live = useCodingTabsStore
+            .getState()
+            .tabsByAgent[selectedAgent]?.find((t) => t.path === activeTabPath);
+          if (!live || live.dirty || live.content === disk) return;
+          refreshTab(selectedAgent, activeTabPath, disk);
+        })
+        .catch(() => undefined);
+    }, 300);
+    return () => window.clearTimeout(timer);
+    // Re-run only when the activated tab changes; tabs are read via ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabPath, selectedAgent]);
 
   /**
    * Per-hunk Keep / Undo widgets are rendered as React JSX in an
