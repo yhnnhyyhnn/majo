@@ -180,7 +180,9 @@ public class ConsoleController {
                                 msg.put("role", "assistant");
                                 msg.put("content", List.of(Map.of("type", "text", "text", full)));
                                 msg.put("status", "completed");
-                                completedMessages.add(msg);
+                                if (!full.isBlank()) {
+                                    completedMessages.add(msg);
+                                }
                                 sink.next(sseEvent(QwenEvents.contentFinal(thinkingMsgId[0], full, seq)));
                                 sink.next(sseEvent(QwenEvents.reasoningCompleted(thinkingMsgId[0], full, seq)));
                                 return;
@@ -205,7 +207,7 @@ public class ConsoleController {
                                 msg.put("role", "assistant");
                                 msg.put("content", List.of(Map.of("type", "text", "text", full)));
                                 msg.put("status", "completed");
-                                completedMessages.add(msg);
+                                if (!full.isBlank()) completedMessages.add(msg);
                                 sink.next(sseEvent(QwenEvents.contentFinal(textMsgId[0], full, seq)));
                                 sink.next(sseEvent(QwenEvents.textMessageCompleted(textMsgId[0], full, seq)));
                                 return;
@@ -586,7 +588,7 @@ public class ConsoleController {
                             msg.put("role", "assistant");
                             msg.put("content", List.of(Map.of("type", "text", "text", full)));
                             msg.put("status", "completed");
-                            completedMessages.add(msg);
+                            if (!full.isBlank()) completedMessages.add(msg);
                             sink.next(sseEvent(QwenEvents.contentFinal(textMsgId[0], full, seq)));
                             sink.next(sseEvent(QwenEvents.textMessageCompleted(textMsgId[0], full, seq)));
                             return;

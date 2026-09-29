@@ -106,6 +106,28 @@ public class ModelRequestNormalizerHook implements Hook {
             }
             rebuilt = docStripped;
 
+            // 1.6) Drop empty assistant text blocks (QwenPaw #7409): a
+            //      reasoning-only turn persists as {"type":"text","text":""}
+            //      and some providers (Volcengine Ark) reject its replay
+            //      with 400 — one empty turn would poison the session.
+            List<Msg> emptyDropped = new ArrayList<>(rebuilt.size());
+            boolean droppedEmpty = false;
+            for (Msg msg : rebuilt) {
+                Msg cleaned = dropEmptyAssistantTextBlocks(msg);
+                if (cleaned == null) {
+                    droppedEmpty = true;
+                    continue;
+                }
+                if (cleaned != msg) {
+                    changed = true;
+                }
+                emptyDropped.add(cleaned);
+            }
+            if (droppedEmpty) {
+                changed = true;
+                rebuilt = emptyDropped;
+            }
+
             // 2) Media stripping for text-only models.
             if (!multimodal) {
                 List<Msg> stripped = new ArrayList<>(rebuilt.size());
@@ -302,6 +324,41 @@ public class ModelRequestNormalizerHook implements Hook {
             return DOCUMENT_MIME_TYPES.contains(mt);
         }
         return false;
+    }
+
+    /**
+     * Strip empty TextBlocks from assistant messages (QwenPaw #7409): a
+     * reasoning-only turn persists as an empty text block and some
+     * providers (Volcengine Ark) reject its replay with 400 — one poisoned
+     * turn would otherwise break the rest of the session. Returns null when
+     * the message consists solely of empty text blocks (caller drops the
+     * whole message); non-assistant messages and messages with any
+     * non-empty block pass through with empties stripped only when other
+     * content remains.
+     */
+    static Msg dropEmptyAssistantTextBlocks(Msg msg) {
+        if (msg.getRole() != io.agentscope.core.message.MsgRole.ASSISTANT) {
+            return msg;
+        }
+        List<ContentBlock> content = msg.getContent();
+        if (content == null || content.isEmpty()) {
+            return msg;
+        }
+        List<ContentBlock> out = new ArrayList<>(content.size());
+        boolean changed = false;
+        for (ContentBlock block : content) {
+            if (block instanceof TextBlock tb
+                    && (tb.getText() == null || tb.getText().isBlank())) {
+                changed = true;
+                continue;
+            }
+            out.add(block);
+        }
+        if (out.isEmpty()) {
+            // Whole message was empty text — caller drops it entirely.
+            return changed ? null : msg;
+        }
+        return changed ? msg.withContent(out) : msg;
     }
 
     private Msg stripMediaBlocks(Msg msg) {
