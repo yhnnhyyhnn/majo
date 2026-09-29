@@ -15,7 +15,7 @@ const SESSION_GROUP_MODE_STORAGE_KEY = "majo_session_group_mode";
 export const SESSION_GROUP_MODE_CHANGE_EVENT =
   "majo:session-group-mode-change";
 
-const DEFAULT_SESSION_GROUP_MODE: SessionGroupMode = "date";
+const DEFAULT_SESSION_GROUP_MODE: SessionGroupMode = "channel";
 
 function isSessionGroupMode(value: string | null): value is SessionGroupMode {
   return value === "date" || value === "channel" || value === "none";

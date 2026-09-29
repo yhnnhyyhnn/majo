@@ -11,8 +11,8 @@ describe("sessionGroupModePreference", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
 
-  it("defaults to date grouping", () => {
-    expect(getSessionGroupModePreference()).toBe("date");
+  it("defaults to channel grouping (#7972)", () => {
+    expect(getSessionGroupModePreference()).toBe("channel");
   });
 
   it("persists and reads back a valid mode", () => {
@@ -23,7 +23,7 @@ describe("sessionGroupModePreference", () => {
 
   it("falls back to the default on an invalid stored value", () => {
     localStorage.setItem("majo_session_group_mode", "bogus");
-    expect(getSessionGroupModePreference()).toBe("date");
+    expect(getSessionGroupModePreference()).toBe("channel");
   });
 
   it("announces changes through a window event", () => {
