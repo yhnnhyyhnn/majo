@@ -304,7 +304,7 @@ public class KeywordMemoryBackend implements MemoryBackend {
         }
     }
 
-    private static List<Path> collectFiles(Path workspace) {
+    static List<Path> collectFiles(Path workspace) {
         List<Path> files = new ArrayList<>();
         Path memoryDir = workspace.resolve("memory");
         if (Files.isDirectory(memoryDir)) {
