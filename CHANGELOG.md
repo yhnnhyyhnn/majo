@@ -2,6 +2,35 @@
 
 All notable changes to Majo are documented here. Format follows Keep a Changelog; versions are semver-ish (MAJOR.MINOR.PATCH).
 
+## [0.4.0] — 2026-09-30
+
+Security and retrieval release: OS-level sandbox isolation for command execution (ADR-0012 phase 2, verified on a real Windows host), semantic memory retrieval via embeddings (ADR-0015), and a batch of upstream ports. References `#NNNN` are QwenPaw PRs.
+
+### Sandbox (ADR-0012 phase 2)
+
+- **Windows AppContainer execution isolation**: with `sandbox.mode="appcontainer"` the `execute_command` tool runs inside an OS AppContainer — the kernel builds a lowbox token (privileges stripped to two, no SeDebug), only granted paths are reachable, network is closed by default. JNA bridge, no elevation, no service; per-workspace deterministic profiles, idempotent creation
+- **Verified on the target platform**: automated boundary suite runs for real on Windows (child token privilege dump, out-of-bounds read/write denial probes, workspace reachability, profile reuse); an end-to-end routing test proves the config → tool → container chain and that `off`/unknown modes keep the legacy hardened path. CI (Linux) skips these via `@EnabledOnOs`
+- **Allow-list by construction**: platform finding — deny ACEs are ignored by AppContainer children (a first-position deny-full verified ignored while a sibling allow for the same SID grants), so grants overlapping `deny_paths` are dropped instead of trusting the ACE; deny entries remain as defense-in-depth
+- **Settings UI**: sandbox mode selector and container network toggle in Agent Config, localized in all 7 languages; grant/deny path lists stay API-configurable
+- Fail-closed: any bridge failure returns a readable error instead of falling back to executing the command unsandboxed
+
+### Memory
+
+- **Embedding backend (`embedding`, ADR-0015)**: dual-path semantic + lexical recall — chunk-embedded memory files with cosine ranking, keyword fallback when no endpoint is configured or the provider fails; OpenAI-compatible `/embeddings`, batching, per-endpoint query grouping, model-change index rebuild
+- **Backend switch converges immediately** (#7893 port): changing `memory_manager_backend` (or embedding settings) evicts and re-resolves the cached runtime backend in the same request — previously the old backend served until process restart; the stale "restart required" settings warning was removed accordingly
+
+### Console & desktop
+
+- Session list defaults to grouping by channel (#7972); session names capped at 500 chars (#7846)
+- KaTeX stylesheet fix for math rendering (#7909); cached editor tabs revalidate against disk on activation (#7902); tool cards no longer hang on "calling" after a stop — closed as interrupted (#7345); locale lazy-loading and chat dependency split (#7829); empty assistant text blocks dropped at persistence and replay (#7409)
+- Desktop: updater config repaired + orphan sidecar cleanup; tag-driven release workflow builds and signs the Windows bundle; NSIS solid compression disabled (#8025)
+
+### Quality
+
+- Version single source: `/api/version` and OpenAPI metadata now follow the build version instead of a hard-coded badge
+- Doom-loop protection thresholds configurable via `security.doom_loop` with a Security-page tab
+- Leftover `local-repo`/file repository declarations removed from the build; ADR index completed to 15 entries
+
 ## [0.3.0] — 2026-09-18
 
 Reliability and polish release: doom-loop protection, self-refreshing memory index, background external-agent delegation with live progress, per-agent token statistics, sidebar session-list grouping modes, and a large design-token migration. Ported from the QwenPaw September 17–18 batch (references `#NNNN` are QwenPaw PRs).

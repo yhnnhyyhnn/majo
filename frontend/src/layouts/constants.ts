@@ -78,14 +78,14 @@ export const compareVersions = (a: string, b: string): number => {
 
 // ── Update markdown ───────────────────────────────────────────────────────
 export const UPDATE_MD: Record<string, string> = {
-  zh: `### Majo 0.3.0 更新亮点
+  zh: `### Majo 0.4.0 更新亮点
 
 
-- 死循环防护:同一工具以相同参数反复调用时自动警告并拒绝,不再空烧 token
-- 记忆索引自动刷新:直接编辑 memory/ 文件后检索即时生效,无需手动重建
-- 外部 Agent 委派支持后台运行:立即返回 task_id,进度与结果用 check_agent_task 查询
-- 控制台:Agent 统计页新增各 Agent Token 用量表;侧栏会话列表支持按时间/按渠道/平铺三种分组
-- 界面:语义化设计 token 全面落地,深色模式大量手工覆盖块退役;修复 pt-BR 语言选择失效
+- 沙箱执行隔离(ADR-0012 二期): execute_command 可在 Windows AppContainer 容器内运行——仅授权路径可达、特权被削减、网络默认关闭, 越界读写经真实验证均被拒绝; 配置页新增沙箱开关, 修改即时生效
+- Embedding 记忆后端(ADR-0015): 语义向量+关键词双路召回, 中文查询可命中英文记忆; 未配置嵌入服务时自动回退关键词检索
+- 记忆后端切换即时生效: 修复切换 memory_manager_backend 后旧后端缓存滞留到重启的问题(#7893)
+- 死循环防护阈值可配置: Security 页新增配置标签(security.doom_loop)
+- 控制台与桌面: 会话列表默认按渠道分组; 数学公式渲染修复; 停止后工具卡不再悬挂; 桌面安装包改由 tag 自动构建并签名
 
 ### 如何更新
 
@@ -106,13 +106,13 @@ docker compose up -d
 
 升级后重启后端服务即可。`,
 
-  ru: `### Основные изменения в Majo 0.3.0
+  ru: `### Основные изменения в Majo 0.4.0
 
-- Защита от бесконечных циклов: повторные вызовы одного инструмента с теми же аргументами предупреждаются и отклоняются
-- Индекс памяти обновляется автоматически: правки файлов memory/ сразу видны поиску
-- Делегирование внешнему агенту в фоне: мгновенный task_id, прогресс и результат через check_agent_task
-- Консоль: таблица расхода токенов по агентам в статистике; три режима группировки сессий (по дате / по каналу / плоский)
-- Интерфейс: семантические дизайн-токены внедрены повсеместно, множество ручных тёмных переопределений удалено; исправлен выбор языка pt-BR
+- Изоляция выполнения в песочнице (ADR-0012, этап 2): execute_command может работать внутри Windows AppContainer — доступны только разрешённые пути, привилегии урезаны, сеть по умолчанию закрыта; выход за границы проверен на реальной машине. В настройках агента появился переключатель песочницы, изменения применяются сразу
+- Embedding-бэкенд памяти (ADR-0015): двухпутевой поиск — семантические векторы + ключевые слова, запрос на китайском находит англоязычные воспоминания; без настройки embedding автоматически используется ключевой поиск
+- Переключение бэкенда памяти действует сразу: исправлено зависание старого бэкенда в кэше до перезапуска (#7893)
+- Настраиваемая защита от бесконечных циклов: новая вкладка на странице Security (security.doom_loop)
+- Консоль и десктоп: список сессий по умолчанию группируется по каналу; исправлен рендеринг формул; карточки инструментов больше не зависают после остановки; установщик Windows собирается и подписывается автоматически по тегу
 
 ### Как обновить
 
@@ -133,13 +133,13 @@ docker compose up -d
 
 После обновления перезапустите бэкенд.`,
 
-  en: `### Majo 0.3.0 highlights
+  en: `### Majo 0.4.0 highlights
 
-- Doom-loop protection: repeated identical tool calls are warned and denied instead of burning tokens
-- Memory index auto-refresh: edits to memory/ files are picked up by search immediately, no manual rebuild
-- External agent delegation in the background: returns a task_id instantly; poll progress and results via check_agent_task
-- Console: per-agent token usage table in Agent Statistics; session list grouping by date / channel / flat
-- UI: semantic design tokens fully adopted, large swaths of manual dark-mode overrides retired; pt-BR language selection fixed
+- Sandbox execution isolation (ADR-0012 phase 2): execute_command can run inside a Windows AppContainer — only granted paths are reachable, privileges are stripped, network is closed by default; out-of-bounds access verified denied on a real host. New sandbox toggle in Agent Config, effective immediately
+- Embedding memory backend (ADR-0015): dual-path semantic + keyword recall — a Chinese query can hit English memories; falls back to keyword search automatically when no embedding endpoint is configured
+- Memory backend switches take effect immediately: fixed the old backend serving from cache until restart after changing memory_manager_backend (#7893)
+- Configurable doom-loop protection: new tab on the Security page (security.doom_loop)
+- Console & desktop: session list groups by channel by default; math rendering fixed; tool cards no longer hang after a stop; the Windows installer is now built and signed automatically from tags
 
 ### How to update
 
