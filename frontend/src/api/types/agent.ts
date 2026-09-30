@@ -175,4 +175,17 @@ export interface AgentsRunningConfig {
   reme_light_memory_config: ReMeLightMemoryConfig;
   approval_level?: string;
   auto_title_config: AutoTitleConfig;
+  sandbox?: SandboxConfig;
+}
+
+/** Sandbox execution isolation for execute_command (ADR-0012 phase 2). */
+export interface SandboxConfig {
+  /** "off" = phase-1 hardened process; "appcontainer" = OS-level isolation (Windows). */
+  mode: string;
+  /** All-or-nothing container network access (domain allowlists are unenforced upstream too). */
+  network_allow: boolean;
+  /** Extra directories granted read/execute inside the container. */
+  extra_grant_paths: string[];
+  /** Sensitive paths denied inside the container (defense-in-depth; overlapping grants are dropped). */
+  deny_paths: string[];
 }

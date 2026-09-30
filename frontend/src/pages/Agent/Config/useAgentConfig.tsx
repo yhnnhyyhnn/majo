@@ -82,6 +82,12 @@ export function useAgentConfig() {
           enabled: true,
           timeout_seconds: 30.0,
         },
+        sandbox: config.sandbox ?? {
+          mode: "off",
+          network_allow: false,
+          extra_grant_paths: [],
+          deny_paths: [],
+        },
       });
 
       // Store original config for complete save
@@ -167,6 +173,10 @@ export function useAgentConfig() {
           original.auto_title_config,
           formValues.auto_title_config,
         ) as typeof original.auto_title_config,
+        sandbox: deepMergeConfig(
+          original.sandbox,
+          formValues.sandbox,
+        ) as typeof original.sandbox,
         approval_level: approvalLevel,
       };
 

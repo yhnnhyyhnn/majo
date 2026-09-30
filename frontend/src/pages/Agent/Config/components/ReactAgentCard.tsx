@@ -19,6 +19,11 @@ const LANGUAGE_OPTIONS = [
   { value: "ru", label: "Русский" },
 ];
 
+const SANDBOX_MODE_OPTIONS = [
+  { value: "off", label: "off" },
+  { value: "appcontainer", label: "appcontainer (Windows)" },
+];
+
 interface ReactAgentCardProps {
   language: string;
   savingLang: boolean;
@@ -138,11 +143,28 @@ export function ReactAgentCard({
             style={{ width: "100%" }}
           />
         </Form.Item>
+
+        <Form.Item
+          label={t("agentConfig.sandboxMode")}
+          name={["sandbox", "mode"]}
+          tooltip={t("agentConfig.sandboxModeTooltip")}
+          className={styles.reactAgentField}
+        >
+          <Select options={SANDBOX_MODE_OPTIONS} style={{ width: "100%" }} />
+        </Form.Item>
       </div>
+      <Form.Item
+        label={t("agentConfig.sandboxNetworkAllow")}
+        name={["sandbox", "network_allow"]}
+        valuePropName="checked"
+        tooltip={t("agentConfig.sandboxNetworkAllowTooltip")}
+      >
+        <Switch />
+      </Form.Item>
       <Alert
-        type="warning"
+        type="info"
         showIcon
-        message={t("agentConfig.memoryManagerBackendRestartWarning")}
+        message={t("agentConfig.sandboxNote")}
         style={{ marginBottom: 16 }}
       />
     </Card>
