@@ -1,6 +1,6 @@
 # 08-ADR — 架构决策记录
 
-> **状态：🚧 14 篇 ADR 已完成** — 含推翻 ADR-0001 的技术栈转向决策。
+> **状态：✅ 15 篇 ADR 已完成** — 含推翻 ADR-0001 的技术栈转向决策。
 
 ## 本目录的定位
 
@@ -44,6 +44,7 @@
 | [ADR-0012](ADR-0012-sandbox-roadmap.md) | 沙箱执行隔离路线图：进程级加固先行，OS 原生隔离分期 | Accepted | ExecuteCommandTool 超时/进程树、sandbox 路线 |
 | [ADR-0013](ADR-0013-heartbeat.md) | Heartbeat 心跳：HEARTBEAT.md 定时驱动 agent 运行 | Accepted | HeartbeatScheduler、/config/heartbeat、inbox 投递 |
 | [ADR-0014](ADR-0014-memory-llm-extraction.md) | 记忆 LLM 提取后端：remember 前经 MemorySummarizer 摘要，失败回退原文 | Accepted | SummaryMemoryBackend、LlmMemorySummarizer、agent_id 路由、索引缓存键统一 |
+| [ADR-0015](ADR-0015-embedding-memory.md) | Embedding 记忆后端：语义检索 + 词法回退的双路召回 | Accepted | EmbeddingMemoryBackend、OpenAiEmbeddingClient、memory_manager_backend="embedding"、KeywordMemoryBackend |
 
 ## 未来可能的 ADR 候选
 
