@@ -124,19 +124,22 @@ public class WorkspaceController {
     private final PluginRegistry pluginRegistry;
     private final com.agent.coding.channel.ChannelsConfigController channelsConfig;
     private final com.agent.coding.cron.HeartbeatScheduler heartbeatScheduler;
+    private final com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry;
 
     public WorkspaceController(SettingsService settingsService,
                                 ProviderRepository providerRepo,
                                 ModelConfigRepository modelConfigRepo,
                                 PluginRegistry pluginRegistry,
                                 com.agent.coding.channel.ChannelsConfigController channelsConfig,
-                                com.agent.coding.cron.HeartbeatScheduler heartbeatScheduler) {
+                                com.agent.coding.cron.HeartbeatScheduler heartbeatScheduler,
+                                com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry) {
         this.settingsService = settingsService;
         this.providerRepo = providerRepo;
         this.modelConfigRepo = modelConfigRepo;
         this.pluginRegistry = pluginRegistry;
         this.channelsConfig = channelsConfig;
         this.heartbeatScheduler = heartbeatScheduler;
+        this.memoryBackendRegistry = memoryBackendRegistry;
     }
 
     private boolean isSkipped(String name) {
@@ -1029,11 +1032,45 @@ public class WorkspaceController {
         String approvalLevel = rawLevel == null ? null : Objects.toString(rawLevel).trim().toUpperCase();
         Map<String, Object> running = new LinkedHashMap<>(body);
         running.remove("approval_level");
+        String memoryBefore = memoryConfigSignature(
+                com.agent.coding.agent.AgentStore.getRunningConfig(agentId));
         com.agent.coding.agent.AgentStore.saveRunningConfig(agentId, running, approvalLevel);
+        if (!memoryBefore.equals(memoryConfigSignature(running))) {
+            convergeMemoryRuntime(agentId);
+        }
         Map<String, Object> merged = com.agent.coding.agent.RunningConfigDefaults.deepMerge(
             com.agent.coding.agent.RunningConfigDefaults.defaultConfig(), running);
         merged.put("approval_level", com.agent.coding.agent.AgentStore.getApprovalLevel(agentId));
         return merged;
+    }
+
+    /**
+     * Runtime-disk convergence after a memory config change (QwenPaw #7893,
+     * ported semantics): {@link com.agent.coding.memory.MemoryBackendRegistry}
+     * caches the active backend per agent, so a switched backend id or edited
+     * embedding settings would keep serving the previous instance until
+     * restart. Evict and re-resolve immediately — if the newly selected
+     * backend is unavailable, the registry's fallback picks the next
+     * available one and logs, so runtime and disk converge within this
+     * request instead of drifting apart.
+     */
+    private void convergeMemoryRuntime(String agentId) {
+        try {
+            memoryBackendRegistry.evict(agentId);
+            memoryBackendRegistry.resolve(agentId);
+        } catch (Exception e) {
+            log.warn("[memory] runtime convergence after config change failed for agent '{}': {}",
+                    agentId, e.getMessage());
+        }
+    }
+
+    /** Change detector for memory-relevant running config (id + reme settings). */
+    private static String memoryConfigSignature(Map<String, Object> running) {
+        if (running == null) {
+            return "";
+        }
+        return running.get("memory_manager_backend") + "/"
+                + running.get("reme_light_memory_config");
     }
     @GetMapping("/workspace/system-prompt-files")
     public List<String> systemPromptFiles(HttpServletRequest request) {
