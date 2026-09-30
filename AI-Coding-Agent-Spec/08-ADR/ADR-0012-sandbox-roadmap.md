@@ -33,6 +33,24 @@ ADR-0002 早已裁定路线："v1.0 进程级，容器级 P1+"。当前的实际
 - macOS：sandbox-exec profile（已废弃但仍可用的 `sandbox-init`，或 Endpoint Security——后者明确不做）
 - 引入任一平台前必须有该平台上的自动化验证（受限进程内尝试越界写并断言失败）
 
+**第二期 Windows 部分已落地（2026-09-30，本机 Win10 19045 真实验证）：**
+
+- `sandbox/` 包：`AppContainerSandbox`（JNA 桥接：CreateAppContainerProfile 幂等建档 /
+  SECURITY_CAPABILITIES 属性列表启动 / 管道输出收集 / 进程树终止）+ `SandboxService`（配置路由，
+  `sandbox.mode="appcontainer"` 时 `execute_command` 改走容器，默认 `off`，失败 fail-closed 不回退明执行）
+- 本机自动化边界验证（`AppContainerBoundaryVerificationTest`，`@EnabledOnOs(WINDOWS)`，CI Linux 跳过）：
+  子进程令牌特权被削减（无 SeDebug/SeTakeOwnership）、越界读拒绝、越界写文件未产生、工作区内读写正常、
+  profile 幂等复用、父建文件对容器可见
+- **平台发现（血泪教训，后续平台接入前先验证同类问题）**：
+  1. JNA 的 `char[]` 命令行不带 null 终止符，CreateProcessW 会把堆垃圾读进最后一个参数——必须显式补 `\0`；
+  2. 子进程控制台输出为 OEM 代码页（中文系统 GBK），按 JVM 默认 UTF-8 解码全为乱码，需按 GetOEMCP() 选字符集；
+  3. **deny ACE 对 lowbox 子进程不可靠**：首位置 deny-full（目录继承或文件直落）被忽略，同 SID 的 allow 照常授权
+     （Get-Acl 确认 ACE 存在且顺序正确）。因此沙箱策略是**构造即正确的白名单**：grant 与 deny 路径重叠时整个
+     grant 被剔除（fail-closed，`SandboxServicePolicyTest`），deny ACE 仅作纵深防御保留；
+  4. ACL 写入用 inbox `icacls` 子进程而非 SetEntriesInAclW interop——后者在本机产生掩码异常的 deny ACE。
+- 与上游差异：QwenPaw 另有提权服务路径与 bubblewrap/macOS 实现；majo 二期仅覆盖非提权 AppContainer，
+  Linux/macOS 维持一期进程加固，待有对应验证环境再接
+
 ### 第三期（远期）：容器级
 
 - Docker/gVisor 每会话容器（ADR-0002 的 P1+ 项），服务化部署形态启用

@@ -159,6 +159,13 @@ public final class RunningConfigDefaults {
 
         config.put("reme_light_memory_config", remeLight);
         config.put("daily_memory_dir", "memory");
+
+        Map<String, Object> sandbox = new LinkedHashMap<>();
+        sandbox.put("mode", "off");
+        sandbox.put("network_allow", false);
+        sandbox.put("extra_grant_paths", new ArrayList<>());
+        sandbox.put("deny_paths", new ArrayList<>());
+        config.put("sandbox", sandbox);
         return config;
     }
 

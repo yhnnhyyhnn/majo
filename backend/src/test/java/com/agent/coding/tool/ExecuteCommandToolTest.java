@@ -21,7 +21,8 @@ class ExecuteCommandToolTest {
     @TempDir
     Path workspace;
 
-    private final ExecuteCommandTool tool = new ExecuteCommandTool();
+    private final ExecuteCommandTool tool =
+            new ExecuteCommandTool(new com.agent.coding.sandbox.SandboxService());
 
     @AfterEach
     void cleanUp() {

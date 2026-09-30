@@ -11,8 +11,10 @@ import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Execute a shell command inside the workspace (ADR-0012 phase 1: process
- * hardening — no OS sandbox yet, see that ADR for the roadmap).
+ * Execute a shell command inside the workspace. When the agent's running
+ * config enables {@code sandbox.mode="appcontainer"} (Windows), the command
+ * runs inside an OS-level AppContainer (ADR-0012 phase 2, via
+ * {@code SandboxService}); otherwise phase 1 process hardening applies.
  *
  * <p>Timeout is enforced for real: stdout is consumed on a daemon thread so
  * a child that never closes its pipe cannot outlive {@code waitFor(timeout)}
@@ -28,6 +30,12 @@ public class ExecuteCommandTool {
     private static final int MAX_TIMEOUT_SECONDS = 120;
     private static final int MAX_OUTPUT_CHARS = 50_000;
 
+    private final com.agent.coding.sandbox.SandboxService sandboxService;
+
+    public ExecuteCommandTool(com.agent.coding.sandbox.SandboxService sandboxService) {
+        this.sandboxService = sandboxService;
+    }
+
     @Tool(name = "execute_command", description = "执行 shell 命令，默认60s超时")
     public String executeCommand(
         @ToolParam(name = "command", description = "命令") String command,
@@ -40,6 +48,12 @@ public class ExecuteCommandTool {
         // execute the same spelling the Tool Guard checks saw.
         if (!os.contains("win")) {
             command = ShellNormalization.normalizePosixLineContinuations(command);
+        }
+        var workspace = WorkspaceContext.get();
+        String agentId = workspace.getFileName() != null
+                ? workspace.getFileName().toString() : "default";
+        if (sandboxService.enabledFor(agentId)) {
+            return sandboxService.run(agentId, command, workspace, timeout);
         }
         Process p = null;
         try {
