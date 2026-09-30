@@ -50,6 +50,7 @@
         "silent": true
       },
       "nsis": {
+        "template": "nsis/tauri-installer.nsi",
         "installerHooks": "nsis-hooks.nsh",
         "languages": [
           "English",
