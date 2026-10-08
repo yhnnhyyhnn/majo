@@ -92,10 +92,14 @@ class UserBinPathsTest {
         // majo launched from Git Bash inherits Git's usr\bin AHEAD of
         // System32, so cmd children resolve whoami/find/sort to the MSYS
         // coreutils (GNU argument style) instead of the Windows binaries.
+        // Separator follows File.pathSeparator so the CI's Linux runner
+        // exercises the same demotion logic as a Windows host.
+        String sep = java.io.File.pathSeparator;
         Map<String, String> env = new HashMap<>(Map.of("PATH",
-                "C:\\Program Files\\Git\\usr\\bin;C:\\Windows\\System32;C:\\Windows"));
+                "C:\\Program Files\\Git\\usr\\bin" + sep
+                        + "C:\\Windows\\System32" + sep + "C:\\Windows"));
         UserBinPaths.demoteMsysUsrBin(env, "PATH");
-        String[] parts = env.get("PATH").split(";");
+        String[] parts = env.get("PATH").split(java.util.regex.Pattern.quote(sep));
         assertEquals("C:\\Windows\\System32", parts[0], "System32 must win lookups");
         assertEquals("C:\\Windows", parts[1]);
         assertEquals("C:\\Program Files\\Git\\usr\\bin", parts[parts.length - 1],
