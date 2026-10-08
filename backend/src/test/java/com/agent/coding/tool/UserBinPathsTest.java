@@ -86,4 +86,40 @@ class UserBinPathsTest {
         UserBinPaths.applyTo(env, home.toString(), false);
         assertEquals("keep", env.get("HOME_VAR"));
     }
+
+    @Test
+    void windowsDemotesGitUsrBinBehindSystem32() {
+        // majo launched from Git Bash inherits Git's usr\bin AHEAD of
+        // System32, so cmd children resolve whoami/find/sort to the MSYS
+        // coreutils (GNU argument style) instead of the Windows binaries.
+        Map<String, String> env = new HashMap<>(Map.of("PATH",
+                "C:\\Program Files\\Git\\usr\\bin;C:\\Windows\\System32;C:\\Windows"));
+        UserBinPaths.demoteMsysUsrBin(env, "PATH");
+        String[] parts = env.get("PATH").split(";");
+        assertEquals("C:\\Windows\\System32", parts[0], "System32 must win lookups");
+        assertEquals("C:\\Windows", parts[1]);
+        assertEquals("C:\\Program Files\\Git\\usr\\bin", parts[parts.length - 1],
+                "MSYS dir must stay resolvable at the tail (bash/ssh/grep)");
+    }
+
+    @Test
+    void windowsDemoteHandlesCaseAndSlashesAndKeepsUnrelatedUsrBin() {
+        assertTrue(UserBinPaths.isMsysUsrBin("D:\\Tools\\GIT\\USR\\BIN"),
+                "case-insensitive with backslashes");
+        assertTrue(UserBinPaths.isMsysUsrBin("C:/Program Files/Git/usr/bin/"),
+                "trailing slash tolerated");
+        assertFalse(UserBinPaths.isMsysUsrBin("C:\\msys64\\usr\\bin"),
+                "standalone MSYS2 left alone — only Git for Windows is demoted");
+        assertFalse(UserBinPaths.isMsysUsrBin("C:\\Program Files\\Git\\mingw64\\bin"),
+                "mingw64\\bin (git.exe, no coreutils overlap) is not demoted");
+    }
+
+    @Test
+    void unixPathIsNotTouchedByDemote() {
+        Map<String, String> env = new HashMap<>(Map.of("PATH",
+                "/usr/bin:/usr/local/bin:/home/u/bin"));
+        UserBinPaths.applyTo(env, "/home/u", false);
+        // The Unix branch never reorders — /usr/bin here IS the right one.
+        assertTrue(env.get("PATH").startsWith("/usr/bin:"), env.get("PATH"));
+    }
 }

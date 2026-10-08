@@ -70,14 +70,57 @@ public final class UserBinPaths {
             seen.add(norm);
             additions.add(dir);
         }
-        if (additions.isEmpty()) {
+        if (!additions.isEmpty()) {
+            List<String> parts = new ArrayList<>(additions);
+            if (!existing.isBlank()) {
+                parts.add(existing);
+            }
+            env.put(pathKey, String.join(File.pathSeparator, parts));
+        }
+        if (windows) {
+            demoteMsysUsrBin(env, pathKey);
+        }
+    }
+
+    /**
+     * Move Git for Windows' {@code usr\bin} (MSYS coreutils) entries to the
+     * END of PATH. When majo itself is launched from Git Bash or an
+     * integrated terminal, the inherited PATH carries that directory ahead
+     * of {@code System32}, so every {@code execute_command} child resolves
+     * {@code whoami / find / sort / link …} to the MSYS variants — GNU
+     * argument style replaces Windows semantics and commands fail in
+     * confusing ways (e.g. {@code whoami: extra operand '/priv'}). Demoting
+     * instead of removing keeps genuinely missing Unix tools (bash, ssh,
+     * grep) resolvable: they only resolve from the tail when Windows has no
+     * native counterpart earlier on PATH.
+     */
+    static void demoteMsysUsrBin(Map<String, String> env, String pathKey) {
+        String existing = env.getOrDefault(pathKey, "");
+        if (existing.isBlank()) {
             return;
         }
-        List<String> parts = new ArrayList<>(additions);
-        if (!existing.isBlank()) {
-            parts.add(existing);
+        List<String> msys = new ArrayList<>();
+        List<String> rest = new ArrayList<>();
+        for (String p : existing.split(File.pathSeparator)) {
+            if (p.isBlank()) {
+                continue;
+            }
+            if (isMsysUsrBin(p)) {
+                msys.add(p);
+            } else {
+                rest.add(p);
+            }
         }
-        env.put(pathKey, String.join(File.pathSeparator, parts));
+        if (msys.isEmpty()) {
+            return;
+        }
+        rest.addAll(msys);
+        env.put(pathKey, String.join(File.pathSeparator, rest));
+    }
+
+    /** True for Git for Windows' {@code .../Git/usr/bin} entries (either separator, any case). */
+    static boolean isMsysUsrBin(String pathEntry) {
+        return normalize(pathEntry).endsWith("/git/usr/bin");
     }
 
     private static List<String> candidateDirs(String home, boolean windows) {
