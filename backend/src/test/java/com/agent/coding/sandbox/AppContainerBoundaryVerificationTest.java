@@ -87,6 +87,22 @@ class AppContainerBoundaryVerificationTest {
     }
 
     @Test
+    void childResolvesWindowsNativeBinariesNotMsys() throws Exception {
+        // When this JVM runs under Git Bash the inherited PATH carries
+        // Git's usr\bin ahead of System32; without the sanitised env block
+        // the container child resolves MSYS whoami and fails with GNU-style
+        // "extra operand '/priv'". The env block must demote MSYS dirs.
+        assumeTrue(System.getenv("PATH") != null
+                        && System.getenv("PATH").toLowerCase().contains("git"),
+                "meaningful only when the JVM PATH carries Git dirs (Git Bash launch)");
+        AppContainerSandbox.Result r = run("whoami /priv");
+        assertEquals(0, r.exitCode(), "must run: " + r.output());
+        assertFalse(r.output().toLowerCase().contains("extra operand"),
+                "MSYS whoami must not shadow the Windows binary in the container: "
+                        + r.output());
+    }
+
+    @Test
     void inBoundsWriteSucceeds() throws Exception {
         AppContainerSandbox.Result r = run("echo sandbox-ok> in_probe.txt && type in_probe.txt");
         assertEquals(0, r.exitCode(), "in-bounds write: " + r.output());

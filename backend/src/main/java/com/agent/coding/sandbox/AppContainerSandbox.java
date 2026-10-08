@@ -274,11 +274,17 @@ public final class AppContainerSandbox {
                 // so the terminator must be added explicitly (without it cmd
                 // parses trailing heap garbage into the last argument).
                 char[] cmdChars = (commandLine + "\0").toCharArray();
+                // Sanitised environment block instead of raw inheritance: a
+                // JVM launched from Git Bash carries Git's usr\bin AHEAD of
+                // System32, so container children would resolve MSYS
+                // coreutils over Windows binaries (UserBinPaths demotes it
+                // and adds user bin dirs).
+                Memory envBlock = toUnicodeEnvironmentBlock();
                 boolean ok = kernel.CreateProcessW(null, cmdChars, null, null, true,
                         new WinDef.DWORD(WinApi.Kernel32.EXTENDED_STARTUPINFO_PRESENT
                                 | WinApi.Kernel32.CREATE_UNICODE_ENVIRONMENT
                                 | WinApi.Kernel32.CREATE_NO_WINDOW),
-                        null, cwd, si, pi);
+                        envBlock, cwd, si, pi);
                 int createError = ok ? 0 : Native.getLastError();
                 // Parent-side write ends are ours to close either way.
                 kernel.CloseHandle(outWrite.getValue());
@@ -426,6 +432,31 @@ public final class AppContainerSandbox {
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
+
+    /**
+     * Unicode environment block ({@code NAME=VALUE\0...\0\0}) for
+     * {@code CREATE_UNICODE_ENVIRONMENT}: the JVM's environment with PATH
+     * run through {@link com.agent.coding.tool.UserBinPaths#applyTo} — user
+     * bin dirs prepended and Git's MSYS usr\bin demoted to the tail, so
+     * container children resolve Windows-native binaries first.
+     */
+    private static Memory toUnicodeEnvironmentBlock() {
+        java.util.Map<String, String> env = new java.util.HashMap<>(System.getenv());
+        com.agent.coding.tool.UserBinPaths.applyTo(env);
+        StringBuilder sb = new StringBuilder();
+        for (java.util.Map.Entry<String, String> entry : env.entrySet()) {
+            sb.append(entry.getKey()).append('=')
+                    .append(entry.getValue() == null ? "" : entry.getValue())
+                    .append('\0');
+        }
+        sb.append('\0');
+        char[] chars = sb.toString().toCharArray();
+        // Fresh Memory is zero-filled, so the trailing L'\0' plus the block's
+        // own terminator form the required double-null ending.
+        Memory block = new Memory((chars.length + 1) * 2L);
+        block.write(0, chars, 0, chars.length);
+        return block;
+    }
 
     private static Pointer stringToSid(String sidString) {
         PointerByReference ref = new PointerByReference();
