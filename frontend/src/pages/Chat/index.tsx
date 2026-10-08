@@ -112,6 +112,7 @@ import {
   type CopyableResponse,
   type RuntimeLoadingBridgeApi,
 } from "./utils";
+import { LongTextPasteInput, LongTextPasteProvider } from "./LongTextPaste";
 import {
   getSessionIdFromPath,
   buildBasePath,
@@ -2875,6 +2876,7 @@ export default function ChatPage() {
       },
       sender: {
         ...(i18nConfig as any)?.sender,
+        components: { input: LongTextPasteInput },
         beforeSubmit: handleBeforeSubmit,
         allowSpeech: whisperChecked && !whisperEnabled,
         beforeUI: showSenderBeforeUI ? (
@@ -2990,15 +2992,6 @@ export default function ChatPage() {
                   );
                 },
                 customRequest: handleFileUpload,
-              },
-              longTextUpload: {
-                ...((i18nConfig as any)?.sender?.longTextUpload ?? {}),
-                customRequest: handleFileUpload,
-                prompt: () =>
-                  t(
-                    "chat.longTextUploadPrompt",
-                    "Please read the uploaded prompt file and answer it.",
-                  ),
               },
             }
           : {}),
@@ -3228,11 +3221,16 @@ export default function ChatPage() {
           }
         >
           <ToolCallTurnEndedContext.Provider value={chatLoading === false}>
-            <AgentScopeRuntimeWebUI
-              ref={chatRef}
-              key={refreshKey}
-              options={options}
-            />
+            <LongTextPasteProvider
+              enabled={supportsAttachments}
+              scopeKey={chatId}
+            >
+              <AgentScopeRuntimeWebUI
+                ref={chatRef}
+                key={refreshKey}
+                options={options}
+              />
+            </LongTextPasteProvider>
           </ToolCallTurnEndedContext.Provider>
         </div>
 

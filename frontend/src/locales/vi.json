@@ -175,6 +175,12 @@
     "wrongCurrentPassword": "Mật khẩu hiện tại không đúng"
   },
   "chat": {
+    "longTextPaste": {
+      "title": "Dán văn bản dài",
+      "asText": "Dán dưới dạng văn bản",
+      "asFile": "Đính kèm tệp",
+      "characters": "{{count}} ký tự"
+    },
     "modelSelectTooltip": "Chọn mô hình",
     "newChatTooltip": "Cuộc trò chuyện mới",
     "searchTooltip": "Tìm kiếm tất cả cuộc trò chuyện",
@@ -191,7 +197,6 @@
     "prompt1": "Hãy bắt đầu hành trình mới!",
     "prompt2": "Bạn có thể cho tôi biết những kỹ năng của mình không?",
     "inputPlaceholder": "\"↑↓\" điều hướng tin nhắn · \"/\" lệnh nhanh (\"/approve\" hoặc \"/deny\" khi phê duyệt)",
-    "longTextUploadPrompt": "Vui lòng đọc tệp prompt đã tải lên và trả lời dựa trên nội dung đó.",
     "emptyOutputError": "Trợ lý đã trả về phản hồi trống.",
     "commands": {
       "clear": {

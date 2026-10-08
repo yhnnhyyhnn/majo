@@ -17,10 +17,10 @@ const defaultConfig = {
   },
   sender: {
     attachments: true,
-    maxLength: 10000,
-    longTextUpload: {
-      enabled: true,
-    },
+    // The host handles long pastes without replacing or truncating drafts
+    // (LongTextPaste.tsx, QwenPaw #8119); the SDK's own long-text upload
+    // and maxLength truncation are disabled.
+    longTextUpload: false,
     disclaimer: "Works for you, grows with you",
   },
   welcome: {
