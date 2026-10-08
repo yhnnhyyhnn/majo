@@ -95,13 +95,26 @@ public final class UserBinPaths {
      * native counterpart earlier on PATH.
      */
     static void demoteMsysUsrBin(Map<String, String> env, String pathKey) {
+        demoteMsysUsrBin(env, pathKey, File.pathSeparator);
+    }
+
+    /**
+     * Separator-explicit variant. Windows drive letters carry a colon
+     * ({@code C:\...}), so a Windows-style PATH can ONLY be parsed with
+     * {@code ;} — on a Linux host {@code File.pathSeparator} would shred
+     * every entry at the drive letter. The separator is therefore a
+     * parameter: production passes the platform one (this code runs only
+     * under Windows), tests pass {@code ";"} explicitly so the Windows
+     * semantics stay verifiable from any CI runner.
+     */
+    static void demoteMsysUsrBin(Map<String, String> env, String pathKey, String separator) {
         String existing = env.getOrDefault(pathKey, "");
         if (existing.isBlank()) {
             return;
         }
         List<String> msys = new ArrayList<>();
         List<String> rest = new ArrayList<>();
-        for (String p : existing.split(File.pathSeparator)) {
+        for (String p : existing.split(java.util.regex.Pattern.quote(separator))) {
             if (p.isBlank()) {
                 continue;
             }
@@ -115,7 +128,7 @@ public final class UserBinPaths {
             return;
         }
         rest.addAll(msys);
-        env.put(pathKey, String.join(File.pathSeparator, rest));
+        env.put(pathKey, String.join(separator, rest));
     }
 
     /** True for Git for Windows' {@code .../Git/usr/bin} entries (either separator, any case). */
