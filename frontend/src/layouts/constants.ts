@@ -1,8 +1,16 @@
 // ── URLs ──────────────────────────────────────────────────────────────────
 
-export const PYPI_URL = "https://pypi.org/pypi/qwenpaw/json";
-
 export const GITHUB_URL = "https://github.com/yhnnhyyhnn/majo" as const;
+
+// Latest non-prerelease, non-draft release of THIS repository. The web
+// update check reads it unauthenticated; with no published release yet the
+// endpoint 404s and the check degrades to "no update". (Fork residue: this
+// used to point at the qwenpaw PyPI json, comparing Majo's version against
+// the reference project's and flagging an update forever.)
+export const LATEST_RELEASE_API = `${GITHUB_URL.replace(
+  "github.com",
+  "api.github.com/repos",
+)}/releases/latest`;
 
 // ── Timing ────────────────────────────────────────────────────────────────
 

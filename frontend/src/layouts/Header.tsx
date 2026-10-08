@@ -26,7 +26,7 @@ import {
   getFeatureDemosUrl,
   getFaqUrl,
   getReleaseNotesUrl,
-  PYPI_URL,
+  LATEST_RELEASE_API,
   ONE_HOUR_MS,
   UPDATE_MD,
   isStableVersion,
@@ -128,41 +128,21 @@ export default function Header() {
     }
   };
 
-  // Web-only PyPI fallback: desktop path is owned by DesktopUpdateContext.
+  // Web-only release check: desktop path is owned by DesktopUpdateContext.
+  // Reads this repository's latest stable GitHub release (fork residue: the
+  // old check polled the qwenpaw PyPI json and compared Majo's version
+  // against the reference project's — flagging an update forever).
   useEffect(() => {
     if (onDesktop) return;
 
-    fetch(PYPI_URL)
-      .then((res) => res.json())
+    fetch(LATEST_RELEASE_API, { headers: { Accept: "application/vnd.github+json" } })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        const releases = data?.releases ?? {};
-
-        const versionsWithTime = Object.entries(releases)
-          .filter(([v]) => isStableVersion(v))
-          .map(([v, files]) => {
-            const fileList = files as Array<{ upload_time_iso_8601?: string }>;
-            const latestUpload = fileList
-              .map((f) => f.upload_time_iso_8601)
-              .filter(Boolean)
-              .sort()
-              .pop();
-            return { version: v, uploadTime: latestUpload || "" };
-          });
-
-        versionsWithTime.sort((a, b) => {
-          const timeDiff =
-            new Date(b.uploadTime).getTime() - new Date(a.uploadTime).getTime();
-          return timeDiff !== 0
-            ? timeDiff
-            : compareVersions(b.version, a.version);
-        });
-
-        const versions = versionsWithTime.map((v) => v.version);
-        const latest = versions[0] ?? data?.info?.version ?? "";
-
-        const releaseTime = versionsWithTime.find((v) => v.version === latest)
-          ?.uploadTime;
+        const latest = String(data?.tag_name ?? "").replace(/^v/, "");
+        const releaseTime = data?.published_at ?? "";
         const isOldEnough =
+          !!latest &&
+          isStableVersion(latest) &&
           !!releaseTime &&
           new Date(releaseTime) <= new Date(Date.now() - ONE_HOUR_MS);
 

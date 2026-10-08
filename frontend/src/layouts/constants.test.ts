@@ -12,7 +12,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
-  PYPI_URL,
+  LATEST_RELEASE_API,
   GITHUB_URL,
   ONE_HOUR_MS,
   getWebsiteLang,
@@ -25,8 +25,12 @@ import {
 } from "./constants";
 
 describe("URL constants", () => {
-  it("PYPI_URL points to qwenpaw json endpoint", () => {
-    expect(PYPI_URL).toBe("https://pypi.org/pypi/qwenpaw/json");
+  it("LATEST_RELEASE_API points at this repo's GitHub releases, never a foreign package index", () => {
+    expect(LATEST_RELEASE_API).toBe(
+      "https://api.github.com/repos/yhnnhyyhnn/majo/releases/latest",
+    );
+    expect(LATEST_RELEASE_API).not.toContain("qwenpaw");
+    expect(LATEST_RELEASE_API).not.toContain("pypi.org");
   });
 
   it("GITHUB_URL points to the Majo repo", () => {
