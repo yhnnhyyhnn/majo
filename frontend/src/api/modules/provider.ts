@@ -204,4 +204,13 @@ export const providerApi = {
         providerId,
       )}/oauth/status?state=${encodeURIComponent(state)}`,
     ),
+
+  /** Sync the vendored models.dev catalog (ADR-0018). */
+  syncCatalog: () =>
+    request<{
+      success: boolean;
+      providers_matched: number;
+      models_updated: number;
+      models_added: number;
+    }>("/models/sync-catalog", { method: "POST" }),
 };

@@ -20,6 +20,8 @@ import {
 } from "./components";
 import { PageHeader } from "@/components/PageHeader";
 import { useTranslation } from "react-i18next";
+import { useAppMessage } from "@/hooks/useAppMessage";
+import { providerApi as modelsApi } from "../../../api/modules/provider";
 import type { ProviderInfo } from "../../../api/types/provider";
 import {
   countConfiguredProviders,
@@ -35,10 +37,12 @@ import styles from "./index.module.less";
 
 function ModelsPage() {
   const { t } = useTranslation();
+  const { message } = useAppMessage();
   const [searchParams, setSearchParams] = useSearchParams();
   const { providers, activeModels, loading, error, fetchAll } = useProviders();
   const [addProviderOpen, setAddProviderOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [catalogSyncing, setCatalogSyncing] = useState(false);
   // Prevent browsers from autofilling the search input with saved credentials
   // (e.g. the username from the login page). Browsers skip read-only inputs
   // during autofill, so we make it editable only after the user focuses it.
@@ -75,6 +79,27 @@ function ModelsPage() {
   const refreshProvidersSilently = useCallback(() => {
     return fetchAll(false);
   }, [fetchAll]);
+
+  const handleSyncCatalog = useCallback(async () => {
+    setCatalogSyncing(true);
+    try {
+      const result = await modelsApi.syncCatalog();
+      message.success(
+        t("models.syncCatalogDone", {
+          providers: result.providers_matched,
+          updated: result.models_updated,
+          added: result.models_added,
+        }),
+      );
+      await fetchAll(false);
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : t("models.syncCatalogFailed"),
+      );
+    } finally {
+      setCatalogSyncing(false);
+    }
+  }, [fetchAll, message, t]);
 
   const handleTabChange = useCallback((tab: "cloud" | "local") => {
     setActiveTab(tab);
@@ -355,6 +380,14 @@ function ModelsPage() {
                       title={t("common.refresh")}
                     />
                   </div>
+                  <Button
+                    icon={<SyncOutlined />}
+                    loading={catalogSyncing}
+                    onClick={handleSyncCatalog}
+                    title={t("models.syncCatalogHint")}
+                  >
+                    {t("models.syncCatalog")}
+                  </Button>
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
