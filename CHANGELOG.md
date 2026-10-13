@@ -2,6 +2,39 @@
 
 All notable changes to Majo are documented here. Format follows Keep a Changelog; versions are semver-ish (MAJOR.MINOR.PATCH).
 
+## [0.5.0] — 2026-10-13
+
+Provider-execution release: the provider subsystem's stored settings (thinking controls, generate kwargs, custom headers, endpoint paths, prices) are now wired into real requests and usage costs, plus approval-race and media-recovery fixes, an audio-understanding tool, a Feishu card reply mode, a global UI font-size setting, and a full sweep of the #7899 provider-unification gap (ADR-0016…0019). References `#NNNN` are QwenPaw PRs.
+
+### Providers (ADR-0016…0019, #7899 gap)
+
+- **Thinking controls take effect** (ADR-0016): model-level thinking_enabled / budget / effort become real request parameters via `GenerateOptions` — budget style sends `enable_thinking` + `thinking_budget` (off: the dual `enable_thinking:false` + `thinking:{type:disabled}` switch), effort style sends `reasoning_effort` (off: sends nothing — strict endpoints 400 on unknown params); provider+model `generate_kwargs` merge with `extra_body` promotion; provider `custom_headers` reach the HTTP layer. No config → byte-identical requests
+- **Pricing & cost** (ADR-0017): `input_price`/`output_price` (USD per 1M tokens) on models, cost snapshot per turn in both usage ledgers (price changes never rewrite history), conservative classification (incomplete price pair → no cost, never a zero); manual price editing in the model modal, one-click OpenRouter price import, cost card + per-model cost column in Token Usage; localized in all 7 languages
+- **models.dev catalog sync** (ADR-0018): the vendored 31-provider snapshot (1041 models) refreshes capabilities/context/prices/thinking metadata in place via a Settings button — conservative upsert: user-configured context length, thinking choices, and hand-edited max_tokens are never touched; nothing is ever deleted
+- **OpenAI-compat endpoint override** (ADR-0019): `providers.endpoint_path` overrides the SDK's default `/v1/chat/completions`; the stock Gemini provider was pointed at the official compatibility endpoint (`/v1beta/openai` + `/chat/completions`) — previously it constructed a broken URL and never worked. Anthropic's seed already landed on its official compatibility endpoint (verified by URL-probing the SDK)
+- #7899 gap analysis document (`AI-Coding-Agent-Spec/07-Operation/qwenpaw-7899-provider-gap.md`) with the four-batch plan and the deferred native-SDK route (agentscope jars ship Anthropic/Gemini models but their vendor SDKs are not vendored)
+
+### Reliability
+
+- **Approval timeout races fixed** (#8188): late approvals no longer report phantom success after the agent already proceeded on timeout — expiry settles through a first-writer-wins arbiter, waiters clamp to the request deadline, expired cards are swept from the pending list, and approve/deny on a settled request returns 409; the frontend drops stale cards with an "already resolved" notice instead of a failure toast
+- **Media payload recovery** (#8010): a corrupt/oversized image promoted into context previously re-played the same 400 every turn; the error is now classified (media noun + payload signals, excluding content-safety and overflow phrasings) and the turn retries once with request-only media stripping, sticky per session
+- **EXIF orientation preserved** (#8136): phone-portrait JPEGs no longer reach the model sideways after view_image's resize — orientation is parsed (little/big-endian, malformed-tolerant) and baked into pixels before re-encode
+
+### Tools & channels
+
+- **`view_audio`** (#8083): loads workspace audio into context for audio understanding — mp3/wav/flac/opus pass through, m4a/aac/ogg/webm/amr transcode to WAV via ffmpeg; AudioBlocks promote into the conversation like images
+- **Feishu card replies**: channel `message_type=text|card` — card mode renders the agent reply as interactive-card markdown (code blocks and lists survive); first step of the Feishu card batch (#7685 groundwork)
+
+### Console
+
+- **Global font-size setting** (#8005 mechanism): 12–20px preference in the sidebar settings panel, live-applied pre-paint (root percentage + `--majo-font-scale`), synced across tabs, antd control heights grow with the size; a strict no-op at the default 14px
+- Paste-long-text "as text / as file" choice (#8119)
+
+### Quality
+
+- ADR-0016…0019 recorded (thinking wiring, pricing, catalog sync, endpoint override); sync-log entries for the 10-13 upstream sweep and the deferred-items triage (UI batch per-PR verdicts, Feishu streaming cards, transcription backend)
+- Tool results from `view_audio` join the read-only approval list; 480 backend / 1385 frontend tests green at release
+
 ## [0.4.0] — 2026-09-30
 
 Security and retrieval release: OS-level sandbox isolation for command execution (ADR-0012 phase 2, verified on a real Windows host), semantic memory retrieval via embeddings (ADR-0015), and a batch of upstream ports. References `#NNNN` are QwenPaw PRs.
