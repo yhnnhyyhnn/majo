@@ -154,8 +154,10 @@ public class ConsoleController {
                 sseEvent(qwenResponseInProgress(responseId, sessionId, seq))
             ),
             com.agent.coding.agent.OverflowRecovery.recover(
-                    agent.streamEvents(new UserMessage(prompt), ctx), agent,
-                    new UserMessage(prompt), ctx)
+                    com.agent.coding.agent.MediaPayloadRecovery.recover(
+                            agent.streamEvents(new UserMessage(prompt), ctx), agent,
+                            new UserMessage(prompt), ctx),
+                    agent, new UserMessage(prompt), ctx)
                 .handle((event, sink) -> {
                     String type = event.getClass().getSimpleName();
                     try {
@@ -537,7 +539,9 @@ public class ConsoleController {
         var textMsgId = new String[] { null };
         UserMessage userMessage = new UserMessage(prompt);
         return com.agent.coding.agent.OverflowRecovery.recover(
-                agent.streamEvents(userMessage, ctx), agent, userMessage, ctx)
+                com.agent.coding.agent.MediaPayloadRecovery.recover(
+                        agent.streamEvents(userMessage, ctx), agent, userMessage, ctx),
+                agent, userMessage, ctx)
             .handle((event, sink) -> {
                 String type = event.getClass().getSimpleName();
                 try {

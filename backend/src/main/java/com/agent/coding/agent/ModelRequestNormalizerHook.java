@@ -128,8 +128,17 @@ public class ModelRequestNormalizerHook implements Hook {
                 rebuilt = emptyDropped;
             }
 
-            // 2) Media stripping for text-only models.
-            if (!multimodal) {
+            // 2) Media stripping for text-only models, or after the provider
+            //    rejected a media payload (#8010): the poisoned block stays
+            //    in history and would fail every replay, so later requests
+            //    go out media-free until the process restarts.
+            boolean stripForCapability = !multimodal;
+            boolean stripForRejection = MediaPayloadRecovery.isStripArmed(agentId);
+            if (stripForCapability || stripForRejection) {
+                if (stripForRejection && !stripForCapability) {
+                    log.info("[normalizer] media stripped from request: payload was rejected "
+                            + "by the provider (recovery #8010)");
+                }
                 List<Msg> stripped = new ArrayList<>(rebuilt.size());
                 for (Msg msg : rebuilt) {
                     Msg s = stripMediaBlocks(msg);
@@ -361,7 +370,7 @@ public class ModelRequestNormalizerHook implements Hook {
         return changed ? msg.withContent(out) : msg;
     }
 
-    private Msg stripMediaBlocks(Msg msg) {
+    static Msg stripMediaBlocks(Msg msg) {
         List<ContentBlock> content = msg.getContent();
         if (content == null || content.isEmpty()) {
             return msg;
@@ -393,7 +402,7 @@ public class ModelRequestNormalizerHook implements Hook {
     }
 
     /** Tool results carry nested media in their output blocks. */
-    private ToolResultBlock filterToolResult(ToolResultBlock trb) {
+    private static ToolResultBlock filterToolResult(ToolResultBlock trb) {
         List<ContentBlock> output = trb.getOutput();
         if (output == null || output.isEmpty()) {
             return trb;
