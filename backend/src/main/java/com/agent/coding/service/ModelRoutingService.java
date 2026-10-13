@@ -2,12 +2,15 @@ package com.agent.coding.service;
 
 import com.agent.coding.entity.*;
 import com.agent.coding.repository.*;
+import com.fasterxml.jackson.core.type.TypeReference;
+import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -193,7 +196,134 @@ public class ModelRoutingService {
         if (ctx != null && ctx > 0) {
             builder.contextWindowSize(ctx);
         }
+        // Thinking controls + generate_kwargs + custom_headers (ADR-0016):
+        // the configured UI values become real request parameters.
+        GenerateOptions options = resolveThinkingOptions(providerId, modelId);
+        if (options != null) {
+            builder.generateOptions(options);
+        }
         return builder.build();
+    }
+
+    // ── Thinking controls wiring (ADR-0016) ──────────────────────────
+
+    private static final com.fasterxml.jackson.databind.ObjectMapper JSON =
+            new com.fasterxml.jackson.databind.ObjectMapper();
+
+    /**
+     * Resolve the per-model {@link GenerateOptions} carrying the thinking
+     * controls (ADR-0016): model-level thinking_enabled/budget/effort over
+     * the effective thinking_param_style (model, then provider), merged onto
+     * provider- and model-level generate_kwargs (extra_body promoted), plus
+     * the provider's custom_headers. Returns null when nothing is configured
+     * — the request body then stays byte-identical to pre-ADR-0016.
+     */
+    GenerateOptions resolveThinkingOptions(String providerId, String modelId) {
+        ProviderEntity provider = providerId != null
+                ? providerRepo.findById(providerId).orElse(null) : null;
+        ProviderModelEntity model = providerId != null && modelId != null
+                ? providerModelRepo.findByProviderIdAndModelId(providerId, modelId).orElse(null) : null;
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        mergeKwargs(body, provider != null ? provider.getGenerateKwargs() : null);
+        mergeKwargs(body, model != null ? model.getGenerateKwargs() : null);
+
+        GenerateOptions.Builder options = GenerateOptions.builder();
+        boolean firstClass = false;
+        String style = effectiveStyle(provider, model);
+        if (model != null && style != null) {
+            Boolean enabled = model.getThinkingEnabled();
+            if ("budget".equals(style)) {
+                if (Boolean.TRUE.equals(enabled)) {
+                    body.put("enable_thinking", true);
+                    Integer budget = model.getThinkingBudget();
+                    if (budget != null && budget > 0) {
+                        options.thinkingBudget(budget);
+                        firstClass = true;
+                    }
+                } else if (Boolean.FALSE.equals(enabled)) {
+                    // Qwen-style and DeepSeek-style off switches together
+                    // (qwenpaw compat _consume_disable_thinking).
+                    body.put("enable_thinking", false);
+                    body.put("thinking", Map.of("type", "disabled"));
+                }
+            } else if ("effort".equals(style) && Boolean.TRUE.equals(enabled)) {
+                String effort = model.getReasoningEffort();
+                if (effort != null && !effort.isBlank()) {
+                    options.reasoningEffort(effort);
+                    firstClass = true;
+                }
+                // effort + disabled → send nothing: strict endpoints 400 on
+                // unknown body params; not opting in is the safe off.
+            }
+        }
+
+        boolean any = firstClass;
+        if (!body.isEmpty()) {
+            options.additionalBodyParams(body);
+            any = true;
+        }
+        Map<String, String> headers = parseHeaders(provider != null ? provider.getCustomHeaders() : null);
+        if (!headers.isEmpty()) {
+            options.additionalHeaders(headers);
+            any = true;
+        }
+        if (!any) {
+            return null;
+        }
+        log.info("Thinking controls wired for {}/{}: style={}, bodyKeys={}, headers={}",
+                providerId, modelId, style, body.keySet(), headers.keySet());
+        return options.build();
+    }
+
+    private static String effectiveStyle(ProviderEntity provider, ProviderModelEntity model) {
+        if (model != null && model.getThinkingParamStyle() != null
+                && !model.getThinkingParamStyle().isBlank()) {
+            return model.getThinkingParamStyle();
+        }
+        if (provider != null && provider.getThinkingParamStyle() != null
+                && !provider.getThinkingParamStyle().isBlank()) {
+            return provider.getThinkingParamStyle();
+        }
+        return null;
+    }
+
+    /** Merge generate_kwargs over {@code body}; a nested extra_body object is promoted first. */
+    private static void mergeKwargs(Map<String, Object> body, String json) {
+        if (json == null || json.isBlank()) {
+            return;
+        }
+        try {
+            Map<String, Object> parsed = JSON.readValue(json,
+                    new TypeReference<Map<String, Object>>() {});
+            Object extra = parsed.remove("extra_body");
+            if (extra instanceof Map<?, ?> extraBody) {
+                for (var e : extraBody.entrySet()) {
+                    body.put(String.valueOf(e.getKey()), e.getValue());
+                }
+            }
+            body.putAll(parsed); // direct top-level keys win
+        } catch (Exception e) {
+            log.warn("Ignoring unparsable generate_kwargs: {}", e.getMessage());
+        }
+    }
+
+    private static Map<String, String> parseHeaders(String json) {
+        if (json == null || json.isBlank()) {
+            return Map.of();
+        }
+        try {
+            Map<String, Object> parsed = JSON.readValue(json,
+                    new TypeReference<Map<String, Object>>() {});
+            Map<String, String> out = new LinkedHashMap<>();
+            for (var e : parsed.entrySet()) {
+                out.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
+            }
+            return out;
+        } catch (Exception e) {
+            log.warn("Ignoring unparsable custom_headers: {}", e.getMessage());
+            return Map.of();
+        }
     }
 
     // ── Active model persistence (+ agent scope) ─

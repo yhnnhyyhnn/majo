@@ -59,7 +59,10 @@ vendor SDK 内部的修复一律跳过。
 - 后续跟进:9/22 暂缓的 #7899 供应商统一已完成能力差距盘点,见
   [qwenpaw-7899-provider-gap.md](qwenpaw-7899-provider-gap.md)——
   majo 缺的是执行层最后一公里(思维控制未接请求/无原生适配/无价格),
-  按 4 批独立立项,首批推荐"思维控制接通执行层"(候选 ADR-0016)。
+  按 4 批独立立项。**第 1 批"思维控制接通执行层"已实施**(ADR-0016,
+  ModelRoutingService.resolveThinkingOptions 经 GenerateOptions 接线:
+  thinking_budget/reasoning_effort/enable_thinking 双保险关断/
+  generate_kwargs 含 extra_body 提升/custom_headers 全部生效)。
 
 ## 2026-10-01 扫描(main @ 77744172,新增 6 提交)
 
