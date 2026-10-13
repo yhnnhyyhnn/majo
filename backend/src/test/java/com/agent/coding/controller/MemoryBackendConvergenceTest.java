@@ -38,7 +38,7 @@ class MemoryBackendConvergenceTest {
                 new KeywordMemoryBackend(),
                 new SummaryMemoryBackend((agentId, content) -> java.util.Optional.empty())));
         controller = new WorkspaceController(
-                null, null, null, null, null, null, registry);
+                null, null, null, null, null, null, registry, null);
     }
 
     @AfterEach

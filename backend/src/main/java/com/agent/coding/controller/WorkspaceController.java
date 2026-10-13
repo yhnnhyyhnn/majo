@@ -125,6 +125,7 @@ public class WorkspaceController {
     private final com.agent.coding.channel.ChannelsConfigController channelsConfig;
     private final com.agent.coding.cron.HeartbeatScheduler heartbeatScheduler;
     private final com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry;
+    private final com.agent.coding.service.TranscriptionService transcriptionService;
 
     public WorkspaceController(SettingsService settingsService,
                                 ProviderRepository providerRepo,
@@ -132,7 +133,8 @@ public class WorkspaceController {
                                 PluginRegistry pluginRegistry,
                                 com.agent.coding.channel.ChannelsConfigController channelsConfig,
                                 com.agent.coding.cron.HeartbeatScheduler heartbeatScheduler,
-                                com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry) {
+                                com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry,
+                                com.agent.coding.service.TranscriptionService transcriptionService) {
         this.settingsService = settingsService;
         this.providerRepo = providerRepo;
         this.modelConfigRepo = modelConfigRepo;
@@ -140,6 +142,7 @@ public class WorkspaceController {
         this.channelsConfig = channelsConfig;
         this.heartbeatScheduler = heartbeatScheduler;
         this.memoryBackendRegistry = memoryBackendRegistry;
+        this.transcriptionService = transcriptionService;
     }
 
     private boolean isSkipped(String name) {
@@ -887,7 +890,20 @@ public class WorkspaceController {
         return Map.of("whisper_installed", false);
     }
     @PostMapping("/workspace/transcribe")
-    public Map<String, String> transcribe() { return Map.of("text", ""); }
+    public ResponseEntity<?> transcribe(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("detail", "file is required"));
+        }
+        try {
+            String text = transcriptionService.transcribe(file.getBytes(),
+                    file.getOriginalFilename(), file.getContentType());
+            return ResponseEntity.ok(Map.of("text", text));
+        } catch (com.agent.coding.service.TranscriptionService.TranscriptionException e) {
+            return ResponseEntity.badRequest().body(Map.of("detail", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("detail", e.getMessage()));
+        }
+    }
     @GetMapping("/workspace/transcription-provider")
     public Map<String, String> getConfiguredTranscriptionProvider() {
         return Map.of("provider_id", settingsService.getTranscriptionProviderId());

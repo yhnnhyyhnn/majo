@@ -7,6 +7,19 @@ vendor SDK 内部的修复一律跳过。
 
 ## 2026-10-14 补充(minimax 端点确认落地)
 
+- **音频转写后端 → whisper_api 已实施**(关闭 #8083 记录的"转写桩"
+  缺口):TranscriptionService 按 settings 的 transcription_provider_
+  type 分派——disabled/未配置给可读报错(不再静默空文本),local_
+  whisper 明确"未支持"引导改用 whisper_api,whisper_api 解析所选
+  provider(base_url/api_key),模型取供应商首个 whisper/transcribe/
+  asr 名字的行否则回落 whisper-1;纯 JDK HttpClient 手工构造
+  multipart 调 {base}/audio/transcriptions(渠道同款无 SDK 原则)。
+  /workspace/transcribe 从恒空桩改为真实代理,错误以 detail 消息返回
+  (前端 WhisperSpeechButton 的错误展示链路现成)。7 用例:本地
+  HttpServer 假供应商验证 multipart 形状/鉴权/模型解析/错误透传/
+  空文本报错/类型分派/模型回落。语音按钮自此端到端可用。
+
+
 - **minimax 兼容端点 → 文档确认并修复**(关闭 ADR-0019 记录的待验证项):
   官方文档确认 OpenAI 兼容 base 为裸域 `https://api.minimax.io` /
   `https://api.minimaxi.com`(SDK 拼出 /v1/chat/completions 正确),
