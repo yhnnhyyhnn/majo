@@ -99,6 +99,8 @@ public class ModelProviderController {
             d.setThinkingParamStyle(m.getThinkingParamStyle());
             d.setReasoningEffortOptions(parseJson(m.getReasoningEffortOptions()));
             d.setThinkingBudgetRange(parseJson(m.getThinkingBudgetRange()));
+            d.setInputPrice(m.getInputPrice());
+            d.setOutputPrice(m.getOutputPrice());
             d.setHidden(m.getHidden());
             list.add(d);
         }
@@ -387,6 +389,8 @@ public class ModelProviderController {
         if (body.containsKey("thinking_enabled")) m.setThinkingEnabled(body.get("thinking_enabled") == null ? null : Boolean.TRUE.equals(body.get("thinking_enabled")));
         if (body.containsKey("thinking_budget")) m.setThinkingBudget(body.get("thinking_budget") == null ? null : ((Number) body.get("thinking_budget")).intValue());
         if (body.containsKey("reasoning_effort")) m.setReasoningEffort(body.get("reasoning_effort") == null ? null : String.valueOf(body.get("reasoning_effort")));
+        if (body.containsKey("input_price")) m.setInputPrice(priceOf(body.get("input_price")));
+        if (body.containsKey("output_price")) m.setOutputPrice(priceOf(body.get("output_price")));
         providerModelRepo.save(m);
         var provider = providerRepo.findById(provider_id).orElse(null);
         if (provider != null) {
@@ -397,6 +401,21 @@ public class ModelProviderController {
 
     private String writeJson(Object o) {
         try { return mapper.writeValueAsString(o); } catch (Exception e) { return null; }
+    }
+
+    /** Price value: null clears, negative rejected as null, numbers pass through (ADR-0017). */
+    private static Double priceOf(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number n) {
+            double v = n.doubleValue();
+            return v >= 0 ? v : null;
+        }
+        try {
+            double v = Double.parseDouble(String.valueOf(o).trim());
+            return v >= 0 ? v : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private Map<String, String> resolveConnParams(String providerId, Map<String, Object> body) {

@@ -63,6 +63,10 @@ vendor SDK 内部的修复一律跳过。
   ModelRoutingService.resolveThinkingOptions 经 GenerateOptions 接线:
   thinking_budget/reasoning_effort/enable_thinking 双保险关断/
   generate_kwargs 含 extra_body 提升/custom_headers 全部生效)。
+  **第 2 批"价格元数据+成本折算"已实施**(ADR-0017:V28 价格列 +
+  ModelPricingService 保守计价 + 用量两表 cost_usd 记录时快照 +
+  OpenRouter import-pricing + 用量页成本卡/成本列,模型管理弹窗可
+  手工维护价格,i18n 全 7 语言)。
 
 ## 2026-10-01 扫描(main @ 77744172,新增 6 提交)
 

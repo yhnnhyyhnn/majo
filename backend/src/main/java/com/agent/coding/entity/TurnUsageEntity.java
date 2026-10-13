@@ -33,13 +33,17 @@ public class TurnUsageEntity {
     @Column(name = "duration_ms", nullable = false)
     private long durationMs;
 
+    /** Cost snapshot at record time (ADR-0017); null = price unknown. */
+    @Column(name = "cost_usd")
+    private Double costUsd;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public TurnUsageEntity() {}
 
     public TurnUsageEntity(String agentId, String chatId, String providerId, String model,
-                           int inputTokens, int outputTokens, long durationMs) {
+                           int inputTokens, int outputTokens, long durationMs, Double costUsd) {
         this.agentId = agentId;
         this.chatId = chatId;
         this.providerId = providerId;
@@ -47,6 +51,7 @@ public class TurnUsageEntity {
         this.inputTokens = inputTokens;
         this.outputTokens = outputTokens;
         this.durationMs = durationMs;
+        this.costUsd = costUsd;
     }
 
     public Long getId() { return id; }
@@ -65,6 +70,8 @@ public class TurnUsageEntity {
     public void setOutputTokens(int outputTokens) { this.outputTokens = outputTokens; }
     public long getDurationMs() { return durationMs; }
     public void setDurationMs(long durationMs) { this.durationMs = durationMs; }
+    public Double getCostUsd() { return costUsd; }
+    public void setCostUsd(Double costUsd) { this.costUsd = costUsd; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -255,16 +255,10 @@ public class ConsoleController {
             taskTracker.setDone(chatId);
             saveConsoleMessages(chatId, prompt, completedMessages);
             chatService.setStatus(chatId, "idle");
-            // Save token usage
+            // Save token usage (daily + turn ledgers with cost snapshot, ADR-0017)
             if (usageHolder.inputTokens > 0 || usageHolder.outputTokens > 0) {
                 var slot = modelRouting.resolveEffectiveModel(agentId);
-                String today = LocalDate.now().toString();
-                tokenUsageRepo.save(new TokenUsageEntity(today,
-                    slot.providerId() != null ? slot.providerId() : "",
-                    slot.modelId() != null ? slot.modelId() : "",
-                    usageHolder.inputTokens, usageHolder.outputTokens));
-                // Turn-level record (ADR-0011)
-                tokenUsageService.record(agentId, chatId,
+                tokenUsageService.recordTurnAndDaily(agentId, chatId,
                         slot.providerId() != null ? slot.providerId() : "",
                         slot.modelId() != null ? slot.modelId() : "",
                         usageHolder.inputTokens, usageHolder.outputTokens,
@@ -450,13 +444,7 @@ public class ConsoleController {
             chatService.setStatus(chatId, "idle");
             if (usageHolder.inputTokens > 0 || usageHolder.outputTokens > 0) {
                 var slot = modelRouting.resolveEffectiveModel(agentId);
-                String today = LocalDate.now().toString();
-                tokenUsageRepo.save(new TokenUsageEntity(today,
-                    slot.providerId() != null ? slot.providerId() : "",
-                    slot.modelId() != null ? slot.modelId() : "",
-                    usageHolder.inputTokens, usageHolder.outputTokens));
-                // Turn-level record for the whole loop session (ADR-0011)
-                tokenUsageService.record(agentId, chatId,
+                tokenUsageService.recordTurnAndDaily(agentId, chatId,
                         slot.providerId() != null ? slot.providerId() : "",
                         slot.modelId() != null ? slot.modelId() : "",
                         usageHolder.inputTokens, usageHolder.outputTokens,
@@ -836,6 +824,7 @@ public class ConsoleController {
         var byDate = new java.util.LinkedHashMap<String, TokenUsageStats>();
 
         long totalPrompt = 0, totalCompl = 0, totalCalls = 0;
+        Double totalCost = null;
         for (var r : records) {
             if (model != null && !model.isBlank() && !model.equals(r.getModel())) continue;
             if (provider != null && !provider.isBlank() && !provider.equals(r.getProviderId())) continue;
@@ -855,16 +844,23 @@ public class ConsoleController {
             bm.setPromptTokens(bm.getPromptTokens() + r.getPromptTokens());
             bm.setCompletionTokens(bm.getCompletionTokens() + r.getCompletionTokens());
             bm.setCallCount(bm.getCallCount() + r.getCallCount());
+            bm.addCost(r.getCostUsd());
 
             var bd = byDate.computeIfAbsent(r.getUsageDate(), k -> new TokenUsageStats());
             bd.setPromptTokens(bd.getPromptTokens() + r.getPromptTokens());
             bd.setCompletionTokens(bd.getCompletionTokens() + r.getCompletionTokens());
             bd.setCallCount(bd.getCallCount() + r.getCallCount());
+            bd.addCost(r.getCostUsd());
+
+            if (r.getCostUsd() != null) {
+                totalCost = (totalCost == null ? 0d : totalCost) + r.getCostUsd();
+            }
         }
 
         summary.setTotalPromptTokens(totalPrompt);
         summary.setTotalCompletionTokens(totalCompl);
         summary.setTotalCalls(totalCalls);
+        summary.setTotalCostUsd(totalCost);
         summary.setByModel(byModel);
         summary.setByDate(byDate);
         return summary;
@@ -884,7 +880,7 @@ public class ConsoleController {
             .filter(r -> model == null || model.isBlank() || model.equals(r.getModel()))
             .filter(r -> provider == null || provider.isBlank() || provider.equals(r.getProviderId()))
             .map(r -> new TokenUsageRecord(r.getUsageDate(), r.getProviderId(), r.getModel(),
-                    r.getPromptTokens(), r.getCompletionTokens(), r.getCallCount()))
+                    r.getPromptTokens(), r.getCompletionTokens(), r.getCallCount(), r.getCostUsd()))
             .toList();
     }
 

@@ -67,6 +67,14 @@ public class ProviderModelEntity {
     @Column(name = "thinking_budget_range", columnDefinition = "CLOB")
     private String thinkingBudgetRange;
 
+    /** USD per 1M input tokens; null = unknown (ADR-0017). */
+    @Column(name = "input_price")
+    private Double inputPrice;
+
+    /** USD per 1M output tokens; null = unknown (ADR-0017). */
+    @Column(name = "output_price")
+    private Double outputPrice;
+
     @Column(name = "extra_fields", columnDefinition = "CLOB")
     private String extraFields;
 
@@ -115,6 +123,10 @@ public class ProviderModelEntity {
     public void setReasoningEffortOptions(String reasoningEffortOptions) { this.reasoningEffortOptions = reasoningEffortOptions; }
     public String getThinkingBudgetRange() { return thinkingBudgetRange; }
     public void setThinkingBudgetRange(String thinkingBudgetRange) { this.thinkingBudgetRange = thinkingBudgetRange; }
+    public Double getInputPrice() { return inputPrice; }
+    public void setInputPrice(Double inputPrice) { this.inputPrice = inputPrice; }
+    public Double getOutputPrice() { return outputPrice; }
+    public void setOutputPrice(Double outputPrice) { this.outputPrice = outputPrice; }
     public String getExtraFields() { return extraFields; }
     public void setExtraFields(String extraFields) { this.extraFields = extraFields; }
     public Boolean getHidden() { return hidden; }

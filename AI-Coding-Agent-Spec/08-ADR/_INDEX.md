@@ -46,6 +46,7 @@
 | [ADR-0014](ADR-0014-memory-llm-extraction.md) | 记忆 LLM 提取后端：remember 前经 MemorySummarizer 摘要，失败回退原文 | Accepted | SummaryMemoryBackend、LlmMemorySummarizer、agent_id 路由、索引缓存键统一 |
 | [ADR-0015](ADR-0015-embedding-memory.md) | Embedding 记忆后端：语义检索 + 词法回退的双路召回 | Accepted | EmbeddingMemoryBackend、OpenAiEmbeddingClient、memory_manager_backend="embedding"、KeywordMemoryBackend |
 | [ADR-0016](ADR-0016-thinking-controls-wiring.md) | 思维控制接通执行层：GenerateOptions 接线(#7899 差距第 1 批) | Accepted | ModelRoutingService.resolveThinkingOptions、GenerateOptions、thinking_param_style、generate_kwargs、custom_headers |
+| [ADR-0017](ADR-0017-model-pricing-cost.md) | 模型价格元数据与成本折算：记录时快照 + 保守分类(#7899 差距第 2 批) | Accepted | ModelPricingService、V28 迁移、input_price/output_price、cost_usd、OpenRouter import-pricing |
 
 ## 未来可能的 ADR 候选
 

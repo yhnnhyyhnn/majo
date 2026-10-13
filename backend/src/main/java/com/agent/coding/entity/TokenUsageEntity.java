@@ -29,18 +29,23 @@ public class TokenUsageEntity {
     @Column(name = "call_count", nullable = false)
     private int callCount = 1;
 
+    /** Cost snapshot at record time (ADR-0017); null = price unknown. */
+    @Column(name = "cost_usd")
+    private Double costUsd;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public TokenUsageEntity() {}
 
     public TokenUsageEntity(String usageDate, String providerId, String model,
-                             int promptTokens, int completionTokens) {
+                             int promptTokens, int completionTokens, Double costUsd) {
         this.usageDate = usageDate;
         this.providerId = providerId;
         this.model = model;
         this.promptTokens = promptTokens;
         this.completionTokens = completionTokens;
+        this.costUsd = costUsd;
     }
 
     public Long getId() { return id; }
@@ -57,6 +62,8 @@ public class TokenUsageEntity {
     public void setCompletionTokens(int completionTokens) { this.completionTokens = completionTokens; }
     public int getCallCount() { return callCount; }
     public void setCallCount(int callCount) { this.callCount = callCount; }
+    public Double getCostUsd() { return costUsd; }
+    public void setCostUsd(Double costUsd) { this.costUsd = costUsd; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -10,6 +10,9 @@ public class TokenUsageSummary {
     private long totalCompletionTokens;
     @JsonProperty("total_calls")
     private long totalCalls;
+    /** Accumulated cost; null when nothing in scope was priced (ADR-0017). */
+    @JsonProperty("total_cost_usd")
+    private Double totalCostUsd;
     @JsonProperty("by_model")
     private Map<String, TokenUsageStats> byModel;
     @JsonProperty("by_date")
@@ -32,6 +35,8 @@ public class TokenUsageSummary {
     public void setTotalCompletionTokens(long totalCompletionTokens) { this.totalCompletionTokens = totalCompletionTokens; }
     public long getTotalCalls() { return totalCalls; }
     public void setTotalCalls(long totalCalls) { this.totalCalls = totalCalls; }
+    public Double getTotalCostUsd() { return totalCostUsd; }
+    public void setTotalCostUsd(Double totalCostUsd) { this.totalCostUsd = totalCostUsd; }
     public Map<String, TokenUsageStats> getByModel() { return byModel; }
     public void setByModel(Map<String, TokenUsageStats> byModel) { this.byModel = byModel; }
     public Map<String, TokenUsageStats> getByDate() { return byDate; }

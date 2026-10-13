@@ -30,6 +30,12 @@ public class OpenRouterController {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    private final com.agent.coding.repository.ProviderModelRepository providerModelRepo;
+
+    public OpenRouterController(com.agent.coding.repository.ProviderModelRepository providerModelRepo) {
+        this.providerModelRepo = providerModelRepo;
+    }
+
     private List<Map<String, Object>> fetchModels() {
         try {
             HttpRequest req = HttpRequest.newBuilder(URI.create(MODELS_URL))
@@ -142,8 +148,7 @@ public class OpenRouterController {
     }
 
     @PostMapping("/models/filter")
-    public Map<String, Object> filter(@RequestBody Map<String, Object> body) {
-        List<Map<String, Object>> all = fetchModels();
+    public Map<String, Object> filter(@RequestBody Map<String, Object> body) {        List<Map<String, Object>> all = fetchModels();
         List<String> providers = stringList(body.get("providers"));
         List<String> inputModalities = stringList(body.get("input_modalities"));
         Double maxInputPrice = body.get("max_input_price") == null
@@ -207,5 +212,50 @@ public class OpenRouterController {
     @SuppressWarnings("unchecked")
     private static Map<String, String> castPricing(Object o) {
         return o instanceof Map<?, ?> m ? (Map<String, String>) (Map<?, ?>) m : Map.of();
+    }
+
+    /**
+     * Import live pricing into the openrouter provider's model rows
+     * (ADR-0017). Conservative: only rows whose model_id exactly matches a
+     * fetched entry with a complete prompt+completion pair are updated;
+     * nothing is created, nothing is cleared.
+     */
+    @PostMapping("/import-pricing")
+    public Map<String, Object> importPricing() {
+        List<Map<String, Object>> models = fetchModels();
+        int updated = 0;
+        int skipped = 0;
+        for (Map<String, Object> m : models) {
+            String id = String.valueOf(m.get("id"));
+            Double input = perMillion(castPricing(m.get("pricing")).get("prompt"));
+            Double output = perMillion(castPricing(m.get("pricing")).get("completion"));
+            if (input == null || output == null) {
+                skipped++;
+                continue;
+            }
+            var row = providerModelRepo.findByProviderIdAndModelId("openrouter", id).orElse(null);
+            if (row == null) {
+                skipped++;
+                continue;
+            }
+            row.setInputPrice(input);
+            row.setOutputPrice(output);
+            providerModelRepo.save(row);
+            updated++;
+        }
+        return Map.of("fetched", models.size(), "updated", updated, "skipped", skipped);
+    }
+
+    /** OpenRouter quotes per-token strings; store USD per 1M tokens. */
+    private static Double perMillion(String perToken) {
+        if (perToken == null || perToken.isBlank()) {
+            return null;
+        }
+        try {
+            double v = Double.parseDouble(perToken);
+            return v >= 0 ? v * 1_000_000d : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

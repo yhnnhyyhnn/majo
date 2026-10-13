@@ -22,6 +22,8 @@ public class ModelInfoDto {
     @JsonProperty("thinking_param_style") private String thinkingParamStyle;
     @JsonProperty("reasoning_effort_options") private Object reasoningEffortOptions;
     @JsonProperty("thinking_budget_range") private Object thinkingBudgetRange;
+    @JsonProperty("input_price") private Double inputPrice;
+    @JsonProperty("output_price") private Double outputPrice;
 @JsonProperty("hidden") private Boolean hidden = false;
 
     public String getId() { return id; }
@@ -60,6 +62,10 @@ public class ModelInfoDto {
     public void setReasoningEffortOptions(Object reasoningEffortOptions) { this.reasoningEffortOptions = reasoningEffortOptions; }
     public Object getThinkingBudgetRange() { return thinkingBudgetRange; }
     public void setThinkingBudgetRange(Object thinkingBudgetRange) { this.thinkingBudgetRange = thinkingBudgetRange; }
+    public Double getInputPrice() { return inputPrice; }
+    public void setInputPrice(Double inputPrice) { this.inputPrice = inputPrice; }
+    public Double getOutputPrice() { return outputPrice; }
+    public void setOutputPrice(Double outputPrice) { this.outputPrice = outputPrice; }
     public Boolean getHidden() { return hidden; }
     public void setHidden(Boolean hidden) { this.hidden = hidden; }
 }

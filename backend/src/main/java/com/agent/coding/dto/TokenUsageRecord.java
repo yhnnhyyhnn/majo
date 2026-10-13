@@ -15,14 +15,17 @@ public class TokenUsageRecord {
     private long completionTokens;
     @JsonProperty("call_count")
     private long callCount;
+    /** Cost snapshot; null = price unknown at record time (ADR-0017). */
+    @JsonProperty("cost_usd")
+    private Double costUsd;
 
     public TokenUsageRecord() {}
 
     public TokenUsageRecord(String date, String providerId, String model,
-                             long promptTokens, long completionTokens, long callCount) {
+                             long promptTokens, long completionTokens, long callCount, Double costUsd) {
         this.date = date; this.providerId = providerId; this.model = model;
         this.promptTokens = promptTokens; this.completionTokens = completionTokens;
-        this.callCount = callCount;
+        this.callCount = callCount; this.costUsd = costUsd;
     }
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
@@ -36,4 +39,6 @@ public class TokenUsageRecord {
     public void setCompletionTokens(long completionTokens) { this.completionTokens = completionTokens; }
     public long getCallCount() { return callCount; }
     public void setCallCount(long callCount) { this.callCount = callCount; }
+    public Double getCostUsd() { return costUsd; }
+    public void setCostUsd(Double costUsd) { this.costUsd = costUsd; }
 }
