@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { i18nReady } from "./i18n";
+import { resetChunkReloadCount } from "./utils/chunkRecovery";
 // Configure Monaco to load from the local bundle instead of the CDN so the
 // Coding page works offline (issue #6261). Side-effect import, must run before
 // any Monaco editor mounts.
@@ -105,4 +106,7 @@ const i18nSettled = Promise.race([
 
 void i18nSettled.then(() => {
   createRoot(document.getElementById("root")!).render(<App />);
+  // The app came up: a previous chunk-error reload counter is obsolete, so
+  // the next deployment's first stale-chunk error may reload again (#8154).
+  resetChunkReloadCount();
 });

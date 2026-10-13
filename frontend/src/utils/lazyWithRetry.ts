@@ -1,6 +1,11 @@
 import { lazy } from "react";
 import type { ComponentType } from "react";
 import { moduleRegistry } from "../plugins/moduleRegistry";
+import {
+  isChunkLoadError,
+  recordChunkReload,
+  shouldReloadAfterChunkError,
+} from "./chunkRecovery";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -25,6 +30,14 @@ function retryImport<T extends ComponentType<unknown>>(
   retries: number,
 ): Promise<{ default: T }> {
   return factory().catch((error: unknown) => {
+    // A stale hashed chunk after a deployment never heals by retrying from
+    // the old in-memory module graph — one bounded automatic reload picks
+    // up the new index (qwenpaw #8154). Non-chunk errors keep retrying.
+    if (isChunkLoadError(error) && shouldReloadAfterChunkError()) {
+      recordChunkReload();
+      window.location.reload();
+      return new Promise<{ default: T }>(() => {}); // page is going away
+    }
     if (retries <= 0) throw error;
     return new Promise<{ default: T }>((resolve) =>
       setTimeout(

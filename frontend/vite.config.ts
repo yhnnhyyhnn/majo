@@ -2,6 +2,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { startupMonitorPlugin } from "./scripts/startupMonitorPlugin";
 
 // Vitest plugin: transforms .css imports inside node_modules to empty stubs.
 // This prevents errors from packages like @agentscope-ai/icons that import CSS.
@@ -29,7 +30,7 @@ export default defineConfig(({ mode }) => {
       TOKEN: JSON.stringify(env.TOKEN || ""),
       MOBILE: false,
     },
-    plugins: [react(), cssStubPlugin],
+    plugins: [startupMonitorPlugin(), react(), cssStubPlugin],
     css: {
       modules: {
         localsConvention: "camelCase",

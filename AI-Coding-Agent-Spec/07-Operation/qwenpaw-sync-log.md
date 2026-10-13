@@ -7,6 +7,16 @@ vendor SDK 内部的修复一律跳过。
 
 ## 2026-10-13 深夜补充(#8005 字号缩放落地)
 
+- **#8154 chunk 恢复 → 剩余部分已实施**(升级此前"部分已覆盖"结论):
+  chunkRecovery(识别 Vite/webpack 各式 chunk 报错,10 分钟窗口内限
+  2 次自动 reload,storage 不可用一律拒绝以防死循环)+ lazyWithRetry
+  接线(chunk 形错误直接限次 reload,非 chunk 错误保持原 3 次重试)+
+  main.tsx 挂载成功清零计数;启动监控以零依赖 IIFE 经 Vite 插件内联
+  index.html head-prepend——React 挂载前的入口 chunk 失效/导入崩溃
+  渲染本地化 boot 错误页(7 语言)而非白屏,挂载成功后让位;构建实测
+  注入确认。上游的 chunkDiagnostics 诊断快照/资源 recheck 未搬(其
+  价值依赖其 boot 屏品牌体系,如需可后补)。
+
 - **#8005 全局字号缩放 → 机制已移植**(候选 ADR-0020 就此实施):
   uiFontSizePreference(localStorage 存储键 majo_ui_font_size、12-20px
   clamp、跨 tab storage 同步、useSyncExternalStore 订阅)+
@@ -34,7 +44,8 @@ vendor SDK 内部的修复一律跳过。
   且仍无飞书工作区可端到端验证。
 - **UI 大批次逐项裁决**(本轮深入调研,替代 9/29 的整批暂缓):
   - #8154 chunk 恢复 → **部分已覆盖**:majo 已有 lazyImportWithRetry
-    (#7829);启动期监控/boot 错误页为后续候选。
+    (#7829);启动期监控/boot 错误页为后续候选。(10-13 深夜:剩余
+    部分已实施,见上节。)
   - #8005 字号缩放 → 机制可移植(CSS 变量+antd token+localStorage+
     useSyncExternalStore),但落地需 majo 样式全量 token 化(上游改了
     76 文件)——立项候选 ADR-0020,单独批次实施。(10-13 深夜:机制层
