@@ -3389,9 +3389,9 @@
     {
         "id": "minimax-cn",
         "name": "MiniMax (China)",
-        "base_url": "https://api.minimaxi.com/anthropic",
+        "base_url": "https://api.minimaxi.com",
         "api_key": "",
-        "chat_model": "AnthropicChatModel",
+        "chat_model": "OpenAIChatModel",
         "models": [
             {
                 "id": "MiniMax-M2.5",
@@ -3510,9 +3510,9 @@
     {
         "id": "minimax",
         "name": "MiniMax (International)",
-        "base_url": "https://api.minimax.io/anthropic",
+        "base_url": "https://api.minimax.io",
         "api_key": "",
-        "chat_model": "AnthropicChatModel",
+        "chat_model": "OpenAIChatModel",
         "models": [
             {
                 "id": "MiniMax-M2.5",

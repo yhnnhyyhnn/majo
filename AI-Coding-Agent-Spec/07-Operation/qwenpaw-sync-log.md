@@ -5,7 +5,19 @@ majo master）。原则:只移植 majo 架构下可验证、有真实价值的�
 上游专属子系统(Hub/creator/pawapp/telemetry/数据应用)与绑定其
 vendor SDK 内部的修复一律跳过。
 
+## 2026-10-14 补充(minimax 端点确认落地)
+
+- **minimax 兼容端点 → 文档确认并修复**(关闭 ADR-0019 记录的待验证项):
+  官方文档确认 OpenAI 兼容 base 为裸域 `https://api.minimax.io` /
+  `https://api.minimaxi.com`(SDK 拼出 /v1/chat/completions 正确),
+  `.../anthropic` 是 Anthropic 协议专用路径,被 OpenAI 客户端拼接后必
+  404——与 gemini 同型 bug。种子两行修正(base_url 裸域 + chat_model
+  对齐 OpenAIChatModel)+ V30 存量校正(仅未改过的默认值)。来源:
+  platform.minimax.io 文档与社区 claude-code-router 讨论。
+
 ## 2026-10-13 深夜补充(#8005 字号缩放落地)
+
+
 
 - **#8005 后续:自研样式 token 化已实施**(机制层落地后的跟进项):
   styles/tokens.css 定义 --majo-font-{xs..title} 十档语义字号(基线即
