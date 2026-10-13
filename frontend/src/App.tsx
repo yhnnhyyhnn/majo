@@ -52,6 +52,7 @@ import CloseWindowPrompt from "./tauri/CloseWindowPrompt";
 import { isTauri } from "@tauri-apps/api/core";
 import { isDesktopTauriRuntime } from "./utils/openExternalLink";
 import { interceptBlankLinkClicks } from "./utils/interceptBlankLinkClicks";
+import "./styles/tokens.css";
 import "./styles/layout.css";
 import "./styles/form-override.css";
 // KaTeX base styles so math in AI responses (rendered by @ant-design/x-markdown)

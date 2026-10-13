@@ -7,6 +7,15 @@ vendor SDK 内部的修复一律跳过。
 
 ## 2026-10-13 深夜补充(#8005 字号缩放落地)
 
+- **#8005 后续:自研样式 token 化已实施**(机制层落地后的跟进项):
+  styles/tokens.css 定义 --majo-font-{xs..title} 十档语义字号(基线即
+  历史固定 px,默认 14px 时 --majo-font-scale=1 严格还原);codemod
+  (scripts/dev/tokenize-font-sizes.mjs)把 79 个 less 模块的 776 处
+  `font-size: NNpx` 全量替换为 var(--majo-font-*),零残留;完整构建
+  + 浏览器实测三重验证(默认态 no-op、18px 时 token 解析 calc(20px*
+  1.286) 且页面实测 20.57px、antd 按钮同步 18px)。字号缩放自此对
+  antd 组件与自研样式全量生效。codemod 保留,新代码防回潮可复跑。
+
 - **#8154 chunk 恢复 → 剩余部分已实施**(升级此前"部分已覆盖"结论):
   chunkRecovery(识别 Vite/webpack 各式 chunk 报错,10 分钟窗口内限
   2 次自动 reload,storage 不可用一律拒绝以防死循环)+ lazyWithRetry

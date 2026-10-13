@@ -44,7 +44,7 @@
 }
 
 .headerTitle {
-  font-size: 18px;
+  font-size: var(--majo-font-xl);
   font-weight: 500;
   min-width: 90px;
   overflow: hidden;
@@ -117,7 +117,7 @@
     border-radius: 8px;
     background: transparent;
     color: var(--majo-color-text, rgba(0, 0, 0, 0.88));
-    font-size: 14px;
+    font-size: var(--majo-font-body);
     cursor: pointer;
     transition: background 0.2s;
     padding-left: 12px;
@@ -232,7 +232,7 @@
     /* Group title (一级菜单分组) */
     .majo-menu-submenu-title {
       font-family: "PingFang SC", sans-serif !important;
-      font-size: 12px !important;
+      font-size: var(--majo-font-caption) !important;
       font-weight: 500 !important;
       line-height: 32px !important;
       letter-spacing: normal !important;
@@ -340,7 +340,7 @@
 }
 
 .versionBadge {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-quaternary, #1a171673);
   font-weight: 600;
   line-height: 1;
@@ -610,14 +610,14 @@
   border: 1px solid var(--majo-color-border, rgba(43, 18, 0, 0.12));
   border-radius: 20px;
   padding: 3px 12px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 500;
   color: var(--majo-color-text-secondary, rgba(26, 23, 22, 0.65));
   width: fit-content;
 }
 
 .updateModalBannerTitle {
-  font-size: 32px;
+  font-size: var(--majo-font-title);
   font-weight: 500;
   line-height: 64.78px;
   letter-spacing: normal;
@@ -673,7 +673,7 @@
 
 .codeBlockInner {
   font-family: monospace;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
 }
 
 .codeInline {
@@ -681,7 +681,7 @@
   border-radius: 3px;
   padding: 1px 5px;
   font-family: monospace;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
 }
 
 // ─── CopyButton ───────────────────────────────────────────────────────────────
@@ -740,7 +740,7 @@
   border-radius: 8px;
   background: rgba(var(--majo-accent-rgb, 255, 127, 22), 0.08);
   color: var(--majo-accent, #ff7f16);
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
@@ -768,7 +768,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--majo-color-text, rgba(0, 0, 0, 0.75));
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -796,7 +796,7 @@
 }
 
 .simpleSessionHeader {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 500;
   color: var(--majo-color-text-quaternary, rgba(26, 23, 22, 0.35));
   padding: 4px 12px 6px;
@@ -851,7 +851,7 @@
 .simpleSessionName {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   line-height: 20px;
   color: var(--majo-color-text, rgba(0, 0, 0, 0.75));
   text-overflow: ellipsis;
@@ -861,7 +861,7 @@
 
 .simpleSessionTime {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   color: var(--majo-color-text-quaternary, rgba(26, 23, 22, 0.35));
 }
 

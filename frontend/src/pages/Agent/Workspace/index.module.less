@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--majo-font-lg);
   flex: 1;
 }
 
@@ -49,12 +49,12 @@
 .breadcrumbCurrent {
   color: var(--majo-color-text, #333333);
   font-weight: 600;
-  font-size: 20px;
+  font-size: var(--majo-font-2xl);
 }
 
 .workspacePath {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: rgba(20, 20, 19, 0.85);
   font-family: monospace;
   margin-left: 12px;
@@ -113,14 +113,14 @@
 
 .sectionTitle {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 600;
 }
 
 .infoText {
   margin: 0;
   margin-bottom: 12px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
   flex-shrink: 0;
 }
@@ -199,13 +199,13 @@
 }
 
 .fileName {
-  font-size: 16px;
+  font-size: var(--majo-font-lg);
   font-weight: 600;
   margin-bottom: 4px;
 }
 
 .filePath {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
   font-family: monospace;
 }
@@ -223,7 +223,7 @@
 
   textarea {
     font-family: monospace;
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
     resize: vertical;
     height: 100%;
   }
@@ -231,7 +231,7 @@
 
 .contentLabel {
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 600;
   flex-shrink: 0;
   display: flex;
@@ -268,7 +268,7 @@
         margin: 0;
         font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo,
           monospace;
-        font-size: 13px;
+        font-size: var(--majo-font-secondary);
         line-height: 1.6;
         white-space: pre-wrap;
         word-break: break-word;
@@ -319,7 +319,7 @@
 
 .textarea {
   font-family: monospace;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   resize: vertical;
   height: min(100%, clamp(280px, 50vh, 640px));
   min-height: min(240px, 100%);
@@ -333,7 +333,7 @@
 }
 
 .toggleLabel {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-secondary, #666666);
   white-space: nowrap;
 }
@@ -403,7 +403,7 @@
   margin-right: 8px;
   color: #bbb;
   cursor: grab;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   transition: color 0.2s;
 
   &:active {
@@ -422,7 +422,7 @@
 
 .enabledBadge {
   color: #52c41a;
-  font-size: 8px;
+  font-size: var(--majo-font-xs);
   margin-right: 6px;
   vertical-align: middle;
 }
@@ -434,18 +434,18 @@
 }
 
 .fileItemName {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 600;
   margin-bottom: 4px;
 }
 
 .fileItemMeta {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
 }
 
 .expandIcon {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
   margin-left: 8px;
   background: transparent;
@@ -487,7 +487,7 @@
   padding: 10px;
   margin-bottom: 6px;
   color: var(--majo-color-text-secondary, #666666);
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 600;
   cursor: pointer;
   user-select: none;
@@ -497,7 +497,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 500;
   margin-bottom: 2px;
 }
@@ -517,13 +517,13 @@
 }
 
 .dailyMemoryMeta {
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   color: var(--majo-color-text-tertiary, #999999);
 }
 
 .attribution {
   height: 20px;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   color: #bbb;
   text-align: center;
   flex-shrink: 0;
@@ -734,7 +734,7 @@
     margin-right: 4px;
     width: 28px;
     height: 28px;
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     flex-shrink: 0;
     background: transparent;
     border: none;
@@ -807,7 +807,7 @@
 
   .mobileToolbarTitle {
     font-weight: 600;
-    font-size: 15px;
+    font-size: var(--majo-font-md);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -848,7 +848,7 @@
   }
 
   .saveStatus {
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     color: #8c8c8c;
     margin-right: 8px;
   }

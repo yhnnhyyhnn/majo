@@ -1,0 +1,22 @@
+/*
+ * Semantic typography tokens (qwenpaw #8005 counterpart, majo naming).
+ *
+ * Every baseline is the historical hardcoded px, so at the default font
+ * size (14px → --majo-font-scale: 1) these resolve exactly as before. The
+ * root scale variable is set by applyUiFontSizeToRoot(); raising the UI
+ * font size scales every tokenized font-size in the less modules.
+ */
+:root {
+  --majo-font-scale: 1;
+
+  --majo-font-xs: calc(10px * var(--majo-font-scale));
+  --majo-font-sm: calc(11px * var(--majo-font-scale));
+  --majo-font-caption: calc(12px * var(--majo-font-scale));
+  --majo-font-secondary: calc(13px * var(--majo-font-scale));
+  --majo-font-body: calc(14px * var(--majo-font-scale));
+  --majo-font-md: calc(15px * var(--majo-font-scale));
+  --majo-font-lg: calc(16px * var(--majo-font-scale));
+  --majo-font-xl: calc(18px * var(--majo-font-scale));
+  --majo-font-2xl: calc(20px * var(--majo-font-scale));
+  --majo-font-title: calc(24px * var(--majo-font-scale));
+}

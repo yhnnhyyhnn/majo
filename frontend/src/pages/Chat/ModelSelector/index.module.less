@@ -6,7 +6,7 @@
   padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 500;
   color: var(--majo-color-text, #333333);
   transition: all 0.15s ease;
@@ -28,7 +28,7 @@
 
   @media (max-width: 480px) {
     max-width: 96px;
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
   }
 }
 
@@ -107,7 +107,7 @@
 }
 
 .searchIcon {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: var(--majo-color-text-tertiary, #999999);
   flex-shrink: 0;
 }
@@ -117,7 +117,7 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: var(--majo-color-text, #333333);
   padding: 0;
   min-width: 0;
@@ -128,7 +128,7 @@
 }
 
 .searchClear {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: #bbb;
   cursor: pointer;
   flex-shrink: 0;
@@ -153,7 +153,7 @@
   padding: 8px 0;
   border: none;
   background: transparent;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 600;
   letter-spacing: 0.5px;
   color: var(--majo-color-text-tertiary, #999999);
@@ -202,7 +202,7 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 500;
   color: var(--majo-color-text-tertiary, #999999);
   letter-spacing: 0.5px;
@@ -224,7 +224,7 @@
 
 .collapseIcon {
   margin-left: auto;
-  font-size: 10px;
+  font-size: var(--majo-font-xs);
   color: #bbb;
   transition: color 0.2s;
 
@@ -241,7 +241,7 @@
   padding: 7px 12px 7px 20px;
   margin: 0 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: var(--majo-color-text, #333333);
   transition: background 0.12s;
   gap: 8px;
@@ -283,7 +283,7 @@
   align-items: center;
   padding: 1px 6px;
   border-radius: 99px;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 500;
   color: #52c41a;
   background: rgba(82, 196, 26, 0.1);
@@ -296,7 +296,7 @@
   align-items: center;
   padding: 1px 6px;
   border-radius: 99px;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 500;
   color: #1890ff;
   background: rgba(24, 144, 255, 0.1);
@@ -306,14 +306,14 @@
 
 .checkIcon {
   flex-shrink: 0;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: var(--majo-accent, #ff7f16);
 }
 
 .emptyTip {
   padding: 20px 16px;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: #bbb;
 }
 
@@ -332,7 +332,7 @@
   border-radius: 6px;
   background: rgba(250, 173, 20, 0.08);
   border: 1px solid rgba(250, 173, 20, 0.2);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #d48806;
   line-height: 1.4;
 }
@@ -351,7 +351,7 @@
   padding: 6px 10px;
   border-radius: 6px;
   background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.03));
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #8c8c8c;
   line-height: 1.4;
 }
@@ -369,7 +369,7 @@
   justify-content: space-between;
   padding: 8px 16px;
   margin: 4px 4px 0;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
   cursor: pointer;
   user-select: none;
@@ -380,7 +380,7 @@
   }
 
   :global(.anticon) {
-    font-size: 10px;
+    font-size: var(--majo-font-xs);
   }
 }
 
@@ -405,7 +405,7 @@
 
 .viewMore {
   text-align: center;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--text-tertiary, var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45)));
   padding: 6px 0;
   cursor: pointer;
@@ -424,7 +424,7 @@
   padding: 8px 12px 8px 20px;
   margin: 0 4px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   color: #6366f1;
   border-radius: 6px;
   transition: background 0.12s;
@@ -441,7 +441,7 @@
 
 .connectHint {
   padding: 6px 20px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #bbb;
 }
 

@@ -27,7 +27,7 @@
   border-radius: 8px;
   background: var(--majo-accent, #ff7f16);
   color: #fff;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -46,13 +46,13 @@
   margin: 4px 8px 2px;
 
   :global(.majo-segmented-item-selected) {
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
   }
 }
 
 .searchInput {
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
 }
 
 /* Session items container */
@@ -79,7 +79,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -99,7 +99,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px 12px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, rgba(0, 0, 0, 0.45));
 }
 
@@ -161,7 +161,7 @@
 }
 
 .historyLabel {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 600;
   letter-spacing: 0.1px;
   user-select: none;
@@ -195,7 +195,7 @@
 }
 
 .groupHeaderText {
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;

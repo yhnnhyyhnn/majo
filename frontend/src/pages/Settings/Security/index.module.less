@@ -28,7 +28,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--majo-font-lg);
   flex: 1;
 }
 
@@ -45,7 +45,7 @@
 .breadcrumbCurrent {
   color: var(--majo-color-text, #333333);
   font-weight: 600;
-  font-size: 20px;
+  font-size: var(--majo-font-2xl);
 }
 
 /* ---- Header Section (deprecated, kept for dark-mode dark-mode coverage) ---- */
@@ -54,14 +54,14 @@
 }
 
 .title {
-  font-size: 22px;
+  font-size: var(--majo-font-2xl);
   font-weight: 700;
   margin: 0 0 6px 0;
   color: #1a1a1a;
 }
 
 .description {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: var(--majo-color-text-tertiary, #999999);
   margin: 0;
 }
@@ -98,7 +98,7 @@
 
   :global(.majo-tabs-tab) {
     padding: 10px 4px;
-    font-size: 14px;
+    font-size: var(--majo-font-body);
     font-weight: 500;
     color: #666 !important;
 
@@ -216,7 +216,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
 }
 
 .tabContent {
@@ -236,18 +236,18 @@
 }
 
 .doomLoopLabel {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
 }
 
 .doomLoopHint {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   opacity: 0.7;
   margin: 0 0 20px 0;
   line-height: 1.6;
 }
 
 .tabDescription {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: #888;
   margin: 0 0 20px 0;
   line-height: 1.6;
@@ -300,7 +300,7 @@
   }
 
   :global(.majo-tabs-tab) {
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
     font-weight: 500;
     color: #666 !important;
 
@@ -324,7 +324,7 @@
   justify-content: center;
   background: #ff4d4f;
   color: #fff;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 600;
   min-width: 18px;
   height: 18px;
@@ -420,7 +420,7 @@
 
   :global(.majo-collapse-header) {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--majo-font-body);
     padding: 12px 16px !important;
     background: var(--majo-color-fill-quaternary, #fafafa);
   }
@@ -485,12 +485,12 @@
 
 .shellEvasionItemName {
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   color: var(--majo-color-text, #333333);
 }
 
 .shellEvasionItemDesc {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
   line-height: 1.4;
 }
@@ -509,7 +509,7 @@
 }
 
 .sectionTitle {
-  font-size: 16px;
+  font-size: var(--majo-font-lg);
   font-weight: 600;
   margin: 0;
   color: #1a1a1a;
@@ -591,7 +591,7 @@
 }
 
 .codeHash {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
 }
 
 .footerButtons {
@@ -622,12 +622,12 @@
 }
 
 .stateText {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: var(--majo-color-text-tertiary, #999999);
 }
 
 .stateTextError {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: #ff4d4f;
 }
 

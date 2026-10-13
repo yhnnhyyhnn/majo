@@ -66,7 +66,7 @@
   }
 
   .title {
-    font-size: 14px;
+    font-size: var(--majo-font-body);
     font-weight: 600;
     color: #1a1a1a;
   }
@@ -87,7 +87,7 @@
     }
 
     .timerText {
-      font-size: 12px;
+      font-size: var(--majo-font-caption);
       font-weight: 500;
       color: #64748b;
       font-family: "SF Mono", "Monaco", "Consolas", monospace;
@@ -109,7 +109,7 @@
 }
 
 .label {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #8c8c8c;
   font-weight: 400;
   min-width: 56px;
@@ -117,7 +117,7 @@
 }
 
 .value {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   color: #1a1a1a;
   font-weight: 500;
 
@@ -126,7 +126,7 @@
     border: 1px solid #e8ecf1;
     border-radius: 4px;
     padding: 1px 8px;
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     color: var(--majo-color-text, #333333);
     font-family: "SF Mono", "Monaco", "Consolas", monospace;
   }
@@ -144,7 +144,7 @@
 }
 
 .scopeLabel {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #8c8c8c;
   font-weight: 500;
 }
@@ -162,7 +162,7 @@
 }
 
 .scopeItemLabel {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #555;
   font-weight: 500;
 }
@@ -172,7 +172,7 @@
   border: 1px solid #e8ecf1;
   border-radius: 4px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text, #333333);
   font-family: "SF Mono", "Monaco", "Consolas", monospace;
   word-break: break-all;
@@ -181,7 +181,7 @@
 }
 
 .severityTag {
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 600;
   padding: 1px 8px;
   border-radius: 4px;
@@ -191,7 +191,7 @@
 }
 
 .crossSessionTag {
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 500;
   padding: 1px 8px;
   border-radius: 4px;
@@ -201,7 +201,7 @@
 }
 
 .ownerAgentTag {
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 500;
   padding: 1px 8px;
   border-radius: 4px;
@@ -219,7 +219,7 @@
   position: relative;
 
   .summaryText {
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     color: #555;
     line-height: 1.7;
     white-space: pre-wrap;
@@ -270,7 +270,7 @@
   cursor: pointer;
 
   summary {
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     font-weight: 500;
     color: var(--majo-color-text-secondary, #666666);
     user-select: none;
@@ -283,7 +283,7 @@
 
     &::before {
       content: "▶";
-      font-size: 8px;
+      font-size: var(--majo-font-xs);
       color: var(--majo-color-text-tertiary, #999999);
       transition: transform 0.2s ease;
       display: inline-block;
@@ -321,7 +321,7 @@
   cursor: pointer;
 
   summary {
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     font-weight: 400;
     color: #888;
     user-select: none;
@@ -339,7 +339,7 @@
 
     &::before {
       content: "▶";
-      font-size: 8px;
+      font-size: var(--majo-font-xs);
       color: var(--majo-color-text-tertiary, #999999);
       transition: transform 0.2s ease;
       display: inline-block;
@@ -379,7 +379,7 @@
   border-radius: 4px;
   color: #555;
   font-family: "SF Mono", "Monaco", "Consolas", monospace;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
@@ -397,7 +397,7 @@
   border-radius: 4px;
   color: #444;
   font-family: "SF Mono", "Monaco", "Consolas", monospace;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   line-height: 1.6;
   overflow-x: auto;
   white-space: pre-wrap;
@@ -436,7 +436,7 @@
   button {
     min-width: 88px;
     height: 36px;
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
     font-weight: 500;
     border-radius: 8px;
     padding: 0 20px;
@@ -530,7 +530,7 @@
 
 .timeoutHint {
   margin-right: auto;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #cf1322;
   font-weight: 500;
 }

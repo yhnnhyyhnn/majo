@@ -1,5 +1,5 @@
 .chatName {
-  font-size: 16px;
+  font-size: var(--majo-font-lg);
   font-weight: 500;
   line-height: 22px;
   color: var(--ant-color-text, var(--majo-color-text, rgba(0, 0, 0, 0.88)));
@@ -12,7 +12,7 @@
 
   @media (max-width: 768px) {
     max-width: 120px;
-    font-size: 14px;
+    font-size: var(--majo-font-body);
   }
 
   // ─── Mobile: replace ellipsis with horizontal marquee ───────────────────
@@ -20,7 +20,7 @@
   // right to left so the user can still read it.
   @media (max-width: 480px) {
     max-width: 90px;
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
     overflow: hidden;
     text-overflow: clip;
 
@@ -101,6 +101,6 @@
 
 .menuItemActive {
   color: var(--majo-color-primary, var(--majo-accent, #ff7f16));
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   flex-shrink: 0;
 }

@@ -42,7 +42,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--majo-font-lg);
   flex: 1;
 }
 
@@ -59,7 +59,7 @@
 .breadcrumbCurrent {
   color: var(--majo-color-text, #333333);
   font-weight: 600;
-  font-size: 20px;
+  font-size: var(--majo-font-2xl);
 }
 
 .loading {
@@ -83,14 +83,14 @@
 
 .sectionTitle {
   margin-bottom: 4px;
-  font-size: 24px;
+  font-size: var(--majo-font-title);
   font-weight: 600;
 }
 
 .sectionDesc {
   margin: 0 0 24px;
   color: var(--majo-color-text-tertiary, #999999);
-  font-size: 14px;
+  font-size: var(--majo-font-body);
 }
 
 /* ---- Providers Block (LLM below, providers below) ---- */
@@ -110,7 +110,7 @@
 }
 
 .providerGroupTitle {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 600;
   color: var(--majo-color-text-secondary, #666666);
   margin: 0 0 12px;
@@ -118,7 +118,7 @@
 }
 
 .subSectionTitle {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 500;
   color: var(--majo-color-text-tertiary, #9ca3af);
   margin: 16px 0 10px;
@@ -143,14 +143,14 @@
 }
 
 .configuredCount {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 400;
   color: #10b981;
   margin-left: 8px;
 }
 
 .availableHint {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 400;
   color: var(--majo-color-text-tertiary, #9ca3af);
   margin-left: 8px;
@@ -168,7 +168,7 @@
   text-align: center;
 }
 .emptyConfigured p {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: var(--majo-color-text-secondary, #6b7280);
   margin-bottom: 16px;
 }
@@ -197,14 +197,14 @@
 }
 
 .availableItemName {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 500;
   flex: 1;
   color: #1a1a1a;
 }
 
 .availableItemAction {
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   color: #6366f1;
   font-weight: 500;
   white-space: nowrap;
@@ -233,7 +233,7 @@
 }
 
 .variantItemName {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 500;
   color: var(--majo-color-text, #1f2937);
   flex: 1;
@@ -283,7 +283,7 @@
 }
 
 .statusText {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 500;
 
   &.enabled {
@@ -325,7 +325,7 @@
 }
 
 .cardName {
-  font-size: 16px;
+  font-size: var(--majo-font-lg);
   font-weight: 600;
   color: #1a1a1a;
 }
@@ -336,7 +336,7 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 500;
   background-color: var(--majo-color-fill-secondary, rgba(0, 0, 0, 0.06));
   color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.65));
@@ -347,7 +347,7 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 500;
   background-color: rgba(255, 247, 230, 0.8);
   color: var(--majo-accent, #ff7f16);
@@ -359,7 +359,7 @@
   align-items: center;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: var(--majo-font-xs);
   font-weight: 700;
   letter-spacing: 0.5px;
   background: linear-gradient(135deg, #10b981, #059669);
@@ -371,7 +371,7 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 500;
   background-color: rgba(29, 212, 215, 0.15);
   color: rgba(29, 212, 215, 1);
@@ -383,7 +383,7 @@
   gap: 8px;
 
   .statusText {
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     font-weight: 500;
 
     &.enabled {
@@ -422,7 +422,7 @@
 }
 
 .cardName {
-  font-size: 18px;
+  font-size: var(--majo-font-xl);
   font-weight: 600;
   color: #1a1a1a;
 }
@@ -438,7 +438,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
 }
 
 .infoLabel {
@@ -451,7 +451,7 @@
 .infoValue {
   color: var(--majo-color-text-secondary, rgba(0, 0, 0, 0.65));
   font-family: "SF Mono", "Menlo", monospace;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -489,7 +489,7 @@
 .actionBtn {
   flex: 1;
   height: 32px;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   border-radius: 6px;
 }
 
@@ -518,7 +518,7 @@
 }
 
 .groupCardName {
-  font-size: 17px;
+  font-size: var(--majo-font-lg);
   font-weight: 600;
   flex: 1;
   color: #1a1a1a;
@@ -528,7 +528,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   color: #14b8a6;
   font-weight: 500;
 }
@@ -567,7 +567,7 @@
   flex: 1;
   padding: 7px 6px;
   text-align: center;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 500;
   color: #888;
   border-radius: 8px;
@@ -619,20 +619,20 @@
 }
 
 .groupCardFieldLabel {
-  font-size: 10px;
+  font-size: var(--majo-font-xs);
   color: #888;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .groupCardFieldValue {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   color: var(--majo-color-text, #333333);
 }
 
 .groupCardMono {
   font-family: "SF Mono", "Fira Code", monospace;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-secondary, #666666);
   background: var(--majo-color-fill-quaternary, rgba(0, 0, 0, 0.03));
   padding: 8px 12px;
@@ -647,7 +647,7 @@
 }
 
 .groupCardChangeBtn {
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   color: #6366f1;
   cursor: pointer;
   font-family:
@@ -681,7 +681,7 @@
   border: 1px solid var(--majo-color-border-secondary, rgba(0, 0, 0, 0.06));
   border-radius: 8px;
   color: var(--majo-color-text-secondary, #666666);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
@@ -745,7 +745,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 600;
 }
 
@@ -792,7 +792,7 @@
   padding: 12px 14px;
   min-height: 180px;
   font-family: Monaco, "Courier New", monospace;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -902,20 +902,20 @@
 }
 
 .llmPillLabel {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   color: var(--majo-color-text-secondary, #6b7280);
   white-space: nowrap;
 }
 
 .llmPillValue {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 600;
   color: var(--majo-color-text, #1f2937);
   white-space: nowrap;
 }
 
 .llmPillEdit {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #6366f1;
   font-weight: 500;
   margin-left: 4px;
@@ -927,7 +927,7 @@
 }
 
 .llmDescription {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   color: var(--majo-color-text-tertiary, #9ca3af);
   margin: 0 0 16px;
   line-height: 1.5;
@@ -952,7 +952,7 @@
 }
 
 .panelTitle {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 600;
   color: var(--majo-color-text-secondary, #6b7280);
   margin-bottom: 14px;
@@ -978,7 +978,7 @@
 }
 
 .panelCount {
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   color: #10b981;
   font-weight: 400;
   margin-left: auto;
@@ -995,7 +995,7 @@
 
 .tabItem {
   padding: 10px 20px;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 500;
   color: var(--majo-color-text-tertiary, #9ca3af);
   cursor: pointer;
@@ -1041,7 +1041,7 @@
 }
 
 .slotTitle {
-  font-size: 18px;
+  font-size: var(--majo-font-xl);
   font-weight: 600;
   color: #1a1a1a;
 }
@@ -1049,12 +1049,12 @@
 .slotDescription {
   margin: 8px 0 0;
   color: var(--majo-color-text-secondary, #6b7280);
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   line-height: 1.6;
 }
 
 .slotCurrent {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   color: #52c41a;
   font-family: "SF Mono", "Menlo", monospace;
   background: #f6ffed;
@@ -1095,7 +1095,7 @@
 }
 
 .slotLabel {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   color: var(--majo-color-text-secondary, #666666);
   font-weight: 500;
   display: flex;
@@ -1177,7 +1177,7 @@
 }
 
 .localModalTitle {
-  font-size: 18px;
+  font-size: var(--majo-font-xl);
   font-weight: 600;
   color: #1a1a1a;
 }
@@ -1185,7 +1185,7 @@
 .localModalDescription {
   margin-top: 4px;
   color: var(--majo-color-text-secondary, #6b7280);
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   line-height: 1.6;
   max-width: 420px;
 }
@@ -1208,7 +1208,7 @@
 .localSummaryLabel {
   display: block;
   color: #8a90a2;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   line-height: 1.4;
 }
 
@@ -1216,7 +1216,7 @@
   display: block;
   margin-top: 2px;
   color: var(--majo-color-text, #1f2937);
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 600;
 }
 
@@ -1244,7 +1244,7 @@
 }
 
 .localSectionTitle {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 600;
   color: var(--majo-color-text, #111827);
 }
@@ -1252,13 +1252,13 @@
 .localSectionDescription {
   margin-top: 3px;
   color: var(--majo-color-text-secondary, #6b7280);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   line-height: 1.5;
 }
 
 .localSectionMeta {
   color: var(--majo-color-text-tertiary, #7a7f8f);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-family: "SF Mono", "Menlo", monospace;
 }
 
@@ -1284,12 +1284,12 @@
 
 .localSectionInfoLabel {
   color: var(--majo-color-text-secondary, #6b7280);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
 }
 
 .localSectionInfoValue {
   color: var(--majo-color-text, #111827);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 600;
   font-family: "SF Mono", "Menlo", monospace;
   text-align: right;
@@ -1301,7 +1301,7 @@
 
 .localSectionInfoMeta {
   color: var(--majo-color-text-tertiary, #7a7f8f);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-family: "SF Mono", "Menlo", monospace;
   line-height: 1.5;
 }
@@ -1333,21 +1333,21 @@
 
 .localAdvancedConfigLabel {
   color: var(--majo-color-text, #111827);
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 600;
 }
 
 .localAdvancedConfigHint {
   margin-top: 4px;
   color: var(--majo-color-text-secondary, #6b7280);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   line-height: 1.5;
 }
 
 .localAdvancedConfigError {
   margin-top: 6px;
   color: #dc2626;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   line-height: 1.5;
 }
 
@@ -1358,7 +1358,7 @@
 
 .localAdvancedConfigChevronOpen,
 .localAdvancedConfigChevronClosed {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   transition: transform 0.2s ease;
 }
 
@@ -1377,7 +1377,7 @@
   background: #fbfcfe;
   border: 1px solid #edf1f7;
   color: var(--majo-color-text-secondary, #6b7280);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   line-height: 1.6;
 }
 
@@ -1404,7 +1404,7 @@
 .localEngineMetricLabel {
   display: block;
   color: var(--majo-color-text-tertiary, #7a7f8f);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 500;
   line-height: 1.4;
 }
@@ -1421,7 +1421,7 @@
   min-width: 0;
   max-width: 160px;
   color: var(--majo-color-text, #111827);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1435,7 +1435,7 @@
   min-height: 22px;
   padding: 0 10px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
@@ -1497,7 +1497,7 @@
   padding: 24px;
   text-align: center;
   color: var(--majo-color-text-tertiary, #999999);
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
 }
 
 .modelListLoadMore {
@@ -1510,7 +1510,7 @@
 }
 
 .modelListCount {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
 }
 
@@ -1583,14 +1583,14 @@
 }
 
 .customModelHint {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
   line-height: 1.4;
   white-space: normal;
 }
 
 .modelListItemName {
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 500;
   color: #1a1a1a;
   overflow: hidden;
@@ -1606,7 +1606,7 @@
 }
 
 .modelListItemId {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--majo-color-text-tertiary, #999999);
   font-family: "SF Mono", "Menlo", monospace;
   overflow: hidden;
@@ -1633,7 +1633,7 @@
   border-radius: 6px;
   color: rgba(20, 184, 166, 1);
   background: #ecfdf5;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
@@ -1693,7 +1693,7 @@
 
 .localStatusHint {
   color: var(--majo-color-text-tertiary, #7a7f8f);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   line-height: 1.5;
 }
 
@@ -1739,14 +1739,14 @@
   display: block;
   margin-top: 6px;
   color: var(--majo-color-text-tertiary, #7a7f8f);
-  font-size: 11px;
+  font-size: var(--majo-font-sm);
   line-height: 1.4;
   font-family: "SF Mono", "Menlo", monospace;
 }
 
 .localInlineProgress {
   color: var(--majo-color-text-tertiary, #7a7f8f);
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-family: "SF Mono", "Menlo", monospace;
 }
 
@@ -1764,13 +1764,13 @@
 
 .localLockedPanelTitle {
   color: var(--majo-color-text, #111827);
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   font-weight: 600;
 }
 
 .localLockedPanelDescription {
   color: var(--majo-color-text-secondary, #6b7280);
-  font-size: 14px;
+  font-size: var(--majo-font-body);
   line-height: 1.6;
 }
 
@@ -2257,7 +2257,7 @@
   gap: 4px;
   padding: 0;
   height: auto;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   color: var(--ant-color-primary, #1677ff);
   background: transparent;
   border: none;
@@ -2282,7 +2282,7 @@
   }
 
   .breadcrumbParent {
-    font-size: 14px;
+    font-size: var(--majo-font-body);
   }
 
   .breadcrumbSeparator {
@@ -2290,7 +2290,7 @@
   }
 
   .breadcrumbCurrent {
-    font-size: 16px;
+    font-size: var(--majo-font-lg);
   }
 
   .sectionHeaderRow {
@@ -2314,15 +2314,15 @@
     justify-content: space-between;
     width: 100%;
     padding: 6px 10px;
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
   }
 
   .llmPillLabel {
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
   }
 
   .llmPillValue {
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2352,7 +2352,7 @@
 
   .tabItem {
     padding: 8px 14px;
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     white-space: nowrap;
   }
 
@@ -2361,12 +2361,12 @@
   }
 
   .sectionTitle {
-    font-size: 20px;
+    font-size: var(--majo-font-2xl);
   }
 
   .sectionDesc {
     margin: 0 0 16px;
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
   }
 
   .providersBlock {
@@ -2378,7 +2378,7 @@
   }
 
   .providerGroupTitle {
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
     margin: 0 0 8px;
   }
 
@@ -2394,7 +2394,7 @@
   }
 
   .cardName {
-    font-size: 14px;
+    font-size: var(--majo-font-body);
   }
 
   .groupCardGlass {
@@ -2414,7 +2414,7 @@
   }
 
   .groupCardName {
-    font-size: 15px;
+    font-size: var(--majo-font-md);
   }
 
   .groupSegmented {
@@ -2427,7 +2427,7 @@
   .groupSegBtn {
     flex: 0 0 auto;
     padding: 6px 10px;
-    font-size: 10px;
+    font-size: var(--majo-font-xs);
   }
 
   .groupCardContent {
@@ -2435,7 +2435,7 @@
   }
 
   .groupCardMono {
-    font-size: 11px;
+    font-size: var(--majo-font-sm);
     padding: 6px 10px;
     gap: 4px;
   }
@@ -2455,7 +2455,7 @@
     flex: 1;
     min-width: 0;
     padding: 6px 10px;
-    font-size: 11px;
+    font-size: var(--majo-font-sm);
     text-align: center;
   }
 
@@ -2464,7 +2464,7 @@
   }
 
   .groupCardFieldValue {
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
   }
 
   .availableGrid {
@@ -2484,7 +2484,7 @@
 
   .actionBtn {
     height: 28px;
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
   }
 
   .modalFooter {
@@ -2550,13 +2550,13 @@
   }
 
   .localModalTitle {
-    font-size: 16px;
+    font-size: var(--majo-font-lg);
   }
 
   .jsonEditorHighlight,
   .jsonEditorTextarea {
     padding: 8px 10px;
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     min-height: 120px;
   }
 
@@ -2579,11 +2579,11 @@
   }
 
   .modelListItemName {
-    font-size: 13px;
+    font-size: var(--majo-font-secondary);
   }
 
   .modelListItemId {
-    font-size: 11px;
+    font-size: var(--majo-font-sm);
   }
 
   .modelListItemActions {
@@ -2596,11 +2596,11 @@
   .modelListItemStatusButton {
     height: 22px;
     padding: 0 8px;
-    font-size: 11px;
+    font-size: var(--majo-font-sm);
   }
 
   .modelListCount {
-    font-size: 11px;
+    font-size: var(--majo-font-sm);
   }
 
   .modelManageModal {

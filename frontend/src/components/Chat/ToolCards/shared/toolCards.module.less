@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   cursor: pointer;
   user-select: none;
   list-style: none;
@@ -42,7 +42,7 @@
 }
 
 .toolCallIcon {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -88,7 +88,7 @@
 .toolCallInputProgress {
   color: var(--ant-color-text-secondary, #8c8c8c) !important;
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   font-variant-numeric: tabular-nums;
 }
 
@@ -98,25 +98,25 @@
 // with high specificity. We double the class selector to win the
 // specificity battle while keeping !important.
 .diffAddBadge.diffAddBadge {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #52c41a !important;
   font-weight: 500;
 }
 
 .diffDelBadge.diffDelBadge {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #ff4d4f !important;
   font-weight: 500;
 }
 
 .lineReadBadge.lineReadBadge {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #4096ff !important;
   font-weight: 500;
 }
 
 .lineSearchBadge.lineSearchBadge {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: #faad14 !important;
   font-weight: 500;
 }
@@ -124,7 +124,7 @@
 // Diff block
 .toolCallDiff {
   margin: 4px 0 2px 18px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   line-height: 1.6;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   overflow-x: auto;
@@ -205,7 +205,7 @@
   background: var(--majo-color-fill, rgba(0, 0, 0, 0.5));
   z-index: 1;
   opacity: 0;
-  font-size: 16px;
+  font-size: var(--majo-font-lg);
   border-radius: 6px;
   cursor: pointer;
   color: #fff;
@@ -239,7 +239,7 @@
 }
 
 .defaultBlockTitle {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   font-weight: 500;
   color: inherit !important;
 }
@@ -255,7 +255,7 @@
   background: transparent;
   color: var(--ant-color-text-quaternary, #bbb);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   padding: 0;
   transition: all 0.15s;
 
@@ -268,7 +268,7 @@
 .defaultBlockContent {
   margin: 0;
   padding: 10px 12px;
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   line-height: 1.6;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   white-space: pre-wrap;
@@ -280,7 +280,7 @@
 
 .defaultBlockContentMd {
   padding: 10px 12px;
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   line-height: 1.6;
   max-height: 360px;
   overflow-y: auto;
@@ -295,7 +295,7 @@
   :global(table) {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
   }
   :global(th),
   :global(td) {
@@ -311,7 +311,7 @@
 
 // Inline result (next to tool label)
 .toolCallInlineResult {
-  font-size: 12px;
+  font-size: var(--majo-font-caption);
   color: var(--ant-color-text-tertiary, #999);
   margin-left: 6px;
   overflow: hidden;
@@ -354,7 +354,7 @@
 
 // Markdown result block
 .toolCallResultMd {
-  font-size: 13px;
+  font-size: var(--majo-font-secondary);
   line-height: 1.6;
   margin: 4px 0 2px 18px;
   padding: 8px 12px;
@@ -383,7 +383,7 @@
   :global(table) {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: var(--majo-font-caption);
     margin: 4px 0;
   }
   :global(th),
