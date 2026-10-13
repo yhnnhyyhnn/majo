@@ -83,6 +83,10 @@ public class ProviderEntity {
     @Column(name = "custom_headers", columnDefinition = "CLOB")
     private String customHeaders;
 
+    /** Request path override for OpenAI-compat providers (ADR-0019); null = SDK default /v1/chat/completions. */
+    @Column(name = "endpoint_path", length = 128)
+    private String endpointPath;
+
     @Column(name = "extra_fields", columnDefinition = "CLOB")
     private String extraFields;
 
@@ -142,6 +146,8 @@ public class ProviderEntity {
     public void setGenerateKwargs(String generateKwargs) { this.generateKwargs = generateKwargs; }
     public String getCustomHeaders() { return customHeaders; }
     public void setCustomHeaders(String customHeaders) { this.customHeaders = customHeaders; }
+    public String getEndpointPath() { return endpointPath; }
+    public void setEndpointPath(String endpointPath) { this.endpointPath = endpointPath; }
     public String getExtraFields() { return extraFields; }
     public void setExtraFields(String extraFields) { this.extraFields = extraFields; }
     public LocalDateTime getCreatedAt() { return createdAt; }

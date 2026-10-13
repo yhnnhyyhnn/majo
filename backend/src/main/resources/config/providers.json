@@ -2701,7 +2701,8 @@
     {
         "id": "gemini",
         "name": "Google Gemini",
-        "base_url": "https://generativelanguage.googleapis.com",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "endpoint_path": "/chat/completions",
         "api_key": "",
         "chat_model": "GeminiChatModel",
         "models": [

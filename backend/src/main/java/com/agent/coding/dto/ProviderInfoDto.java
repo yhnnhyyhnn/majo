@@ -23,6 +23,8 @@ public class ProviderInfoDto {
     @JsonProperty("support_connection_check") private boolean supportConnectionCheck;
     @JsonProperty("generate_kwargs") private Object generateKwargs;
     @JsonProperty("custom_headers") private Object customHeaders;
+    /** OpenAI-compat request path override (ADR-0019); null = SDK default. */
+    @JsonProperty("endpoint_path") private String endpointPath;
     @JsonProperty("auth_mode") private String authMode;
     @JsonProperty("supports_oauth") private boolean supportsOauth;
     @JsonProperty("oauth_connected") private boolean oauthConnected;
@@ -70,6 +72,8 @@ public class ProviderInfoDto {
     public void setGenerateKwargs(Object generateKwargs) { this.generateKwargs = generateKwargs; }
     public Object getCustomHeaders() { return customHeaders; }
     public void setCustomHeaders(Object customHeaders) { this.customHeaders = customHeaders; }
+    public String getEndpointPath() { return endpointPath; }
+    public void setEndpointPath(String endpointPath) { this.endpointPath = endpointPath; }
     public String getAuthMode() { return authMode; }
     public void setAuthMode(String authMode) { this.authMode = authMode; }
     public boolean isSupportsOauth() { return supportsOauth; }

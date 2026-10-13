@@ -90,6 +90,7 @@ public class ModelProviderController {
         d.setSupportConnectionCheck(p.getSupportConnectionCheck());
         d.setGenerateKwargs(parseJson(p.getGenerateKwargs()));
         d.setCustomHeaders(parseJson(p.getCustomHeaders()));
+        d.setEndpointPath(p.getEndpointPath());
         d.setAuthMode(p.getAuthMode()); d.setSupportsOauth(p.getSupportsOauth());
         d.setOauthConnected(p.getOauthConnected()); d.setFreeTier(p.getIsFreeTier());
         d.setProviderGroup(p.getProviderGroup()); d.setProviderGroupName(p.getProviderGroupName());
@@ -311,6 +312,11 @@ public class ModelProviderController {
             if (body.containsKey("api_key")) p.setApiKey(Objects.toString(body.get("api_key"), ""));
             if (body.containsKey("base_url")) p.setBaseUrl(Objects.toString(body.get("base_url"), ""));
             if (body.containsKey("chat_model")) p.setChatModel(Objects.toString(body.get("chat_model"), "OpenAIChatModel"));
+            if (body.containsKey("endpoint_path")) {
+                // OpenAI-compat request path override (ADR-0019); null/blank clears.
+                String path = Objects.toString(body.get("endpoint_path"), "");
+                p.setEndpointPath(path.isBlank() ? null : path);
+            }
             providerRepo.save(p);
         });
         return providerRepo.findById(provider_id)

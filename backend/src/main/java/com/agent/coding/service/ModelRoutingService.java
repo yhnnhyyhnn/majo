@@ -196,9 +196,10 @@ public class ModelRoutingService {
         if (ctx != null && ctx > 0) {
             builder.contextWindowSize(ctx);
         }
-        // Thinking controls + generate_kwargs + custom_headers (ADR-0016):
-        // the configured UI values become real request parameters.
-        GenerateOptions options = resolveThinkingOptions(providerId, modelId);
+        // Thinking controls + generate_kwargs + custom_headers + endpoint
+        // path (ADR-0016/0019): the configured UI values become real
+        // request parameters.
+        GenerateOptions options = resolveGenerateOptions(providerId, modelId);
         if (options != null) {
             builder.generateOptions(options);
         }
@@ -215,10 +216,11 @@ public class ModelRoutingService {
      * controls (ADR-0016): model-level thinking_enabled/budget/effort over
      * the effective thinking_param_style (model, then provider), merged onto
      * provider- and model-level generate_kwargs (extra_body promoted), plus
-     * the provider's custom_headers. Returns null when nothing is configured
-     * — the request body then stays byte-identical to pre-ADR-0016.
+     * the provider's custom_headers and endpoint_path (ADR-0019). Returns
+     * null when nothing is configured — the request body then stays
+     * byte-identical to pre-ADR-0016.
      */
-    GenerateOptions resolveThinkingOptions(String providerId, String modelId) {
+    GenerateOptions resolveGenerateOptions(String providerId, String modelId) {
         ProviderEntity provider = providerId != null
                 ? providerRepo.findById(providerId).orElse(null) : null;
         ProviderModelEntity model = providerId != null && modelId != null
@@ -268,11 +270,19 @@ public class ModelRoutingService {
             options.additionalHeaders(headers);
             any = true;
         }
+        // OpenAI-compat endpoint override (ADR-0019): e.g. Gemini's official
+        // compatibility endpoint is /v1beta/openai/chat/completions.
+        if (provider != null && provider.getEndpointPath() != null
+                && !provider.getEndpointPath().isBlank()) {
+            options.endpointPath(provider.getEndpointPath());
+            any = true;
+        }
         if (!any) {
             return null;
         }
-        log.info("Thinking controls wired for {}/{}: style={}, bodyKeys={}, headers={}",
-                providerId, modelId, style, body.keySet(), headers.keySet());
+        log.info("Generate options wired for {}/{}: style={}, bodyKeys={}, headers={}, endpointPath={}",
+                providerId, modelId, style, body.keySet(), headers.keySet(),
+                provider == null ? null : provider.getEndpointPath());
         return options.build();
     }
 

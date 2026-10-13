@@ -50,6 +50,7 @@ public class ProviderSeedData {
                 e.setThinkingBudgetRange(j(p.get("thinking_budget_range")));
                 e.setGenerateKwargs(j(p.get("generate_kwargs")));
                 e.setCustomHeaders(j(p.get("custom_headers")));
+                e.setEndpointPath((String) p.get("endpoint_path"));
                 e.setExtraFields(j(p.get("meta")));
                 providerRepo.save(e);
 

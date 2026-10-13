@@ -48,6 +48,7 @@
 | [ADR-0016](ADR-0016-thinking-controls-wiring.md) | 思维控制接通执行层：GenerateOptions 接线(#7899 差距第 1 批) | Accepted | ModelRoutingService.resolveThinkingOptions、GenerateOptions、thinking_param_style、generate_kwargs、custom_headers |
 | [ADR-0017](ADR-0017-model-pricing-cost.md) | 模型价格元数据与成本折算：记录时快照 + 保守分类(#7899 差距第 2 批) | Accepted | ModelPricingService、V28 迁移、input_price/output_price、cost_usd、OpenRouter import-pricing |
 | [ADR-0018](ADR-0018-model-catalog-sync.md) | models.dev 模型目录同步：vendor 快照 + 保守 upsert(#7899 差距第 3 批) | Accepted | CatalogSyncService、config/catalog/providers、/models/sync-catalog、majo.catalog.location |
+| [ADR-0019](ADR-0019-openai-compat-endpoint.md) | OpenAI 兼容端点适配：endpointPath 机制 + Gemini 兼容端点修复(#7899 差距第 4 批降档) | Accepted | V29、providers.endpoint_path、GenerateOptions.endpointPath、gemini 存量校正 |
 
 ## 未来可能的 ADR 候选
 

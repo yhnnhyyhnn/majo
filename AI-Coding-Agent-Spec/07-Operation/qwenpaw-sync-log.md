@@ -71,7 +71,15 @@ vendor SDK 内部的修复一律跳过。
   个 per-provider 快照(0.9MB,含 MIT 许可),CatalogSyncService 按
   文件名匹配供应商做保守 upsert——能力/上下文(未配置时)/价格/
   thinking 元数据更新,新模型插入,永不删除、永不碰用户值;供应商页
-  "同步模型目录"按钮)。第 4 批 Anthropic/Gemini 原生适配仍挂起。
+  "同步模型目录"按钮)。
+  **第 4 批"Anthropic/Gemini 原生适配"降档为兼容层修复并实施**(ADR-
+  0019):先探证实 SDK 聚合 jar 含 Anthropic/GeminiChatModel 但依赖
+  com.anthropic/com.google.genai+auth 重 SDK 未 vendor,原生路线挂起;
+  实测发现真 bug——gemini 种子 URL 拼出 /v1/chat/completions 而官方
+  OpenAI 兼容端点是 /v1beta/openai/chat/completions(今天根本不通),
+  anthropic 恰好落在官方兼容端点(能通)。落地 providers.endpoint_path
+  (V29,含存量 gemini 校正与种子修复)经 GenerateOptions.endpointPath
+  生效;minimax 的兼容端点未获文档确认,记录待验证不盲改。
 
 ## 2026-10-01 扫描(main @ 77744172,新增 6 提交)
 

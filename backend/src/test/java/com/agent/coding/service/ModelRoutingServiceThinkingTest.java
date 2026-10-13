@@ -170,6 +170,28 @@ class ModelRoutingServiceThinkingTest {
     }
 
     @Test
+    void endpointPathOverrideApplied() throws Exception {
+        ProviderEntity p = provider("https://generativelanguage.googleapis.com/v1beta/openai",
+                null, null, null);
+        p.setEndpointPath("/chat/completions");
+        stub(p, model(null, null, null, null));
+
+        GenerateOptions options = optionsOf(service.buildOpenAIChatModel("dashscope", "gemini-3-flash"));
+
+        assertEquals("/chat/completions", options.getEndpointPath());
+    }
+
+    @Test
+    void blankEndpointPathStaysDefault() throws Exception {
+        ProviderEntity p = provider("https://api.openai.com/v1", null, null, null);
+        p.setEndpointPath("  ");
+        stub(p, model(null, null, null, null));
+
+        // Blank path wires nothing; the model keeps the SDK default options.
+        assertNull(optionsOf(service.buildOpenAIChatModel("dashscope", "gpt-x")).getEndpointPath());
+    }
+
+    @Test
     void brokenJsonFailsOpen() throws Exception {
         stub(provider("https://dashscope.example/v1", "budget",
                         "{not json", "{\"broken\""),
