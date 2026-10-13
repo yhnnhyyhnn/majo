@@ -4,6 +4,8 @@ import io.agentscope.core.agent.Agent;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
 import io.agentscope.core.hook.PostActingEvent;
+import io.agentscope.core.message.AudioBlock;
+import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.ImageBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
@@ -19,9 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Promotes images returned by tools (view_image / desktop_screenshot) into
- * the conversation as a follow-up user message, so the next model call is
- * multimodal. Mirrors QwenPaw's tool-result media promotion.
+ * Promotes media returned by tools (view_image / desktop_screenshot /
+ * view_video images, view_audio audio #8083) into the conversation as a
+ * follow-up user message, so the next model call is multimodal. Mirrors
+ * QwenPaw's tool-result media promotion.
  *
  * <p>Registered as part of the composite agent hook (delegated from
  * {@link com.agent.coding.security.ToolGuardHook} on PostActing events),
@@ -41,11 +44,14 @@ public class MediaPromotionHook implements Hook {
         if (result == null || result.getOutput() == null) {
             return Mono.just(event);
         }
-        List<ImageBlock> images = new ArrayList<>();
+        List<ContentBlock> media = new ArrayList<>();
         StringBuilder note = new StringBuilder();
         for (io.agentscope.core.message.ContentBlock block : result.getOutput()) {
-            if (block instanceof ImageBlock img) {
-                images.add(img);
+            // view_image/desktop_screenshot/view_video yield ImageBlocks,
+            // view_audio yields AudioBlocks (#8083) — both promote the same
+            // way so the next model call is multimodal.
+            if (block instanceof ImageBlock || block instanceof AudioBlock) {
+                media.add(block);
             } else if (block instanceof TextBlock tb) {
                 if (!tb.getText().isBlank()) {
                     if (!note.isEmpty()) {
@@ -55,28 +61,28 @@ public class MediaPromotionHook implements Hook {
                 }
             }
         }
-        if (images.isEmpty()) {
+        if (media.isEmpty()) {
             return Mono.just(event);
         }
         try {
             Agent agent = event.getAgent();
             AgentState state = agent != null ? agent.getAgentState() : null;
             if (state == null) {
-                log.warn("[media] no agent state to promote image into");
+                log.warn("[media] no agent state to promote media into");
                 return Mono.just(event);
             }
             List<io.agentscope.core.message.ContentBlock> content = new ArrayList<>();
             if (!note.isEmpty()) {
                 content.add(TextBlock.builder().text(note.toString()).build());
             }
-            content.addAll(images);
+            content.addAll(media);
             Msg promoted = Msg.builder()
                     .name("user")
                     .role(MsgRole.USER)
                     .content(content)
                     .build();
             state.contextMutable().add(promoted);
-            log.info("[media] promoted {} image(s) into context", images.size());
+            log.info("[media] promoted {} media block(s) into context", media.size());
         } catch (Exception e) {
             log.warn("[media] promotion failed: {}", e.getMessage());
         }

@@ -37,7 +37,7 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
             "read_file", "list_directory", "search_code", "find_symbol",
             "grep_search", "glob_search", "git_status", "git_diff",
             "git_branch", "git_log", "get_current_time", "view_image",
-            "view_video", "web_fetch", "web_search");
+            "view_video", "view_audio", "web_fetch", "web_search");
 
     private static final Set<String> GUARDED_TOOLS = Set.of(
             "execute_shell_command", "write_file", "edit_file", "append_file",

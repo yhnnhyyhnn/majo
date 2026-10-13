@@ -61,7 +61,7 @@ public class AgentConfig {
             TokenUsageTool tokenUsage, SendFileToUserTool sendFileToUser,
             SpawnSubagentTool spawnSubagent, ChatWithAgentTool chatWithAgent,
             SubmitToAgentTool submitToAgent, CheckAgentTaskTool checkAgentTask,
-            ViewImageTool viewImage, ViewVideoTool viewVideo,
+            ViewImageTool viewImage, ViewVideoTool viewVideo, ViewAudioTool viewAudio,
             DesktopScreenshotTool desktopScreenshot,
             BrowserUseTool browserUse, MaterializeSkillTool materializeSkill,
             DelegateExternalAgentTool delegateExternalAgent,
@@ -89,6 +89,7 @@ public class AgentConfig {
         t.registerTool(checkAgentTask);
         t.registerTool(viewImage);
         t.registerTool(viewVideo);
+        t.registerTool(viewAudio);
         t.registerTool(desktopScreenshot);
         t.registerTool(browserUse);
         t.registerTool(materializeSkill);
