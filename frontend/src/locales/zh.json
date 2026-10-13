@@ -3035,6 +3035,7 @@
     "denied": "已拒绝工具调用",
     "approveFailed": "批准失败",
     "denyFailed": "拒绝失败",
+    "alreadyResolved": "该审批已被处理或已过期",
     "timeoutAutoDenied": "已超时，自动拒绝",
     "acknowledge": "我知道了",
     "approvePattern": "总是允许",

@@ -1567,6 +1567,7 @@
     "denied": "Panggilan alat ditolak",
     "approveFailed": "Gagal menyetujui",
     "denyFailed": "Gagal menolak",
+    "alreadyResolved": "Persetujuan ini sudah diproses atau kedaluwarsa",
     "timeoutAutoDenied": "Waktu habis, otomatis ditolak",
     "acknowledge": "Mengerti",
     "approvePattern": "Selalu Izinkan",

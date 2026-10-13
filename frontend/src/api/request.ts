@@ -137,7 +137,13 @@ export async function request<T = unknown>(
           ? `${errorMessage} - ${text}`
           : `Request failed: ${response.status} ${response.statusText}`;
 
-        throw new Error(finalMessage);
+        // Carry the HTTP status so callers can branch on it (e.g. approval
+        // 409 "already resolved or expired" vs a real failure).
+        const requestError = new Error(finalMessage) as Error & {
+          status?: number;
+        };
+        requestError.status = response.status;
+        throw requestError;
       }
 
       if (response.status === 204) {

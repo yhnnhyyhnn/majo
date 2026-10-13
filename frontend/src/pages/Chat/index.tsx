@@ -1585,6 +1585,15 @@ export default function ChatPage() {
     setApprovalRequests(newMap);
   }, [approvals, chatId]);
 
+  const dropApprovalCard = useCallback((requestId: string) => {
+    setApprovals((prev) => prev.filter((item) => item.request_id !== requestId));
+    setApprovalRequests((prev) => {
+      const next = new Map(prev);
+      next.delete(requestId);
+      return next;
+    });
+  }, [setApprovals]);
+
   const handleApprove = useCallback(
     async (requestId: string, scope?: "exact" | "similar") => {
       const request = approvalRequests.get(requestId);
@@ -1621,11 +1630,18 @@ export default function ChatPage() {
           });
         }, 300);
       } catch (error) {
+        if ((error as { status?: number })?.status === 409) {
+          // Already resolved or expired (qwenpaw #8188): drop the stale
+          // card instead of reporting a phantom failure.
+          dropApprovalCard(requestId);
+          message.info(t("approval.alreadyResolved"));
+          return;
+        }
         message.error(t("approval.approveFailed"));
         console.error("Failed to approve:", error);
       }
     },
-    [approvalRequests, chatId, t, message, setApprovals],
+    [approvalRequests, chatId, t, message, setApprovals, dropApprovalCard],
   );
 
   const handleDeny = useCallback(
@@ -1661,11 +1677,16 @@ export default function ChatPage() {
           });
         }, 300); // Match animation duration
       } catch (error) {
+        if ((error as { status?: number })?.status === 409) {
+          dropApprovalCard(requestId);
+          message.info(t("approval.alreadyResolved"));
+          return;
+        }
         message.error(t("approval.denyFailed"));
         console.error("Failed to deny:", error);
       }
     },
-    [approvalRequests, chatId, t, message, setApprovals],
+    [approvalRequests, chatId, t, message, setApprovals, dropApprovalCard],
   );
 
   // Use custom hooks for better separation of concerns

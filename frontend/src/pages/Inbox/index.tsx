@@ -185,28 +185,51 @@ export default function InboxPage() {
     rootSessionId: string,
     scope?: "exact" | "similar",
   ) => {
-    await commandsApi.sendApprovalCommand(
-      "approve",
-      requestId,
-      rootSessionId,
-      undefined,
-      scope,
-    );
-    setApprovals((prev) =>
-      prev.filter((item) => item.request_id !== requestId),
-    );
-    message.success(t("approval.approved"));
+    try {
+      await commandsApi.sendApprovalCommand(
+        "approve",
+        requestId,
+        rootSessionId,
+        undefined,
+        scope,
+      );
+      setApprovals((prev) =>
+        prev.filter((item) => item.request_id !== requestId),
+      );
+      message.success(t("approval.approved"));
+    } catch (error) {
+      if ((error as { status?: number })?.status === 409) {
+        // Already resolved or expired (qwenpaw #8188): drop the stale card.
+        setApprovals((prev) =>
+          prev.filter((item) => item.request_id !== requestId),
+        );
+        message.info(t("approval.alreadyResolved"));
+        return;
+      }
+      message.error(t("approval.approveFailed"));
+    }
   };
 
   const handleRejectRequest = async (
     requestId: string,
     rootSessionId: string,
   ) => {
-    await commandsApi.sendApprovalCommand("deny", requestId, rootSessionId);
-    setApprovals((prev) =>
-      prev.filter((item) => item.request_id !== requestId),
-    );
-    message.success(t("approval.denied"));
+    try {
+      await commandsApi.sendApprovalCommand("deny", requestId, rootSessionId);
+      setApprovals((prev) =>
+        prev.filter((item) => item.request_id !== requestId),
+      );
+      message.success(t("approval.denied"));
+    } catch (error) {
+      if ((error as { status?: number })?.status === 409) {
+        setApprovals((prev) =>
+          prev.filter((item) => item.request_id !== requestId),
+        );
+        message.info(t("approval.alreadyResolved"));
+        return;
+      }
+      message.error(t("approval.denyFailed"));
+    }
   };
 
   const handleCancelTask = async (rootSessionId: string) => {

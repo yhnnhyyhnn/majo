@@ -3016,6 +3016,7 @@
     "denied": "Tool call denied",
     "approveFailed": "Failed to approve",
     "denyFailed": "Failed to deny",
+    "alreadyResolved": "This approval was already resolved or expired",
     "timeoutAutoDenied": "Timed out, auto denied",
     "acknowledge": "Got it",
     "approvePattern": "Always Allow",

@@ -14,7 +14,9 @@ vendor SDK 内部的修复一律跳过。
   的 first-writer-wins 为唯一仲裁;过期请求即使收到批准也落
   denied/timeout;await 超时经同一仲裁收敛、竞胜的决定不被降级,并把
   等待 clamp 到请求 deadline;listPending 顺带清扫过期卡;approve/deny
-  对已决/过期返回 409(findAny 查 history 区分 404)。
+  对已决/过期返回 409(findAny 查 history 区分 404)。前端配套:request
+  错误附带 HTTP status,Chat/Inbox 对 409 就地移除失效卡并提示
+  "已被处理或已过期"(i18n 全 7 语言),不再误报失败。
 - **#8136 图片缩放保留 EXIF 方向 → 已移植**:majo 的 view_image 缩放
   重编码路径(ImageIO+Graphics2D)不应用 EXIF Orientation,手机竖拍
   JPEG 重编码后横躺且元数据已丢。自研零依赖实现 ImageExif:解析
