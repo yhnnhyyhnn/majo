@@ -2166,6 +2166,7 @@
     "settings": {
       "language": "Язык",
       "theme": "Тема",
+      "fontSize": "Размер шрифта",
       "mode": "Режим"
     },
     "simpleMode": "Простой режим",

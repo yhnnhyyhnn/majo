@@ -115,6 +115,7 @@
     "settings": {
       "language": "Ngôn ngữ",
       "theme": "Giao diện",
+      "fontSize": "Cỡ chữ",
       "mode": "Chế độ"
     },
     "simpleMode": "Chế độ đơn giản",

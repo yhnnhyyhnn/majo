@@ -180,6 +180,7 @@
       "language": "语言",
       "theme": "主题",
       "accent": "主题色",
+      "fontSize": "字号",
       "accentDark": "深色模式主题色",
       "accentPresets": "预设",
       "accentReset": "恢复默认",

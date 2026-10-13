@@ -180,6 +180,7 @@
       "language": "Language",
       "theme": "Theme",
       "accent": "Accent color",
+      "fontSize": "Font size",
       "accentDark": "Dark mode accent",
       "accentPresets": "Presets",
       "accentReset": "Reset to default",

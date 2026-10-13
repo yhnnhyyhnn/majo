@@ -2,7 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { SunMoon } from "lucide-react";
-import { ColorPicker, Select, Tooltip } from "antd";
+import { ColorPicker, Select, Slider, Tooltip } from "antd";
 import {
   SparkSunLine,
   SparkMoonLine,
@@ -17,6 +17,12 @@ import {
 import { languageApi } from "../api/modules/language";
 import { themeApi, DEFAULT_ACCENT } from "../api/modules/theme";
 import { useTheme, type ThemeMode } from "../contexts/ThemeContext";
+import {
+  getUiFontSize,
+  setUiFontSize,
+  UI_FONT_SIZE_MAX,
+  UI_FONT_SIZE_MIN,
+} from "../utils/uiFontSizePreference";
 import { useSidebarModeStore } from "../stores/sidebarModeStore";
 import { isTauriRuntime } from "../tauri/backendRuntime";
 import {
@@ -211,6 +217,24 @@ export default function SidebarSettingsPanel({
           >
             ↺
           </button>
+        </div>
+      </div>
+
+      {/* ── UI font size (qwenpaw #8005 counterpart) ─────── */}
+      <div className={styles.row}>
+        <span className={styles.label}>
+          {t("sidebar.settings.fontSize", "Font size")}
+        </span>
+        <div className={styles.options} style={{ flex: 1, minWidth: 120 }}>
+          <Slider
+            style={{ margin: "0 8px" }}
+            min={UI_FONT_SIZE_MIN}
+            max={UI_FONT_SIZE_MAX}
+            step={1}
+            defaultValue={getUiFontSize()}
+            onChange={(value) => setUiFontSize(value as number)}
+            tooltip={{ formatter: (v) => `${v}px` }}
+          />
         </div>
       </div>
 

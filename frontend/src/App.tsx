@@ -6,7 +6,12 @@ import {
 } from "@agentscope-ai/design";
 import { App as AntdApp } from "antd";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useTranslation } from "react-i18next";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
@@ -24,6 +29,7 @@ import "dayjs/locale/id";
 dayjs.extend(relativeTime);
 import MainLayout from "./layouts/MainLayout";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { FontSizeProvider } from "./contexts/FontSizeContext";
 import { PluginProvider, usePlugins } from "./plugins/PluginContext";
 import { ApprovalProvider } from "./contexts/ApprovalContext";
 import { DesktopUpdateProvider } from "./contexts/DesktopUpdateContext";
@@ -32,6 +38,12 @@ import { Suspense } from "react";
 import { lazyImportWithRetry } from "./utils/lazyWithRetry";
 
 const LoginPage = lazyImportWithRetry("./pages/Login/index");
+import {
+  applyUiFontSizeToRoot,
+  getUiFontSize,
+  subscribeUiFontSize,
+  UI_FONT_SIZE_DEFAULT,
+} from "./utils/uiFontSizePreference";
 import { authApi } from "./api/modules/auth";
 import { languageApi } from "./api/modules/language";
 import { themeApi, DEFAULT_ACCENT } from "./api/modules/theme";
@@ -113,6 +125,15 @@ function AppInner() {
   const { isDark } = useTheme();
   const { loading: pluginsLoading } = usePlugins();
   const selectedTheme = isDark ? bailianDarkTheme : bailianTheme;
+  // Global UI font size (qwenpaw #8005 counterpart): applied to the root
+  // before paint so the first frame already uses the persisted size.
+  const uiFontSize = useSyncExternalStore(subscribeUiFontSize, getUiFontSize);
+  useLayoutEffect(() => {
+    applyUiFontSizeToRoot(uiFontSize);
+  }, [uiFontSize]);
+  // Grow control heights with the font size so text never outgrows its
+  // control box; smaller sizes keep the default click targets.
+  const controlScale = Math.max(1, uiFontSize / UI_FONT_SIZE_DEFAULT);
   const lang = i18n.resolvedLanguage || i18n.language || "en";
   const [antdLocale, setAntdLocale] = useState<Locale>(
     antdLocaleMap[lang] ?? enUS,
@@ -237,10 +258,15 @@ function AppInner() {
             : antdTheme.defaultAlgorithm,
           token: {
             colorPrimary: effectiveAccent,
+            fontSize: uiFontSize,
+            controlHeight: Math.round(32 * controlScale),
+            controlHeightSM: Math.round(24 * controlScale),
+            controlHeightLG: Math.round(40 * controlScale),
           },
         }}
       >
         <AntdApp>
+          <FontSizeProvider value={uiFontSize}>
           <CloseWindowPrompt />
           <DesktopUpdateProvider>
             <UpdateTakeoverGate>
@@ -266,6 +292,7 @@ function AppInner() {
               </ApprovalProvider>
             </UpdateTakeoverGate>
           </DesktopUpdateProvider>
+          </FontSizeProvider>
         </AntdApp>
       </ConfigProvider>
     </BrowserRouter>

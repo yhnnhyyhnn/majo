@@ -2394,6 +2394,7 @@
     "settings": {
       "language": "Idioma",
       "theme": "Tema",
+      "fontSize": "Tamanho da fonte",
       "mode": "Modo"
     },
     "simpleMode": "Modo simples",

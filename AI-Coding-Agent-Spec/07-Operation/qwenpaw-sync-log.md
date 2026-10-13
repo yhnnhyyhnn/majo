@@ -5,8 +5,19 @@ majo master）。原则:只移植 majo 架构下可验证、有真实价值的�
 上游专属子系统(Hub/creator/pawapp/telemetry/数据应用)与绑定其
 vendor SDK 内部的修复一律跳过。
 
-## 2026-10-13 晚间批次(历史挂起项清理)
+## 2026-10-13 深夜补充(#8005 字号缩放落地)
 
+- **#8005 全局字号缩放 → 机制已移植**(候选 ADR-0020 就此实施):
+  uiFontSizePreference(localStorage 存储键 majo_ui_font_size、12-20px
+  clamp、跨 tab storage 同步、useSyncExternalStore 订阅)+
+  FontSizeContext;AppInner 在 paint 前 applyUiFontSizeToRoot(根字号
+  百分比 + --majo-font-scale 变量,默认值严格 no-op),antd token 的
+  fontSize/controlHeight 三档随缩放增长(缩小档保持默认点击目标);
+  侧栏设置面板新增字号滑条(实时生效,i18n 7 语言);4 个单测。
+  **范围说明**:上游同批做了 76 文件的样式 token 化(--app-font-*
+  语义 token 全量替换固定 px);majo 本批只接机制层——antd 组件全量
+  缩放 + 继承型文本缩放(--majo-font-scale 已就位),自研 less 模块的
+  固定 px 逐文件 token 化留作渐进跟进,不阻塞本特性。
 - **#8083 view_audio → 已实施**(majo 音频通路第一步):ViewAudioTool——
   mp3/wav/flac/opus 直传(SDK detectAudioFormat 原生支持四格式),m4a/
   aac/ogg/webm/amr 经 ffmpeg 转 16k 单声道 WAV(复用 ViewVideoTool 的
@@ -26,7 +37,8 @@ vendor SDK 内部的修复一律跳过。
     (#7829);启动期监控/boot 错误页为后续候选。
   - #8005 字号缩放 → 机制可移植(CSS 变量+antd token+localStorage+
     useSyncExternalStore),但落地需 majo 样式全量 token 化(上游改了
-    76 文件)——立项候选 ADR-0020,单独批次实施。
+    76 文件)——立项候选 ADR-0020,单独批次实施。(10-13 深夜:机制层
+    已落地,见上节。)
   - #8016 模态过渡稳定 → 不适用:majo 无 framer-motion 依赖。
   - #8145 composer 换行 → 暂缓:majo 未覆盖该 SDK Sender 内部类名,
     无既有回归可修;出现实际问题再按需加。
