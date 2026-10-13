@@ -70,6 +70,9 @@ public class ViewImageTool {
             byte[] bytes = Files.readAllBytes(p);
             BufferedImage img = ImageIO.read(p.toFile());
             if (img != null && (img.getWidth() > MAX_EDGE || img.getHeight() > MAX_EDGE)) {
+                // Re-encoding strips the EXIF tag, so bake the orientation
+                // into the pixels first or portrait JPEGs come out sideways.
+                img = ImageExif.applyOrientation(img, ImageExif.readOrientation(bytes));
                 double scale = (double) MAX_EDGE / Math.max(img.getWidth(), img.getHeight());
                 int w = Math.max(1, (int) (img.getWidth() * scale));
                 int h = Math.max(1, (int) (img.getHeight() * scale));
