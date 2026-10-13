@@ -3,11 +3,11 @@ package com.agent.coding.approval;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * In-memory registry of pending tool-execution approvals
@@ -40,6 +40,9 @@ public class ApprovalStore {
         public volatile String decision; // "approved" | "denied"
         public volatile String reason;
 
+        /** Owning store; drops this request from pending when await() expires. */
+        ApprovalStore owner;
+
         public ApprovalRequest(String requestId, String sessionId, String rootSessionId,
                                String agentId, String toolName, String toolDisplayName,
                                String severity, long timeoutSeconds) {
@@ -60,11 +63,55 @@ public class ApprovalStore {
 
         /** Block until resolved (or timeout), returning the decision. */
         public String await(long timeoutMillis) {
+            // Never wait past the request's own deadline: the card expires
+            // with the request, not with each individual waiter.
+            long deadline = deadlineMillis();
+            long waitMillis = timeoutMillis;
+            if (deadline != Long.MAX_VALUE) {
+                waitMillis = Math.min(waitMillis, Math.max(0L, deadline - System.currentTimeMillis()));
+            }
             try {
-                return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
+                return future.get(waitMillis, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                // The waiter's timeout raced a decision: settle expiry through
+                // the same arbiter so a decision that already won is returned
+                // instead of being silently downgraded to a denial.
+                if (settle("denied", "timeout")) {
+                    if (owner != null) {
+                        owner.pending.remove(requestId);
+                    }
+                    return "denied";
+                }
+                return future.getNow("denied");
             } catch (Exception e) {
                 return "denied";
             }
+        }
+
+        /** Deadline in epoch millis; {@code Long.MAX_VALUE} when untimed. */
+        long deadlineMillis() {
+            return timeoutSeconds > 0 ? createdAt + timeoutSeconds * 1000 : Long.MAX_VALUE;
+        }
+
+        boolean isExpired(long now) {
+            return timeoutSeconds > 0 && now >= deadlineMillis();
+        }
+
+        /**
+         * First-writer-wins settlement: the future's completion is the only
+         * arbiter, so a decision and a timeout racing each other can never
+         * both take effect, and the stored fields are never overwritten by
+         * a late second resolver. Returns false when this call lost the race.
+         */
+        boolean settle(String decision, String reason) {
+            String value = "approved".equals(decision) ? "approved" : "denied";
+            if (!future.complete(value)) {
+                return false;
+            }
+            this.decision = value;
+            this.reason = reason;
+            this.resolved = true;
+            return true;
         }
     }
 
@@ -77,6 +124,7 @@ public class ApprovalStore {
         String requestId = java.util.UUID.randomUUID().toString();
         ApprovalRequest req = new ApprovalRequest(requestId, sessionId, rootSessionId,
                 agentId, toolName, toolDisplayName, severity, timeoutSeconds);
+        req.owner = this;
         pending.put(requestId, req);
         history.add(req);
         return req;
@@ -86,7 +134,26 @@ public class ApprovalStore {
         return pending.get(requestId);
     }
 
+    /**
+     * Pending or already-settled request by id — settled requests leave the
+     * pending map but stay in history, letting callers tell "never existed"
+     * apart from "resolved or expired".
+     */
+    public ApprovalRequest findAny(String requestId) {
+        ApprovalRequest req = pending.get(requestId);
+        if (req != null) {
+            return req;
+        }
+        for (ApprovalRequest r : history) {
+            if (r.requestId.equals(requestId)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
     public List<ApprovalRequest> listPending() {
+        settleExpired(System.currentTimeMillis());
         return pending.values().stream()
                 .filter(r -> !r.resolved)
                 .sorted((a, b) -> Long.compare(b.createdAt, a.createdAt))
@@ -97,35 +164,41 @@ public class ApprovalStore {
         return List.copyOf(history);
     }
 
-    /** Resolve a pending request; returns null if unknown. */
+    /**
+     * Resolve a pending request; returns the settled request, or null when
+     * the request is unknown, already resolved, or past its deadline — an
+     * approval arriving after expiry never overrides the timeout denial
+     * (the agent has already proceeded), so late resolvers must report
+     * conflict rather than success.
+     */
     public ApprovalRequest resolve(String requestId, String decision, String reason) {
         ApprovalRequest req = pending.get(requestId);
-        if (req == null || req.resolved) {
+        if (req == null) {
             return null;
         }
-        req.resolved = true;
-        req.decision = decision;
-        req.reason = reason;
+        if (req.isExpired(System.currentTimeMillis())) {
+            req.settle("denied", "timeout");
+            pending.remove(requestId);
+            return null;
+        }
+        if (!req.settle(decision, reason)) {
+            return null;
+        }
         pending.remove(requestId);
-        req.future.complete("approved".equals(decision) ? "approved" : "denied");
         return req;
+    }
+
+    /**
+     * Settle requests past their deadline as timeout denials and drop them,
+     * so expired cards stop surfacing in pending lists and clicking them
+     * reports conflict instead of a phantom success.
+     */
+    void settleExpired(long now) {
+        pending.values().removeIf(r -> r.resolved || (r.isExpired(now) && r.settle("denied", "timeout")));
     }
 
     /** Drop stale pending entries (e.g. on session end). */
     public void purgeExpired() {
-        long now = System.currentTimeMillis();
-        pending.values().removeIf(r -> {
-            if (r.resolved) {
-                return true;
-            }
-            if (r.timeoutSeconds > 0 && now - r.createdAt > r.timeoutSeconds * 1000) {
-                r.resolved = true;
-                r.decision = "denied";
-                r.reason = "timeout";
-                r.future.complete("denied");
-                return true;
-            }
-            return false;
-        });
+        settleExpired(System.currentTimeMillis());
     }
 }

@@ -71,8 +71,12 @@ public class ApprovalController {
         }
         ApprovalStore.ApprovalRequest req = store.get(requestId);
         if (req == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("detail", "Approval request not found: " + shortId(requestId)));
+            // Left the pending map: either it never existed, or it was
+            // already settled (decision or expiry).
+            return store.findAny(requestId) == null
+                    ? ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(Map.of("detail", "Approval request not found: " + shortId(requestId)))
+                    : conflict();
         }
         if (!req.rootSessionId.equals(sessionId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -80,13 +84,16 @@ public class ApprovalController {
         }
         String scope = body.get("scope") == null ? null : str(body.get("scope")).trim().toLowerCase();
         String decision = "exact".equals(scope) || "similar".equals(scope) ? scope : null;
-        store.resolve(requestId, "approved", decision == null ? "exact" : decision);
-        log.info("[approval] approved request={} session={} tool={}", shortId(requestId), sessionId, req.toolName);
+        ApprovalStore.ApprovalRequest resolved = store.resolve(requestId, "approved", decision == null ? "exact" : decision);
+        if (resolved == null) {
+            return conflict();
+        }
+        log.info("[approval] approved request={} session={} tool={}", shortId(requestId), sessionId, resolved.toolName);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);
-        result.put("message", "Tool '" + req.toolName + "' approved, executing...");
-        result.put("tool_name", req.toolName);
+        result.put("message", "Tool '" + resolved.toolName + "' approved, executing...");
+        result.put("tool_name", resolved.toolName);
         result.put("request_id", requestId);
         return ResponseEntity.ok(result);
     }
@@ -100,23 +107,33 @@ public class ApprovalController {
         }
         ApprovalStore.ApprovalRequest req = store.get(requestId);
         if (req == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("detail", "Approval request not found: " + shortId(requestId)));
+            return store.findAny(requestId) == null
+                    ? ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(Map.of("detail", "Approval request not found: " + shortId(requestId)))
+                    : conflict();
         }
         if (!req.rootSessionId.equals(sessionId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("detail", "Root session mismatch: cannot deny other session trees"));
         }
         String reason = body.get("reason") == null ? "User denied" : str(body.get("reason"));
-        store.resolve(requestId, "denied", reason);
-        log.info("[approval] denied request={} session={} tool={} reason={}", shortId(requestId), sessionId, req.toolName, reason);
+        ApprovalStore.ApprovalRequest resolved = store.resolve(requestId, "denied", reason);
+        if (resolved == null) {
+            return conflict();
+        }
+        log.info("[approval] denied request={} session={} tool={} reason={}", shortId(requestId), sessionId, resolved.toolName, reason);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);
-        result.put("message", "Tool '" + req.toolName + "' denied: " + reason);
-        result.put("tool_name", req.toolName);
+        result.put("message", "Tool '" + resolved.toolName + "' denied: " + reason);
+        result.put("tool_name", resolved.toolName);
         result.put("request_id", requestId);
         return ResponseEntity.ok(result);
+    }
+
+    private static ResponseEntity<Map<String, Object>> conflict() {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("detail", "Approval request already resolved or expired"));
     }
 
     private static String shortId(String id) {
