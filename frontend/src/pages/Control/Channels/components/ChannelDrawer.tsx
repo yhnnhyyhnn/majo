@@ -521,6 +521,21 @@ export function ChannelDrawer({
                 </Select.Option>
               </Select>
             </Form.Item>
+            <Form.Item
+              name="message_type"
+              label={t("channels.replyFormat")}
+              initialValue="text"
+              tooltip={t("channels.replyFormatTooltip")}
+            >
+              <Select>
+                <Select.Option value="text">
+                  {t("channels.replyFormatText")}
+                </Select.Option>
+                <Select.Option value="card">
+                  {t("channels.replyFormatCard")}
+                </Select.Option>
+              </Select>
+            </Form.Item>
             <ConfigProvider prefixCls="ant">
               <Alert
                 type="info"

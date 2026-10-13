@@ -5,7 +5,38 @@ majo master）。原则:只移植 majo 架构下可验证、有真实价值的�
 上游专属子系统(Hub/creator/pawapp/telemetry/数据应用)与绑定其
 vendor SDK 内部的修复一律跳过。
 
+## 2026-10-13 晚间批次(历史挂起项清理)
+
+- **#8083 view_audio → 已实施**(majo 音频通路第一步):ViewAudioTool——
+  mp3/wav/flac/opus 直传(SDK detectAudioFormat 原生支持四格式),m4a/
+  aac/ogg/webm/amr 经 ffmpeg 转 16k 单声道 WAV(复用 ViewVideoTool 的
+  detectBinary 与容错口径,转码后 20MB 上限);MediaPromotionHook 把
+  AudioBlock 与 ImageBlock 同路提升进上下文;注册/只读名单/系统提示词
+  就位;13 个新测试。上游 auto 模式的转写后端仍缺(majo 的
+  /workspace/transcribe 是桩),留待音频管线后续批次。
+- **飞书卡片输出 → 第一步已实施**(#7685 的地基):渠道配置新增
+  message_type=text|card(schema+表单),card 模式以 interactive 卡片
+  单 markdown 元素渲染 agent 回复(代码块/列表不再被纯文本拍平);
+  payload 构造单测。**#7685 折叠推理面板继续挂起**:其依赖流式卡片
+  更新,而 majo 渠道是 StreamTextCollector 攒完一次性回复的模型,须
+  先把 ChannelDispatcher 的 BiConsumer 回调改造为流式——独立改造批次,
+  且仍无飞书工作区可端到端验证。
+- **UI 大批次逐项裁决**(本轮深入调研,替代 9/29 的整批暂缓):
+  - #8154 chunk 恢复 → **部分已覆盖**:majo 已有 lazyImportWithRetry
+    (#7829);启动期监控/boot 错误页为后续候选。
+  - #8005 字号缩放 → 机制可移植(CSS 变量+antd token+localStorage+
+    useSyncExternalStore),但落地需 majo 样式全量 token 化(上游改了
+    76 文件)——立项候选 ADR-0020,单独批次实施。
+  - #8016 模态过渡稳定 → 不适用:majo 无 framer-motion 依赖。
+  - #8145 composer 换行 → 暂缓:majo 未覆盖该 SDK Sender 内部类名,
+    无既有回归可修;出现实际问题再按需加。
+  - #8019 项目标签截断 → 手法通用但依赖 #8005 token 体系,随其立项。
+  - #8017 模型设置打磨 / #7956 设置 UX+对话过渡 / #7861 多标签终端
+    → 不适用或仅作参考:纯上游组件结构与 chat SDK 深度绑定;majo 无
+    终端功能对应物。
+
 ## 2026-10-13 扫描(main @ 02b6a6d0,新增 29 提交)
+
 
 - **#8188 审批决定保留与超时竞态 → 已移植**:majo 全中其修复的竞态——
   等待方超时不落决定,迟到 approve 假成功(agent 实际已拒绝);resolve

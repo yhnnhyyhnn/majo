@@ -1495,7 +1495,11 @@
     "slackBotTokenTooltip": "Slack Bot User OAuth Token, bắt đầu bằng xoxb-",
     "slackAppToken": "App Token",
     "slackAppTokenTooltip": "Slack App-Level Token cho Socket Mode, bắt đầu bằng xapp-",
-    "slackProxyTooltip": "URL proxy HTTP để kết nối đến Slack API"
+    "slackProxyTooltip": "URL proxy HTTP để kết nối đến Slack API",
+    "replyFormat": "Định dạng trả lời",
+    "replyFormatTooltip": "Chế độ thẻ hiển thị Markdown (khối code, danh sách)",
+    "replyFormatText": "Văn bản thuần",
+    "replyFormatCard": "Thẻ Markdown"
   },
   "cronJobs": {
     "title": "Tác vụ định kỳ",

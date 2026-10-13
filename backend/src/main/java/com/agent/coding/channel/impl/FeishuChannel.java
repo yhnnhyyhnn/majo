@@ -17,6 +17,7 @@ import java.net.http.HttpResponse;
 import java.net.http.WebSocket;
 import java.net.http.WebSocket.Listener;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -202,8 +203,9 @@ public class FeishuChannel implements Channel {
 
     private void sendReply(String messageId, String text, String token) {
         try {
-            String content = MAPPER.writeValueAsString(Map.of("text", text));
-            String payload = MAPPER.writeValueAsString(Map.of("msg_type", "text", "content", content));
+            String payload = "card".equals(SkillService.str(config.get("message_type")))
+                    ? cardPayload(text)
+                    : textPayload(text);
             HttpRequest req = HttpRequest.newBuilder(
                             URI.create(base() + "/open-apis/im/v1/messages/" + messageId + "/reply"))
                     .timeout(Duration.ofSeconds(20))
@@ -218,5 +220,24 @@ public class FeishuChannel implements Channel {
         } catch (Exception e) {
             log.warn("[feishu] reply error: {}", e.getMessage());
         }
+    }
+
+    static String textPayload(String text) throws Exception {
+        String content = MAPPER.writeValueAsString(Map.of("text", text));
+        return MAPPER.writeValueAsString(Map.of("msg_type", "text", "content", content));
+    }
+
+    /**
+     * Interactive-card payload with a single markdown element — the reply
+     * renders agent markdown (code blocks, lists) that plain-text messages
+     * flatten. First step of the "feishu card output" batch: the collapsible
+     * reasoning panel of qwenpaw #7685 still needs streaming card updates
+     * on top of this.
+     */
+    static String cardPayload(String text) throws Exception {
+        String cardBody = MAPPER.writeValueAsString(Map.of(
+                "config", Map.of("wide_screen_mode", true),
+                "elements", List.of(Map.of("tag", "markdown", "content", text))));
+        return MAPPER.writeValueAsString(Map.of("msg_type", "interactive", "content", cardBody));
     }
 }

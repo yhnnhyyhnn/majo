@@ -90,6 +90,7 @@ public class ChannelSchemas {
                         field("encrypt_key", "加密密钥", "password"),
                         field("verification_token", "Verification Token", "password"),
                         select("domain", "平台", "feishu", "lark"),
+                        select("message_type", "回复格式", "text", "card"),
                         field("media_dir", "媒体目录", "text"))));
 
         schemas.put("qq", schema("QQ", "QQ 官方机器人",
