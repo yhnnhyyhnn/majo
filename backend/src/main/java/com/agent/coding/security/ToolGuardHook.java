@@ -30,8 +30,10 @@ import java.util.Map;
  * </ul>
  *
  * <p>Implements {@link RuntimeContextAware} so the harness injects the
- * per-run runtime context, forwarded to {@link ApprovalHook} (which needs
- * the real majo session id for agent-level approval policy).
+ * per-run runtime context, forwarded to {@link ApprovalHook} (agent-level
+ * approval policy), {@link DoomLoopGuard} and {@link
+ * com.agent.coding.agent.ModelRequestNormalizerHook} (session-scoped media
+ * strip, #8010).
  */
 @Component
 public class ToolGuardHook implements Hook, RuntimeContextAware {
@@ -77,6 +79,7 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
         }
         approvalHook.setRuntimeContext(ctx);
         doomLoopGuard.setRuntimeContext(ctx);
+        modelRequestNormalizerHook.setRuntimeContext(ctx);
     }
 
     @Override

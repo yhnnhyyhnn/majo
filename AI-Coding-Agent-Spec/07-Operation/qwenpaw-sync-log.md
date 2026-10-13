@@ -24,9 +24,12 @@ vendor SDK 内部的修复一律跳过。
 - **#8010 媒体载荷拒绝后恢复 → 已移植(适配)**:上游修复"坏图片块从
   历史重放导致会话永远 400"。majo 的 MediaPromotionHook 同样把工具图
   片提升进持久上下文,同病。移植:MediaPayloadRecovery 按上游口径分类
-  (媒体名词+载荷信号,排除内容安全/溢出措辞),命中后重试一次并把
-  strip 标志 arm 到 agent;ModelRequestNormalizerHook 在 PRE_REASONING
-  对请求剥离媒体(历史不动,同上游 formatter strip 语义)。上游的
+  (媒体名词+载荷信号,排除内容安全/溢出措辞),命中后重试一次并 arm
+  strip 标志;ModelRequestNormalizerHook 在 PRE_REASONING 对请求剥离
+  媒体(历史不动,同上游 formatter strip 语义)。strip 标志按 sessionId
+  键控而非 agent 名——HarnessAgent 每轮重建、名字跨聊天共享,而毒化
+  历史只在一个会话里(上游的 agent 实例≈会话,故其按实例粘滞;10-13
+  晚间加固为会话键控并经 ToolGuardHook 注入 RuntimeContext)。上游的
   "能力损失不得缓存"在 majo 无对应物(能力查元数据,无失败缓存),略。
 - #7893 / #8119 → 已在 9/30-10/01 间先行移植(d2f74b8 / 37c6023)。
 - #8083 view_audio 工具 → 跳过:majo 无音频通路(无 AudioBlock 产生

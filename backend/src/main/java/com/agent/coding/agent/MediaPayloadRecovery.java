@@ -8,9 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -23,9 +25,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * request only; stored history keeps its blocks, and no model-wide
  * capability loss is inferred (the bytes were refused, not the modality).
  *
- * <p>After a payload rejection the strip flag stays armed for the agent:
- * later turns also go out media-free (request-only), because the poisoned
- * block is still in history.
+ * <p>The strip flag is armed per <b>session</b>, not per agent: HarnessAgent
+ * instances are rebuilt every turn and their names are shared across a
+ * profile's chats, while the poisoned block lives in one session's
+ * persisted history — keying by agent name would silently strip media from
+ * every other chat of that agent. While armed, that session's outgoing
+ * requests go out media-free (the poisoned block stays in history until the
+ * chat is cleared).
  */
 public final class MediaPayloadRecovery {
 
@@ -55,8 +61,17 @@ public final class MediaPayloadRecovery {
             "content policy", "content moderation", "content_policy",
             "safety system", "flagged as sensitive", "violat");
 
-    /** Agents whose outgoing requests strip media (stays armed for the agent). */
-    private static final Set<String> STRIP_ARMED = ConcurrentHashMap.newKeySet();
+    /** Bound the armed set: long-lived processes accumulate sessions. */
+    private static final int MAX_ARMED_SESSIONS = 512;
+
+    /** Sessions whose outgoing requests strip media (insertion-bounded). */
+    private static final Set<String> STRIP_ARMED = Collections.newSetFromMap(
+            Collections.synchronizedMap(new LinkedHashMap<>(16, 0.75f, false) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                    return size() > MAX_ARMED_SESSIONS;
+                }
+            }));
 
     private MediaPayloadRecovery() {}
 
@@ -83,22 +98,30 @@ public final class MediaPayloadRecovery {
                 if (!retried.compareAndSet(false, true)) {
                     return Flux.error(err);
                 }
+                String sessionId = sessionKeyOf(ctx);
                 log.warn("[media] provider rejected the media payload ({}); "
-                        + "retrying without media — history unchanged",
-                        rootMessage(err));
-                armStrip(agentNameOf(agent));
+                        + "retrying without media for session {} — history unchanged",
+                        rootMessage(err), sessionId);
+                armStrip(sessionId);
                 return agent.streamEvents(prompt, ctx);
             });
     }
 
-    /** Arm request-only media stripping for the agent (sticky until restart). */
-    public static void armStrip(String agentName) {
-        STRIP_ARMED.add(agentName);
+    /** Arm request-only media stripping for the session (sticky while armed). */
+    public static void armStrip(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return; // no session scope → nothing persistent to guard
+        }
+        synchronized (STRIP_ARMED) {
+            // Re-insert so the bound evicts by last-armed order, not first.
+            STRIP_ARMED.remove(sessionId);
+            STRIP_ARMED.add(sessionId);
+        }
     }
 
-    /** Whether the agent's outgoing requests must strip media blocks. */
-    public static boolean isStripArmed(String agentName) {
-        return STRIP_ARMED.contains(agentName);
+    /** Whether the session's outgoing requests must strip media blocks. */
+    public static boolean isStripArmed(String sessionId) {
+        return sessionId != null && STRIP_ARMED.contains(sessionId);
     }
 
     /** Test hook: clear the armed set. */
@@ -106,12 +129,11 @@ public final class MediaPayloadRecovery {
         STRIP_ARMED.clear();
     }
 
-    static String agentNameOf(HarnessAgent agent) {
+    static String sessionKeyOf(RuntimeContext ctx) {
         try {
-            String name = agent.getName();
-            return name == null ? "default" : name;
+            return ctx == null ? null : ctx.getSessionId();
         } catch (Exception e) {
-            return "default";
+            return null;
         }
     }
 

@@ -24,14 +24,20 @@ import static org.mockito.Mockito.when;
 /**
  * Tests media-payload rejection recovery (#8010 port): a provider refusing
  * the media bytes retries the turn once with request-only stripping, and
- * the strip stays armed for the agent so replays of the poisoned history
- * can never re-trigger the same 400.
+ * the strip stays armed for that session — keyed by session id, never by
+ * agent name (names are shared across a profile's chats) — so replays of
+ * the poisoned history can never re-trigger the same 400, while other
+ * sessions keep their media.
  */
 class MediaPayloadRecoveryTest {
 
     /** Class name starts with "TextBlock" so recover() marks it meaningful. */
     private static final class TextBlockDeltaEventFake extends AgentEvent {
         @Override public AgentEventType getType() { return AgentEventType.TEXT_BLOCK_DELTA; }
+    }
+
+    private static RuntimeContext ctx(String sessionId) {
+        return RuntimeContext.builder().sessionId(sessionId).build();
     }
 
     @AfterEach
@@ -67,13 +73,14 @@ class MediaPayloadRecoveryTest {
         UserMessage prompt = new UserMessage("hi");
 
         List<AgentEvent> out = MediaPayloadRecovery.recover(
-                        Flux.error(new RuntimeException("connection reset")), agent, prompt, null)
+                        Flux.error(new RuntimeException("connection reset")),
+                        agent, prompt, ctx("s-1"))
                 .onErrorResume(e -> Flux.empty())
                 .collectList().block();
 
         assertTrue(out == null || out.isEmpty());
         verify(agent, never()).streamEvents(any(UserMessage.class), any(RuntimeContext.class));
-        assertFalse(MediaPayloadRecovery.isStripArmed(MediaPayloadRecovery.agentNameOf(agent)));
+        assertFalse(MediaPayloadRecovery.isStripArmed("s-1"));
     }
 
     @Test
@@ -84,7 +91,7 @@ class MediaPayloadRecoveryTest {
         List<AgentEvent> out = MediaPayloadRecovery.recover(
                         Flux.concat(Flux.just(new TextBlockDeltaEventFake()),
                                 Flux.error(new RuntimeException("image too large"))),
-                        agent, prompt, null)
+                        agent, prompt, ctx("s-1"))
                 .onErrorResume(e -> Flux.empty())
                 .collectList().block();
 
@@ -93,9 +100,28 @@ class MediaPayloadRecoveryTest {
     }
 
     @Test
-    void payloadRejectionRetriesOnceAndArmsStrip() {
+    void payloadRejectionRetriesOnceAndArmsStripForThatSessionOnly() {
         HarnessAgent agent = mock(HarnessAgent.class);
-        when(agent.getName()).thenReturn("agent-1");
+        AgentEvent done = mock(AgentEvent.class);
+        when(agent.streamEvents(any(UserMessage.class), any()))
+                .thenReturn(Flux.just(done));
+
+        UserMessage prompt = new UserMessage("describe the photo");
+        List<AgentEvent> out = MediaPayloadRecovery.recover(
+                        Flux.error(new RuntimeException("uploaded an unsupported image")),
+                        agent, prompt, ctx("s-1"))
+                .collectList().block();
+
+        assertEquals(1, out.size());
+        verify(agent, times(1)).streamEvents(any(UserMessage.class), any());
+        // Armed for the poisoned session, not for the agent's other chats.
+        assertTrue(MediaPayloadRecovery.isStripArmed("s-1"));
+        assertFalse(MediaPayloadRecovery.isStripArmed("s-2"));
+    }
+
+    @Test
+    void nullSessionContextRetriesWithoutArming() {
+        HarnessAgent agent = mock(HarnessAgent.class);
         AgentEvent done = mock(AgentEvent.class);
         when(agent.streamEvents(any(UserMessage.class), any()))
                 .thenReturn(Flux.just(done));
@@ -108,20 +134,19 @@ class MediaPayloadRecoveryTest {
 
         assertEquals(1, out.size());
         verify(agent, times(1)).streamEvents(any(UserMessage.class), any());
-        assertTrue(MediaPayloadRecovery.isStripArmed("agent-1"));
+        assertFalse(MediaPayloadRecovery.isStripArmed(MediaPayloadRecovery.sessionKeyOf(null)));
     }
 
     @Test
     void secondPayloadRejectionOnTheRetryPropagates() {
         HarnessAgent agent = mock(HarnessAgent.class);
-        when(agent.getName()).thenReturn("agent-2");
         when(agent.streamEvents(any(UserMessage.class), any()))
                 .thenReturn(Flux.error(new RuntimeException("image is invalid")));
 
         UserMessage prompt = new UserMessage("describe the photo");
         List<AgentEvent> out = MediaPayloadRecovery.recover(
                         Flux.error(new RuntimeException("uploaded an unsupported image")),
-                        agent, prompt, null)
+                        agent, prompt, ctx("s-1"))
                 .onErrorResume(e -> Flux.empty())
                 .collectList().block();
 

@@ -35,9 +35,14 @@ import java.util.Map;
  * <p>Runs on PRE_REASONING so only the outgoing request is affected — the
  * stored conversation history keeps its media blocks. When the model's
  * capability cannot be resolved the hook fails open (no stripping).
+ *
+ * <p>Implements {@link RuntimeContextAware} (forwarded by the composite
+ * {@code ToolGuardHook}) to resolve the session for the media-payload
+ * recovery strip flag (#8010).
  */
 @Component
-public class ModelRequestNormalizerHook implements Hook {
+public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook,
+        io.agentscope.core.hook.RuntimeContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(ModelRequestNormalizerHook.class);
 
@@ -51,6 +56,7 @@ public class ModelRequestNormalizerHook implements Hook {
     private final ModelRoutingService modelRoutingService;
     private final ProviderModelRepository providerModelRepo;
     private final com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry;
+    private final ThreadLocal<io.agentscope.core.agent.RuntimeContext> ctxHolder = new ThreadLocal<>();
 
     public ModelRequestNormalizerHook(ModelRoutingService modelRoutingService,
                                       ProviderModelRepository providerModelRepo,
@@ -58,6 +64,21 @@ public class ModelRequestNormalizerHook implements Hook {
         this.modelRoutingService = modelRoutingService;
         this.providerModelRepo = providerModelRepo;
         this.memoryBackendRegistry = memoryBackendRegistry;
+    }
+
+    @Override
+    public void setRuntimeContext(io.agentscope.core.agent.RuntimeContext ctx) {
+        if (ctx == null) {
+            ctxHolder.remove();
+        } else {
+            ctxHolder.set(ctx);
+        }
+    }
+
+    /** Session id of the current run, when the harness injected a context. */
+    private String currentSessionId() {
+        io.agentscope.core.agent.RuntimeContext ctx = ctxHolder.get();
+        return ctx == null ? null : ctx.getSessionId();
     }
 
     @Override
@@ -128,16 +149,17 @@ public class ModelRequestNormalizerHook implements Hook {
                 rebuilt = emptyDropped;
             }
 
-            // 2) Media stripping for text-only models, or after the provider
-            //    rejected a media payload (#8010): the poisoned block stays
-            //    in history and would fail every replay, so later requests
-            //    go out media-free until the process restarts.
+            // 2) Media stripping for text-only models, or for a session
+            //    whose provider rejected a media payload (#8010): the
+            //    poisoned block stays in that session's history and would
+            //    fail every replay, so its requests go out media-free.
             boolean stripForCapability = !multimodal;
-            boolean stripForRejection = MediaPayloadRecovery.isStripArmed(agentId);
+            String sessionId = currentSessionId();
+            boolean stripForRejection = MediaPayloadRecovery.isStripArmed(sessionId);
             if (stripForCapability || stripForRejection) {
                 if (stripForRejection && !stripForCapability) {
                     log.info("[normalizer] media stripped from request: payload was rejected "
-                            + "by the provider (recovery #8010)");
+                            + "by the provider for session {} (recovery #8010)", sessionId);
                 }
                 List<Msg> stripped = new ArrayList<>(rebuilt.size());
                 for (Msg msg : rebuilt) {
