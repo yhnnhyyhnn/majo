@@ -59,4 +59,20 @@ public class ModelPricingService {
         return inputTokens / 1_000_000d * prices.inputPerMillion()
                 + outputTokens / 1_000_000d * prices.outputPerMillion();
     }
+
+    /**
+     * OpenRouter-style pricing quotes per-token strings ("0.0000015"); the
+     * stored convention is USD per 1M tokens. Null for absent/negative.
+     */
+    public static Double perMillion(String perToken) {
+        if (perToken == null || perToken.isBlank()) {
+            return null;
+        }
+        try {
+            double v = Double.parseDouble(perToken);
+            return v >= 0 ? v * 1_000_000d : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 }

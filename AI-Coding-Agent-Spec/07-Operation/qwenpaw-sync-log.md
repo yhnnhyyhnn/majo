@@ -67,6 +67,11 @@ vendor SDK 内部的修复一律跳过。
   ModelPricingService 保守计价 + 用量两表 cost_usd 记录时快照 +
   OpenRouter import-pricing + 用量页成本卡/成本列,模型管理弹窗可
   手工维护价格,i18n 全 7 语言)。
+  **第 3 批"models.dev 目录同步"已实施**(ADR-0018:vendor 上游 31
+  个 per-provider 快照(0.9MB,含 MIT 许可),CatalogSyncService 按
+  文件名匹配供应商做保守 upsert——能力/上下文(未配置时)/价格/
+  thinking 元数据更新,新模型插入,永不删除、永不碰用户值;供应商页
+  "同步模型目录"按钮)。第 4 批 Anthropic/Gemini 原生适配仍挂起。
 
 ## 2026-10-01 扫描(main @ 77744172,新增 6 提交)
 

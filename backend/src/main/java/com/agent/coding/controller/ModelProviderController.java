@@ -31,16 +31,36 @@ public class ModelProviderController {
     private final ProviderRepository providerRepo;
     private final ProviderModelRepository providerModelRepo;
     private final ModelDiscoveryService discoveryService;
+    private final com.agent.coding.service.CatalogSyncService catalogSyncService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public ModelProviderController(ModelRoutingService modelRouting, ModelConfigRepository modelRepo,
                                     ProviderRepository providerRepo, ProviderModelRepository providerModelRepo,
-                                    ModelDiscoveryService discoveryService) {
+                                    ModelDiscoveryService discoveryService,
+                                    com.agent.coding.service.CatalogSyncService catalogSyncService) {
         this.modelRouting = modelRouting;
         this.modelRepo = modelRepo;
         this.providerRepo = providerRepo;
         this.providerModelRepo = providerModelRepo;
         this.discoveryService = discoveryService;
+        this.catalogSyncService = catalogSyncService;
+    }
+
+    /**
+     * Sync the vendored models.dev catalog into provider model rows
+     * (ADR-0018): refreshes capabilities/context/prices/thinking metadata
+     * for matching providers, adds new models, never deletes or touches
+     * user-owned values.
+     */
+    @PostMapping("/models/sync-catalog")
+    public Map<String, Object> syncCatalog() {
+        var result = catalogSyncService.sync();
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", true);
+        out.put("providers_matched", result.providersMatched());
+        out.put("models_updated", result.modelsUpdated());
+        out.put("models_added", result.modelsAdded());
+        return out;
     }
 
     @GetMapping("/models")

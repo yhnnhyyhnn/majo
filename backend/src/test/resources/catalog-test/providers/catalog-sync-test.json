@@ -1,0 +1,60 @@
+{
+  "api_urls": ["https://catalog-test.example/v1"],
+  "remote_id": "catalog-test",
+  "template_owner": true,
+  "default_model_ids": ["existing-model"],
+  "models": [
+    {
+      "id": "existing-model",
+      "name": "Existing Model",
+      "supports_image": true,
+      "supports_video": false,
+      "probe_source": "documentation",
+      "is_free": false,
+      "max_input_length": 262144,
+      "pricing": {"prompt": "0.000003", "completion": "0.000015"},
+      "thinking_control": {"kind": "effort", "efforts": ["low", "medium", "high"]}
+    },
+    {
+      "id": "configured-model",
+      "name": "Configured Model",
+      "supports_image": false,
+      "supports_video": false,
+      "max_input_length": 524288
+    },
+    {
+      "id": "price-keep-model",
+      "name": "Price Keep Model",
+      "supports_image": false,
+      "supports_video": false,
+      "max_input_length": 131072
+    },
+    {
+      "id": "user-thinking-model",
+      "name": "User Thinking Model",
+      "supports_image": false,
+      "supports_video": false,
+      "max_input_length": 131072,
+      "thinking_control": {"kind": "budget", "budget_min": 1024, "budget_max": 65536}
+    },
+    {
+      "id": "brand-new-model",
+      "name": "Brand New Model",
+      "supports_image": true,
+      "supports_video": false,
+      "probe_source": "documentation",
+      "is_free": true,
+      "max_input_length": 1048576,
+      "max_output_length": 65536,
+      "pricing": {"prompt": "0", "completion": "0"}
+    },
+    {
+      "id": "maxtokens-protected-model",
+      "name": "MaxTokens Protected",
+      "supports_image": false,
+      "supports_video": false,
+      "max_input_length": 131072,
+      "max_output_length": 65536
+    }
+  ]
+}

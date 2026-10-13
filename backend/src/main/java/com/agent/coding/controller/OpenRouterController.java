@@ -227,8 +227,10 @@ public class OpenRouterController {
         int skipped = 0;
         for (Map<String, Object> m : models) {
             String id = String.valueOf(m.get("id"));
-            Double input = perMillion(castPricing(m.get("pricing")).get("prompt"));
-            Double output = perMillion(castPricing(m.get("pricing")).get("completion"));
+            Double input = com.agent.coding.service.ModelPricingService
+                    .perMillion(castPricing(m.get("pricing")).get("prompt"));
+            Double output = com.agent.coding.service.ModelPricingService
+                    .perMillion(castPricing(m.get("pricing")).get("completion"));
             if (input == null || output == null) {
                 skipped++;
                 continue;
@@ -244,18 +246,5 @@ public class OpenRouterController {
             updated++;
         }
         return Map.of("fetched", models.size(), "updated", updated, "skipped", skipped);
-    }
-
-    /** OpenRouter quotes per-token strings; store USD per 1M tokens. */
-    private static Double perMillion(String perToken) {
-        if (perToken == null || perToken.isBlank()) {
-            return null;
-        }
-        try {
-            double v = Double.parseDouble(perToken);
-            return v >= 0 ? v * 1_000_000d : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 }
