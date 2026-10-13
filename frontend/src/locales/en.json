@@ -1667,6 +1667,8 @@
   "tokenUsage": {
     "title": "Token Usage",
     "totalTokens": "Total Tokens",
+    "totalCost": "Total Cost",
+    "cost": "Cost",
     "totalCalls": "Total Calls",
     "promptTokens": "Prompt Tokens",
     "completionTokens": "Completion Tokens",
@@ -1763,6 +1765,9 @@
     "maxTokensLabel": "Max Tokens",
     "maxTokensHint": "Maximum output tokens per response",
     "maxInputLengthLabel": "Max Context Length",
+    "inputPriceLabel": "Input Price ($/1M tokens)",
+    "outputPriceLabel": "Output Price ($/1M tokens)",
+    "priceHint": "Used for cost stats; empty means unknown, no cost computed",
     "maxInputLengthHint": "Model context window size, controls context compaction threshold (≥1000)",
     "relayReasoningLabel": "Relay Reasoning",
     "relayReasoningHint": "Relay reasoning contents back to subsequent conversation turns",

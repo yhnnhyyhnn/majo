@@ -1487,6 +1487,8 @@
   "tokenUsage": {
     "title": "Penggunaan Token",
     "totalTokens": "Total Token",
+    "totalCost": "Total Biaya",
+    "cost": "Biaya",
     "totalCalls": "Total Panggilan",
     "promptTokens": "Token Prompt",
     "completionTokens": "Token Completion",
@@ -1779,6 +1781,9 @@
     "maxTokensLabel": "Token Maksimum",
     "maxTokensHint": "Token output maksimum per respons",
     "maxInputLengthLabel": "Panjang Konteks Maksimum",
+    "inputPriceLabel": "Harga input ($/1 jt token)",
+    "outputPriceLabel": "Harga output ($/1 jt token)",
+    "priceHint": "Untuk statistik biaya; kosong = tidak diketahui, biaya tidak dihitung",
     "maxInputLengthHint": "Ukuran jendela konteks model, mengontrol ambang kompaksi konteks (≥1000)",
     "relayReasoningLabel": "Teruskan Penalaran",
     "relayReasoningHint": "Teruskan konten penalaran ke giliran percakapan berikutnya",

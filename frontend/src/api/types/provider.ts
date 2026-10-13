@@ -20,6 +20,10 @@ export interface ModelInfo {
   reasoning_effort_options?: string[] | null;
   /** Per-model override for thinking_budget [min, max] range. */
   thinking_budget_range?: [number, number] | null;
+  /** USD per 1M input tokens; null = unknown (ADR-0017). */
+  input_price?: number | null;
+  /** USD per 1M output tokens; null = unknown (ADR-0017). */
+  output_price?: number | null;
 }
 
 export interface ProviderInfo {
@@ -144,6 +148,8 @@ export interface ModelConfigRequest {
   thinking_enabled?: boolean | null;
   thinking_budget?: number | null;
   reasoning_effort?: string | null;
+  input_price?: number | null;
+  output_price?: number | null;
 }
 
 export interface LocalModelConfig {

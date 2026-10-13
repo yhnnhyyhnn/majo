@@ -85,6 +85,7 @@ function TokenUsagePage() {
       prompt_tokens: stats.prompt_tokens,
       completion_tokens: stats.completion_tokens,
       call_count: stats.call_count,
+      cost_usd: stats.cost_usd,
     }));
   }, [aggregatedData?.by_model]);
 
@@ -151,6 +152,7 @@ function TokenUsagePage() {
               aggregatedData.total_prompt_tokens +
               aggregatedData.total_completion_tokens
             }
+            totalCostUsd={aggregatedData.total_cost_usd}
           />
         )}
 

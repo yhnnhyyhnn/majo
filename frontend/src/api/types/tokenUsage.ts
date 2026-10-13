@@ -6,6 +6,8 @@ export interface TokenUsageRecord {
   prompt_tokens: number;
   completion_tokens: number;
   call_count: number;
+  /** Cost snapshot; null = price unknown at record time (ADR-0017). */
+  cost_usd?: number | null;
 }
 
 /** Per-model (has provider_id, model) or per-date (no provider_id, model) stats. */
@@ -15,12 +17,15 @@ export interface TokenUsageStats {
   prompt_tokens: number;
   completion_tokens: number;
   call_count: number;
+  /** Accumulated cost; null when nothing in scope was priced. */
+  cost_usd?: number | null;
 }
 
 export interface TokenUsageSummary {
   total_prompt_tokens: number;
   total_completion_tokens: number;
   total_calls: number;
+  total_cost_usd?: number | null;
   by_model: Record<string, TokenUsageStats>;
   by_date: Record<string, TokenUsageStats>;
 }
@@ -32,4 +37,5 @@ export interface TokenUsageAgentStat {
   output_tokens: number;
   turns: number;
   duration_ms: number;
+  cost_usd?: number;
 }

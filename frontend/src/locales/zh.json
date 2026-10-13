@@ -1499,6 +1499,8 @@
   "tokenUsage": {
     "title": "Token 消耗",
     "totalTokens": "总 Token",
+    "totalCost": "总成本",
+    "cost": "成本",
     "totalCalls": "总调用次数",
     "promptTokens": "输入 Token",
     "completionTokens": "输出 Token",
@@ -1622,6 +1624,9 @@
     "maxTokensLabel": "最大输出 Tokens",
     "maxTokensHint": "每次响应的最大输出 token 数",
     "maxInputLengthLabel": "最大上下文长度",
+    "inputPriceLabel": "输入价格 ($/百万 tokens)",
+    "outputPriceLabel": "输出价格 ($/百万 tokens)",
+    "priceHint": "用于成本统计;留空表示未知,不折算成本",
     "maxInputLengthHint": "模型上下文窗口大小，控制上下文压缩阈值（≥1000）",
     "relayReasoningLabel": "转发推理内容",
     "relayReasoningHint": "将推理内容（reasoning contents）回传至后续对话轮次",

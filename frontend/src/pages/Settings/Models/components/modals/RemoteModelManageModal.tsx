@@ -99,6 +99,12 @@ function ModelConfigEditor({
   const [reasoningEffort, setReasoningEffort] = useState<string | null>(
     model.reasoning_effort ?? null,
   );
+  const [inputPrice, setInputPrice] = useState<number | null>(
+    model.input_price ?? null,
+  );
+  const [outputPrice, setOutputPrice] = useState<number | null>(
+    model.output_price ?? null,
+  );
 
   const initialText = useMemo(
     () =>
@@ -120,6 +126,8 @@ function ModelConfigEditor({
     setThinkingEnabled(model.thinking_enabled ?? null);
     setThinkingBudget(model.thinking_budget ?? null);
     setReasoningEffort(model.reasoning_effort ?? null);
+    setInputPrice(model.input_price ?? null);
+    setOutputPrice(model.output_price ?? null);
     setDirty(false);
   }, [
     initialText,
@@ -129,6 +137,8 @@ function ModelConfigEditor({
     model.thinking_enabled,
     model.thinking_budget,
     model.reasoning_effort,
+    model.input_price,
+    model.output_price,
   ]);
 
   const effectiveMaxTokens = maxTokens ?? 8192;
@@ -179,6 +189,8 @@ function ModelConfigEditor({
         thinking_enabled: thinkingEnabled,
         thinking_budget: thinkingBudget,
         reasoning_effort: reasoningEffort,
+        input_price: inputPrice,
+        output_price: outputPrice,
       });
       message.success(t("models.modelConfigSaved", { name: model.name }));
       setDirty(false);
@@ -251,6 +263,55 @@ function ModelConfigEditor({
               "models.maxInputLengthHint",
               "模型上下文窗口大小，控制上下文压缩阈值（≥1000）",
             )}
+          </div>
+        </div>
+      </div>
+      {/* Pricing (ADR-0017): USD per 1M tokens, empty = unknown → no cost */}
+      <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={labelStyle}>{t("models.inputPriceLabel")}</div>
+          <InputNumber
+            style={{ width: "100%" }}
+            min={0}
+            step={0.1}
+            value={inputPrice}
+            placeholder="—"
+            onChange={(val: number | null) => {
+              setInputPrice(val);
+              setDirty(true);
+            }}
+          />
+          <div
+            style={{
+              fontSize: 11,
+              color: isDark ? "rgba(255,255,255,0.35)" : "#999",
+              marginTop: 2,
+            }}
+          >
+            {t("models.priceHint")}
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={labelStyle}>{t("models.outputPriceLabel")}</div>
+          <InputNumber
+            style={{ width: "100%" }}
+            min={0}
+            step={0.1}
+            value={outputPrice}
+            placeholder="—"
+            onChange={(val: number | null) => {
+              setOutputPrice(val);
+              setDirty(true);
+            }}
+          />
+          <div
+            style={{
+              fontSize: 11,
+              color: isDark ? "rgba(255,255,255,0.35)" : "#999",
+              marginTop: 2,
+            }}
+          >
+            {t("models.priceHint")}
           </div>
         </div>
       </div>

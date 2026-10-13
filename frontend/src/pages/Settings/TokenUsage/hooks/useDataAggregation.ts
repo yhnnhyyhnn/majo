@@ -5,6 +5,8 @@ interface AggregatedData {
   total_prompt_tokens: number;
   total_completion_tokens: number;
   total_calls: number;
+  /** Accumulated cost; null when no record in scope was priced (ADR-0017). */
+  total_cost_usd: number | null;
   by_model: Record<
     string,
     {
@@ -13,6 +15,7 @@ interface AggregatedData {
       prompt_tokens: number;
       completion_tokens: number;
       call_count: number;
+      cost_usd: number | null;
     }
   >;
   by_date: Record<
@@ -21,6 +24,7 @@ interface AggregatedData {
       prompt_tokens: number;
       completion_tokens: number;
       call_count: number;
+      cost_usd: number | null;
     }
   >;
   by_date_model: Record<
@@ -33,9 +37,17 @@ interface AggregatedData {
         prompt_tokens: number;
         completion_tokens: number;
         call_count: number;
+        cost_usd: number | null;
       }
     >
   >;
+}
+
+/** Null-safe accumulate: unknown stays null until a priced record lands. */
+function addCost(bucket: { cost_usd: number | null }, cost?: number | null) {
+  if (cost != null) {
+    bucket.cost_usd = (bucket.cost_usd ?? 0) + cost;
+  }
 }
 
 export function useDataAggregation(records: TokenUsageRecord[]) {
@@ -49,6 +61,7 @@ export function useDataAggregation(records: TokenUsageRecord[]) {
     let totalPrompt = 0;
     let totalCompletion = 0;
     let totalCalls = 0;
+    const totalCost = { cost_usd: null as number | null };
 
     records.forEach((r) => {
       const pt = r.prompt_tokens;
@@ -58,6 +71,7 @@ export function useDataAggregation(records: TokenUsageRecord[]) {
       totalPrompt += pt;
       totalCompletion += ct;
       totalCalls += calls;
+      addCost(totalCost, r.cost_usd);
 
       const modelKey = `${providerId}:${r.model}`;
       if (!byModel[modelKey]) {
@@ -67,22 +81,26 @@ export function useDataAggregation(records: TokenUsageRecord[]) {
           prompt_tokens: 0,
           completion_tokens: 0,
           call_count: 0,
+          cost_usd: null,
         };
       }
       byModel[modelKey].prompt_tokens += pt;
       byModel[modelKey].completion_tokens += ct;
       byModel[modelKey].call_count += calls;
+      addCost(byModel[modelKey], r.cost_usd);
 
       if (!byDate[r.date]) {
         byDate[r.date] = {
           prompt_tokens: 0,
           completion_tokens: 0,
           call_count: 0,
+          cost_usd: null,
         };
       }
       byDate[r.date].prompt_tokens += pt;
       byDate[r.date].completion_tokens += ct;
       byDate[r.date].call_count += calls;
+      addCost(byDate[r.date], r.cost_usd);
 
       if (!byDateModel[r.date]) {
         byDateModel[r.date] = {};
@@ -94,17 +112,20 @@ export function useDataAggregation(records: TokenUsageRecord[]) {
           prompt_tokens: 0,
           completion_tokens: 0,
           call_count: 0,
+          cost_usd: null,
         };
       }
       byDateModel[r.date][modelKey].prompt_tokens += pt;
       byDateModel[r.date][modelKey].completion_tokens += ct;
       byDateModel[r.date][modelKey].call_count += calls;
+      addCost(byDateModel[r.date][modelKey], r.cost_usd);
     });
 
     return {
       total_prompt_tokens: totalPrompt,
       total_completion_tokens: totalCompletion,
       total_calls: totalCalls,
+      total_cost_usd: totalCost.cost_usd,
       by_model: byModel,
       by_date: byDate,
       by_date_model: byDateModel,

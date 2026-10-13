@@ -1314,6 +1314,9 @@
     "tokenCountUseMirrorTooltip": "Dùng mirror HuggingFace khi tải tokenizer"
   },
   "models": {
+    "inputPriceLabel": "Giá nhập ($/1 triệu token)",
+    "outputPriceLabel": "Giá xuất ($/1 triệu token)",
+    "priceHint": "Dùng cho thống kê chi phí; để trống = không rõ, không tính",
     "llmConfiguration": "Cấu hình LLM",
     "providersTitle": "Nhà cung cấp",
     "providersDescription": "Cấu hình API key và endpoint cho từng nhà cung cấp.",

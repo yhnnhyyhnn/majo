@@ -1,6 +1,7 @@
 import { Card, Table } from "@agentscope-ai/design";
 import { useTranslation } from "react-i18next";
 import { formatCompact } from "../../../../utils/formatNumber";
+import { formatCostUsd } from "./SummaryCards";
 import styles from "../index.module.less";
 
 interface ByModelData {
@@ -9,6 +10,8 @@ interface ByModelData {
   prompt_tokens: number;
   completion_tokens: number;
   call_count: number;
+  /** null = no priced record for this model (ADR-0017). */
+  cost_usd?: number | null;
 }
 
 interface ByDateData {
@@ -65,6 +68,14 @@ export function DataTables({ byModelData, byDateData }: DataTablesProps) {
       key: "call_count",
       render: (v: number) => formatCompact(v),
       sorter: (a: ByModelData, b: ByModelData) => a.call_count - b.call_count,
+    },
+    {
+      title: t("tokenUsage.cost"),
+      dataIndex: "cost_usd",
+      key: "cost_usd",
+      render: (v: number | null) => formatCostUsd(v),
+      sorter: (a: ByModelData, b: ByModelData) =>
+        (a.cost_usd ?? -1) - (b.cost_usd ?? -1),
     },
   ];
 
