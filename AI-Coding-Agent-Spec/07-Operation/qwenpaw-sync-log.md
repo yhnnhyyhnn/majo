@@ -5,6 +5,53 @@ majo master）。原则:只移植 majo 架构下可验证、有真实价值的�
 上游专属子系统(Hub/creator/pawapp/telemetry/数据应用)与绑定其
 vendor SDK 内部的修复一律跳过。
 
+## 2026-10-13 扫描(main @ 02b6a6d0,新增 29 提交)
+
+- **#8188 审批决定保留与超时竞态 → 已移植**:majo 全中其修复的竞态——
+  等待方超时不落决定,迟到 approve 假成功(agent 实际已拒绝);resolve
+  非原子 check-then-act;无 409 语义;过期卡永留 pending 列表
+  (purgeExpired 生产无人调)。移植:settle 以 CompletableFuture.complete
+  的 first-writer-wins 为唯一仲裁;过期请求即使收到批准也落
+  denied/timeout;await 超时经同一仲裁收敛、竞胜的决定不被降级,并把
+  等待 clamp 到请求 deadline;listPending 顺带清扫过期卡;approve/deny
+  对已决/过期返回 409(findAny 查 history 区分 404)。
+- **#8136 图片缩放保留 EXIF 方向 → 已移植**:majo 的 view_image 缩放
+  重编码路径(ImageIO+Graphics2D)不应用 EXIF Orientation,手机竖拍
+  JPEG 重编码后横躺且元数据已丢。自研零依赖实现 ImageExif:解析
+  APP1/IFD0 tag 274(小端/大端/畸形一律退化为方向 1),重编码前用
+  AffineTransform 把方向烤进像素(desktop_screenshot 为 Robot 截图、
+  view_video 为 ffmpeg 帧,均无 EXIF,不涉及)。
+- **#8010 媒体载荷拒绝后恢复 → 已移植(适配)**:上游修复"坏图片块从
+  历史重放导致会话永远 400"。majo 的 MediaPromotionHook 同样把工具图
+  片提升进持久上下文,同病。移植:MediaPayloadRecovery 按上游口径分类
+  (媒体名词+载荷信号,排除内容安全/溢出措辞),命中后重试一次并把
+  strip 标志 arm 到 agent;ModelRequestNormalizerHook 在 PRE_REASONING
+  对请求剥离媒体(历史不动,同上游 formatter strip 语义)。上游的
+  "能力损失不得缓存"在 majo 无对应物(能力查元数据,无失败缓存),略。
+- #7893 / #8119 → 已在 9/30-10/01 间先行移植(d2f74b8 / 37c6023)。
+- #8083 view_audio 工具 → 跳过:majo 无音频通路(无 AudioBlock 产生
+  路径,/workspace/transcribe 为桩),属新特性批次而非修复,待音频
+  管线立项时一并评估。
+- #7869 连接检查带会话头 → 跳过:其 OpenCode 供应商(Go 网关要求
+  MissingSessionID)专属;majo 无 session header 概念。
+- #8090 新版 GPT token 参数识别 → 跳过:上游修的是自组请求体的
+  openai_provider;majo 请求体由 agentscope SDK jar 组装,max_tokens
+  仅是模型元数据字段,无落点。
+- #8050 DST 感知进程时区 → 跳过:上游修"把当前固定偏移套到反 DST
+  半年的历史时间戳";majo 转录时间戳全程 LocalDateTime 存取,无带
+  时区换算步骤,天然不涉及。
+- #8055 技能池下载孤儿清扫 → 跳过:其 stage 目录在池内故需启动清扫;
+  majo 的 staging 走系统临时目录(扫描不覆盖、OS 清理策略管理),
+  失败路径已有 finally 清理,孤儿无害。
+- #8157 聊天复制图标尺寸 → 跳过:其 vendor SDK(requestActions)
+  专属;majo 聊天前端自研。
+- #8032 PTY 高描述符 → 跳过:Python select.select→poll 专属,majo
+  无终端服务。
+- #8169/#8168 Hub / #8155 QwenPaw-Flash 模型推荐 / #8141 数据应用 /
+  #8154/#8149/#8159/#8145/#8130/#8127/#8146/#8144 console UI 批次 →
+  上游专属或按 9/29 既定策略暂缓;#8041/#8043/#8038/#8039/#8037
+  CI/e2e → 上游专属。
+
 ## 2026-10-01 扫描(main @ 77744172,新增 6 提交)
 
 - **#8025 NSIS 禁用 solid 压缩 → 已移植**:vendor 上游 2.11.4 的
