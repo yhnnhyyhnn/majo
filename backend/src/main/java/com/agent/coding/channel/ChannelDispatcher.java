@@ -62,9 +62,21 @@ public class ChannelDispatcher {
      */
     public void dispatch(Map<String, Object> config, ChannelMessage msg,
                          BiConsumer<String, String> reply) {
+        dispatch(config, msg, reply, null);
+    }
+
+    /**
+     * Streaming variant: when {@code stream} is non-null the agent's
+     * accumulated text streams into it (throttled) and every outcome —
+     * denial, success, truncation, error — ends with exactly one
+     * {@link StreamingReply#complete}; the one-shot {@code reply} is then
+     * not used.
+     */
+    public void dispatch(Map<String, Object> config, ChannelMessage msg,
+                         BiConsumer<String, String> reply, StreamingReply stream) {
         String deny = accessCheck(config, msg);
         if (deny != null) {
-            reply.accept(msg.replyTo(), deny);
+            finish(reply, stream, msg.replyTo(), deny);
             return;
         }
         if (msg.text() == null || msg.text().isBlank()) {
@@ -79,19 +91,29 @@ public class ChannelDispatcher {
             try {
                 String replyText = memoryCommandService.execute(agentId, args);
                 saveMemoryCommandChat(agentId, msg, trimmedText, replyText);
-                reply.accept(msg.replyTo(), replyText);
+                finish(reply, stream, msg.replyTo(), replyText);
             } catch (Exception e) {
                 log.error("[channel:{}] memory command failed", msg.channelId(), e);
-                reply.accept(msg.replyTo(), "/memory 命令执行失败: " + e.getMessage());
+                finish(reply, stream, msg.replyTo(), "/memory 命令执行失败: " + e.getMessage());
             }
             return;
         }
         try {
-            String replyText = runAgent(msg);
-            reply.accept(msg.replyTo(), replyText);
+            String replyText = runAgent(msg, stream);
+            finish(reply, stream, msg.replyTo(), replyText);
         } catch (Exception e) {
             log.error("[channel:{}] agent run failed", msg.channelId(), e);
-            reply.accept(msg.replyTo(), "抱歉，处理消息时出错了: " + e.getMessage());
+            finish(reply, stream, msg.replyTo(), "抱歉，处理消息时出错了: " + e.getMessage());
+        }
+    }
+
+    /** Exactly-once delivery: streaming completion wins when present. */
+    private static void finish(BiConsumer<String, String> reply, StreamingReply stream,
+                               String replyTo, String text) {
+        if (stream != null) {
+            stream.complete(text);
+        } else {
+            reply.accept(replyTo, text);
         }
     }
 
@@ -126,7 +148,7 @@ public class ChannelDispatcher {
         return null;
     }
 
-    private String runAgent(ChannelMessage msg) {
+    private String runAgent(ChannelMessage msg, StreamingReply stream) {
         String agentId = AgentStore.DEFAULT_AGENT_ID;
         String sessionId = "ch-" + msg.channelId() + "-" + Integer.toHexString(msg.identity().hashCode());
         String chatId = chatService.getOrCreateBySession(agentId, sessionId, msg.text()).getId();
@@ -144,9 +166,15 @@ public class ChannelDispatcher {
                 .build();
 
         StreamTextCollector collected = new StreamTextCollector();
+        StreamingThrottle throttle = stream != null ? new StreamingThrottle() : null;
         try {
             agent.streamEvents(new UserMessage(msg.text()), ctx)
-                    .doOnNext(collected::accept)
+                    .doOnNext(event -> {
+                        collected.accept(event);
+                        if (throttle != null) {
+                            throttle.maybeUpdate(stream, collected.text());
+                        }
+                    })
                     .blockLast(RUN_TIMEOUT);
         } finally {
             WorkspaceContext.clear();
@@ -160,6 +188,34 @@ public class ChannelDispatcher {
         }
         return result.length() > MAX_REPLY_CHARS
                 ? result.substring(0, MAX_REPLY_CHARS) + "\n...[回复过长已截断]" : result;
+    }
+
+    /**
+     * Bounds platform update calls: at most one per interval and only when
+     * enough new text arrived. Card updates are rate-limited server-side;
+     * without throttling a fast stream burns the budget instantly.
+     */
+    private static final class StreamingThrottle {
+        private static final long INTERVAL_MS = 1500;
+        private static final int MIN_NEW_CHARS = 80;
+        private long lastUpdateAt;
+        private int lastUpdateLen = -1;
+
+        void maybeUpdate(StreamingReply stream, String text) {
+            long now = System.currentTimeMillis();
+            if (lastUpdateLen >= 0
+                    && (now - lastUpdateAt < INTERVAL_MS
+                        || text.length() - lastUpdateLen < MIN_NEW_CHARS)) {
+                return;
+            }
+            lastUpdateAt = now;
+            lastUpdateLen = text.length();
+            try {
+                stream.update(text);
+            } catch (Exception e) {
+                // Platform updates must never break the agent run.
+            }
+        }
     }
 
     private HarnessAgent buildAgent(String agentId) {

@@ -42,6 +42,19 @@ vendor SDK 内部的修复一律跳过。
 
 ## 2026-10-14 补充(minimax 端点确认落地)
 
+- **#7685 飞书流式卡片 → 已实施**(此前两次挂起项正式关闭):
+  StreamingReply 接口(update/complete,实现方自吞平台错误)+
+  ChannelDispatcher 流式重载——首拍立即更新,其后按"间隔 1.5s 且新
+  文本 ≥80 字符"节流,所有路径(拒绝/成功/截断/出错)恰好一次
+  complete,一次性 reply 语义对 null 句柄完全保持;FeishuChannel 在
+  card 模式下回复一张 interactive 卡片、拿 message_id 后原位 PUT 更新
+  (连续 3 次失败即停手,完成更新失败回落一次性回复)。9 用例
+  (dispatcher 节流/完成语义 5 + 卡片 API HttpServer 4)。
+  **验证边界如实记录**:API 形状按飞书公开文档(reply→message_id、
+  PUT messages 编辑)以假服务器验证,真实租户端到端仍待有工作区的
+  环境;折叠推理面板(思考过程分区渲染)是卡片模板层的后续批次。
+
+
 - **音频转写后端 → whisper_api 已实施**(关闭 #8083 记录的"转写桩"
   缺口):TranscriptionService 按 settings 的 transcription_provider_
   type 分派——disabled/未配置给可读报错(不再静默空文本),local_
@@ -107,10 +120,8 @@ vendor SDK 内部的修复一律跳过。
 - **飞书卡片输出 → 第一步已实施**(#7685 的地基):渠道配置新增
   message_type=text|card(schema+表单),card 模式以 interactive 卡片
   单 markdown 元素渲染 agent 回复(代码块/列表不再被纯文本拍平);
-  payload 构造单测。**#7685 折叠推理面板继续挂起**:其依赖流式卡片
-  更新,而 majo 渠道是 StreamTextCollector 攒完一次性回复的模型,须
-  先把 ChannelDispatcher 的 BiConsumer 回调改造为流式——独立改造批次,
-  且仍无飞书工作区可端到端验证。
+  payload 构造单测。(10-14 追记:流式更新已实施,见上节 #7685 条目;
+  折叠推理面板作为卡片模板层后续批次。)
 - **UI 大批次逐项裁决**(本轮深入调研,替代 9/29 的整批暂缓):
   - #8154 chunk 恢复 → **部分已覆盖**:majo 已有 lazyImportWithRetry
     (#7829);启动期监控/boot 错误页为后续候选。(10-13 深夜:剩余

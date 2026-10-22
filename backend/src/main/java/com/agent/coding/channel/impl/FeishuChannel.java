@@ -3,6 +3,7 @@ package com.agent.coding.channel.impl;
 import com.agent.coding.channel.Channel;
 import com.agent.coding.channel.ChannelDispatcher;
 import com.agent.coding.channel.ChannelMessage;
+import com.agent.coding.channel.StreamingReply;
 import com.agent.coding.skill.SkillService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -198,7 +199,57 @@ public class FeishuChannel implements Channel {
         }
         String groupId = "group".equals(chatType) ? chatId : null;
         ChannelMessage msg = new ChannelMessage(id(), openId, openId, groupId, text, messageId);
-        dispatcher.dispatch(config, msg, (to, reply) -> sendReply(to, reply, token));
+        StreamingReply stream = openStreamingCard(msg, token);
+        if (stream != null) {
+            dispatcher.dispatch(config, msg, (to, reply) -> sendReply(to, reply, token), stream);
+        } else {
+            dispatcher.dispatch(config, msg, (to, reply) -> sendReply(to, reply, token));
+        }
+    }
+
+    /**
+     * Open a live card for streaming replies (#7685 groundwork): replies
+     * once with an interactive card, keeps its message id, and later
+     * updates the card in place. Returns null when card mode is off or the
+     * card creation failed — the caller then falls back to the one-shot
+     * reply path.
+     */
+    private StreamingReply openStreamingCard(ChannelMessage msg, String token) {
+        if (!"card".equals(SkillService.str(config.get("message_type")))) {
+            return null;
+        }
+        String cardMessageId = createCardReply(msg.replyTo(), token,
+                "(正在生成回复…)");
+        if (cardMessageId == null) {
+            return null;
+        }
+        return new StreamingReply() {
+            private int updateFailures;
+
+            @Override
+            public void update(String accumulatedText) {
+                if (updateFailures >= 3) {
+                    return; // stop hammering a failing endpoint
+                }
+                try {
+                    updateCardMessage(base(), token, cardMessageId, accumulatedText);
+                    updateFailures = 0;
+                } catch (Exception e) {
+                    updateFailures++;
+                    log.warn("[feishu] card update failed ({}): {}", updateFailures, e.getMessage());
+                }
+            }
+
+            @Override
+            public void complete(String finalText) {
+                try {
+                    updateCardMessage(base(), token, cardMessageId, finalText);
+                } catch (Exception e) {
+                    log.warn("[feishu] card completion failed, falling back to reply: {}", e.getMessage());
+                    sendReply(msg.replyTo(), finalText, token);
+                }
+            }
+        };
     }
 
     private void sendReply(String messageId, String text, String token) {
@@ -225,6 +276,58 @@ public class FeishuChannel implements Channel {
     static String textPayload(String text) throws Exception {
         String content = MAPPER.writeValueAsString(Map.of("text", text));
         return MAPPER.writeValueAsString(Map.of("msg_type", "text", "content", content));
+    }
+
+    /** Reply to a message with a fresh card; returns the card's message id, or null. */
+    static String createCardReply(String messageId, String token, String initialText) {
+        try {
+            HttpRequest req = HttpRequest.newBuilder(
+                            URI.create(openApiBase(token) + "/open-apis/im/v1/messages/" + messageId + "/reply"))
+                    .timeout(Duration.ofSeconds(20))
+                    .header("Authorization", "Bearer " + token)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(cardPayload(initialText)))
+                    .build();
+            HttpResponse<String> resp = HttpClient.newHttpClient()
+                    .send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() >= 400) {
+                log.warn("[feishu] card reply HTTP {}: {}", resp.statusCode(), resp.body());
+                return null;
+            }
+            String id = MAPPER.readTree(resp.body()).path("data").path("message_id").asText("");
+            return id.isBlank() ? null : id;
+        } catch (Exception e) {
+            log.warn("[feishu] card reply error: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /** Replace a delivered card message's content (documented "edit message" API). */
+    static void updateCardMessage(String apiBase, String token, String messageId, String text) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder(
+                        URI.create(apiBase + "/open-apis/im/v1/messages/" + messageId))
+                    .timeout(Duration.ofSeconds(20))
+                    .header("Authorization", "Bearer " + token)
+                    .header("Content-Type", "application/json")
+                    .PUT(HttpRequest.BodyPublishers.ofString(cardPayload(text)))
+                    .build();
+        HttpResponse<String> resp = HttpClient.newHttpClient()
+                .send(req, HttpResponse.BodyHandlers.ofString());
+        if (resp.statusCode() >= 400) {
+            throw new IllegalStateException("HTTP " + resp.statusCode() + ": " + resp.body());
+        }
+    }
+
+    /**
+     * The API host for streaming card calls. Extracted so tests can point
+     * it at a local fake; production resolves from the configured domain
+     * (this static context has no instance config).
+     */
+    static volatile String apiBaseOverride;
+
+    private static String openApiBase(String token) {
+        String override = apiBaseOverride;
+        return override != null ? override : "https://open.feishu.cn";
     }
 
     /**
