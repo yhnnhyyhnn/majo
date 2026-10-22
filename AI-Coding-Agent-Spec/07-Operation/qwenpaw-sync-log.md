@@ -5,6 +5,41 @@ majo master）。原则:只移植 majo 架构下可验证、有真实价值的�
 上游专属子系统(Hub/creator/pawapp/telemetry/数据应用)与绑定其
 vendor SDK 内部的修复一律跳过。
 
+## 2026-10-14 扫描(main @ 0db9a8e6,新增 54 提交,2.2.2→2.3.0b1)
+
+- **#7654 音频拒绝分类器扩充 → 已移植**:MediaPayloadRecovery 新增
+  4 信号——"at most 0 image/video/audio"(LM Studio 类网关把零媒体
+  预算报成该措辞)与 "are not enabled"(纯文本内容提示措辞);媒体
+  名词门保持,无关的 "not enabled" 不误入。6 用例。
+- **#8065 skill staging 路径净化 → 已移植**:stagedSkillDir 改固定
+  前缀(skillName 不再插进临时目录路径)+ 经 safeSkillDir 解析子目录
+  (纵深防御,保护所有调用点——zip 条目/hub 载荷的原始名即使漏净化
+  也无法逃出临时根)。2 用例含遍历名拒绝与零残留断言。
+- #8190 能力解析顺序 → 跳过:修的是其 provider.get_model_info vs
+  resolve_model_info 的槽位解析顺序;majo 的能力判定先解析生效模型
+  再查元数据,无对应缺陷。
+- #8229 历史服务截断巨型工具输出 → 跳过(有证据):majo 的
+  saveConsoleMessages 只持久化 text+reasoning,工具输出(含 base64)
+  不入历史,无响应膨胀问题。
+- #8051 MCP 422 遗留协议证据 → 跳过:其双协议自动探测专属;majo 的
+  MCP 客户端按配置显式选传输(streamable_http/sse),无自动探测。
+- #8219/#8260 chunk 恢复稳定化 → 跳过:其 build-id 守卫+健康期重置
+  机制; majo 的挂载成功清零+10 分钟窗口已覆盖同一失败模式(部署后
+  首个失效必能 reload,循环上限不变),机制更简。
+- #7565 插件热重载 / #8248/#8239 inline UI → 跳过:其 pawapp/插件
+  管理器体系;majo 前端插件(moduleRegistry)架构不同。
+- #8360/#8283/#8205 决策模型审批 / #7569 Advisor 模式 / #8352 ACP
+  agent-mode / #8200 Firecrawl / #8204 Tavily 凭证 / #8317 停止级联
+  追踪 / #7964 Langfuse → 特性批次或观测体系,暂缓/不适用。
+- #8327 ACP 长工具调用后任务结果保留 / #8353 cron 重载保活 /
+  #8007 task_tracker 注册顺序 → 各自运行时架构专属,无对应物。
+- #8246/#6459 SQLite 历史/备份 / #8128 hub 迁移 / #8346/#9af3 数据
+  应用 / #8121 creator / 4×版本 bump / CI/博客/e2e → 上游专属。
+- #8240/#8316/#8209/#8282/#8263/#8273/#8272/#8271/#8214/#8245/#8217
+  console UI 批次 → 上游组件体系,按既定策略暂缓。
+- b40d1a4c agentscope 2.0.10 → 关注项:majo 锁本地 2.0.0 jar,升级
+  需整体验证(既定结论不变)。
+
 ## 2026-10-14 补充(minimax 端点确认落地)
 
 - **音频转写后端 → whisper_api 已实施**(关闭 #8083 记录的"转写桩"

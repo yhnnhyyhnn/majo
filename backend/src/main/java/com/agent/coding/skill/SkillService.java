@@ -635,11 +635,20 @@ public class SkillService {
         }
     }
 
-    /** Create a temp staging dir whose child is the skill name. */
+    /**
+     * Create a temp staging dir whose child is the skill name.
+     *
+     * <p>Path-injection hardening (qwenpaw #8065): the temp-dir prefix is a
+     * FIXED string — the skill name is never interpolated into the staging
+     * directory's own path — and the child dir resolves through
+     * {@link SkillStore#safeSkillDir}, so a caller that forgot to normalize
+     * a raw name (zip entry, hub payload) cannot escape the temp root.
+     */
     public static Path stagedSkillDir(String skillName) {
+        String normalized = SkillStore.normalizeSkillDirName(skillName);
         try {
-            Path tempRoot = Files.createTempDirectory("majo_skill_stage_" + skillName + "_");
-            return tempRoot.resolve(skillName);
+            Path tempRoot = Files.createTempDirectory("majo_skill_stage_");
+            return SkillStore.safeSkillDir(tempRoot, normalized);
         } catch (IOException e) {
             throw new SkillsError("Cannot create staging dir");
         }

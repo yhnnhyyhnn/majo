@@ -50,7 +50,15 @@ public final class MediaPayloadRecovery {
             "unsupported media", "unsupported audio", "unsupported video",
             "unsupported image format", "unsupported image dimensions",
             "unsupported dimensions", "image too large", "image is too large",
-            "image dimensions", "image is not valid", "image is invalid");
+            "image dimensions", "image is not valid", "image is invalid",
+            // OpenAI-compatible gateways (LM Studio et al.) report a zero
+            // per-prompt media budget as "At most 0 video(s) may be
+            // provided ..." (qwenpaw #7654).
+            "at most 0 image", "at most 0 video", "at most 0 audio",
+            // "Message content supports text content only. Images, audio
+            // and files are not enabled." — the media-noun gate keeps
+            // unrelated "not enabled" errors out.
+            "are not enabled");
 
     /** A payload rejection only counts when the error names the media. */
     private static final Set<String> MEDIA_NOUNS =

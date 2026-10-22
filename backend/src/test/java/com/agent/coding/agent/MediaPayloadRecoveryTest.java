@@ -55,11 +55,23 @@ class MediaPayloadRecoveryTest {
                 new RuntimeException("unsupported image dimensions: 12000x8000")));
         assertTrue(MediaPayloadRecovery.isMediaPayloadRejection(
                 new RuntimeException("cannot decode the audio payload")));
+        // Zero per-prompt media budget (LM Studio-style gateways, #7654).
+        assertTrue(MediaPayloadRecovery.isMediaPayloadRejection(
+                new RuntimeException("At most 0 image(s) may be provided per message")));
+        assertTrue(MediaPayloadRecovery.isMediaPayloadRejection(
+                new RuntimeException("At most 0 video(s) may be provided")));
+        // Text-only content notice (#8290 wording).
+        assertTrue(MediaPayloadRecovery.isMediaPayloadRejection(
+                new RuntimeException("Message content supports text content only. "
+                        + "Images, audio and files are not enabled.")));
         // No media noun → not a payload rejection (overflow is OverflowRecovery's).
         assertFalse(MediaPayloadRecovery.isMediaPayloadRejection(
                 new RuntimeException("request too large")));
         assertFalse(MediaPayloadRecovery.isMediaPayloadRejection(
                 new RuntimeException("invalid request")));
+        // "not enabled" without a media noun stays out.
+        assertFalse(MediaPayloadRecovery.isMediaPayloadRejection(
+                new RuntimeException("this feature is not enabled for your account")));
         // Content-safety refusals name the media but are not payload faults.
         assertFalse(MediaPayloadRecovery.isMediaPayloadRejection(
                 new RuntimeException("image violates our content policy")));
