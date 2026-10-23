@@ -2,6 +2,37 @@
 
 All notable changes to Majo are documented here. Format follows Keep a Changelog; versions are semver-ish (MAJOR.MINOR.PATCH).
 
+## [0.5.1] — 2026-10-15
+
+Streaming-and-decisions release: streaming Feishu card replies, a decision-model tool approval mode, dual-provider web search, speech-to-text, chunk-load self-healing, and two upstream security/signal ports. References `#NNNN` are QwenPaw PRs.
+
+### Channels
+
+- **Streaming Feishu cards** (#7685 groundwork): in card mode the bot now replies with an interactive card and updates it in place while the agent generates — first update lands immediately, later ones throttled (1.5 s interval + 80-char floor); every outcome (denial, success, truncation, error) completes the card exactly once, with a one-shot reply fallback if the final update fails. New `StreamingReply` abstraction in the channel dispatcher; channels without streaming keep the legacy one-shot path untouched
+- Three consecutive card-update failures stop the streaming attempts; API shapes verified against a local fake server
+
+### Security
+
+- **Decision-model tool approval (ADR-0021, #8283 spirit port)**: new `MODEL` approval level — guarded tool calls get a two-pass verdict: deterministic hard-deny first (secret-shaped literals, credential paths — no LLM consulted), then one binary judgment call to the agent's routed model; ambiguity/timeout/error all deny (fail-closed). No human approval card is registered; the MCP "ask" policy path always stays human. Level available in Agent Config and the chat approval toggle, localized
+- **Skill staging path-injection hardening** (#8065): the staging temp prefix is fixed and the child directory resolves through the safe-path check, so a raw name from a zip entry or hub payload can no longer escape the temp root at any call site
+
+### Tools
+
+- **`web_search` dual provider** (#8200/#8204): `WEB_SEARCH_PROVIDER=tavily|firecrawl` or auto (Tavily key present → Tavily, unchanged contract; otherwise Firecrawl). Firecrawl follows the v2 search semantics — optional `FIRECRAWL_API_KEY`, one keyless retry on authenticated 401, `data.web[]` mapped to the shared result format; keyless search attempted with a readable hint when the budget runs out
+- **`view_audio`** gains the LM-Studio/DashScope audio-rejection signals in the media-payload recovery classifier (#7654) — "at most 0 …" budgets and text-only notices now trigger the strip-and-retry recovery
+
+### Reliability & desktop
+
+- **Chunk-load self-healing completed** (#8154): hashed-chunk failures skip memory retries and take a bounded automatic reload (max 2 per 10-minute window; unavailable storage never reloads); a pre-entry startup monitor inlined into index.html renders a localized boot-failure page instead of a white screen when React never mounts
+- **MiniMax provider repaired**: the seeded `…/anthropic` base built broken URLs under the OpenAI-compatible client — stock rows move to the documented bare-domain compatibility endpoint (V30, user-customized URLs untouched), mirroring the Gemini fix
+- **Speech-to-text activated**: `/workspace/transcribe` now relays to the configured provider's OpenAI-compatible transcription endpoint (whisper_api); disabled/unconfigured states return readable errors instead of silent empty text — the voice button works end to end
+
+### Quality
+
+- ADR-0020 (UI font scaling) and ADR-0021 (decision-model approval) recorded; ADR index at 21 entries
+- UI font tokens: all 79 less modules' fixed font-sizes tokenized (776 declarations) so the scaling setting reaches hand-written styles too
+- 515 backend / 1391 frontend tests green at release
+
 ## [0.5.0] — 2026-10-13
 
 Provider-execution release: the provider subsystem's stored settings (thinking controls, generate kwargs, custom headers, endpoint paths, prices) are now wired into real requests and usage costs, plus approval-race and media-recovery fixes, an audio-understanding tool, a Feishu card reply mode, a global UI font-size setting, and a full sweep of the #7899 provider-unification gap (ADR-0016…0019). References `#NNNN` are QwenPaw PRs.
