@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { Dropdown, Tag, Tooltip } from "antd";
 import type { MenuProps } from "antd";
-import { Shield, Ban, AlertTriangle, CheckCircle } from "lucide-react";
+import { Shield, Ban, AlertTriangle, CheckCircle, Bot } from "lucide-react";
 import { DownOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +23,7 @@ const LEVEL_META: Record<
   STRICT: { color: "#ff4d4f", icon: <Ban size={12} /> },
   SMART: { color: "#faad14", icon: <AlertTriangle size={12} /> },
   AUTO: { color: "#1890ff", icon: <Shield size={12} /> },
+  MODEL: { color: "#722ed1", icon: <Bot size={12} /> },
   OFF: { color: "#52c41a", icon: <CheckCircle size={12} /> },
 };
 

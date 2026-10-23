@@ -1,6 +1,6 @@
 # 08-ADR — 架构决策记录
 
-> **状态：✅ 19 篇 ADR 已完成** — 含推翻 ADR-0001 的技术栈转向决策。
+> **状态：✅ 21 篇 ADR 已完成** — 含推翻 ADR-0001 的技术栈转向决策。
 
 ## 本目录的定位
 
@@ -49,6 +49,8 @@
 | [ADR-0017](ADR-0017-model-pricing-cost.md) | 模型价格元数据与成本折算：记录时快照 + 保守分类(#7899 差距第 2 批) | Accepted | ModelPricingService、V28 迁移、input_price/output_price、cost_usd、OpenRouter import-pricing |
 | [ADR-0018](ADR-0018-model-catalog-sync.md) | models.dev 模型目录同步：vendor 快照 + 保守 upsert(#7899 差距第 3 批) | Accepted | CatalogSyncService、config/catalog/providers、/models/sync-catalog、majo.catalog.location |
 | [ADR-0019](ADR-0019-openai-compat-endpoint.md) | OpenAI 兼容端点适配：endpointPath 机制 + Gemini 兼容端点修复(#7899 差距第 4 批降档) | Accepted | V29、providers.endpoint_path、GenerateOptions.endpointPath、gemini 存量校正 |
+| [ADR-0020](ADR-0020-ui-font-scaling.md) | 全局界面字号缩放：偏好存储 + 根百分比 + 语义 token(#8005 机制移植) | Accepted | uiFontSizePreference、FontSizeContext、--majo-font-scale、--majo-font-*、tokenize-font-sizes codemod |
+| [ADR-0021](ADR-0021-decision-model-approval.md) | 决策模型工具审批：MODEL 级两段判定，确定性硬拒先行 + fail-closed(#8283 精神移植) | Accepted | DecisionModelGate、approval_level="MODEL"、ApprovalHook、ToolExecutionLevelCard/ApprovalLevelToggle |
 
 ## 未来可能的 ADR 候选
 

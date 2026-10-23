@@ -2459,6 +2459,8 @@
       "alertMessage": "Configure tool call approval policy to control the security level when agents execute tools",
       "strict": "Strict Mode",
       "strictDesc": "All tool calls require approval, highest security level",
+      "model": "Decision model",
+      "modelDesc": "A model auto-judges guarded tool calls (sensitive args are hard-denied; failed judgment denies)",
       "smart": "Smart Mode",
       "smartDesc": "Low-risk tools auto-approved, medium+ risk tools require approval",
       "auto": "Auto Mode",

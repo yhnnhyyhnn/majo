@@ -1,11 +1,11 @@
 import { Card, Radio, Alert, Space, Typography } from "antd";
-import { Shield, CheckCircle, AlertTriangle, Ban } from "lucide-react";
+import { Shield, CheckCircle, AlertTriangle, Ban, Bot } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import styles from "../index.module.less";
 
 const { Text, Paragraph } = Typography;
 
-export type ToolExecutionLevel = "STRICT" | "SMART" | "AUTO" | "OFF";
+export type ToolExecutionLevel = "STRICT" | "SMART" | "AUTO" | "MODEL" | "OFF";
 
 interface LevelOption {
   value: ToolExecutionLevel;
@@ -49,6 +49,13 @@ export function ToolExecutionLevelCard({
       icon: <Shield size={18} />,
       description: t("agentConfig.toolExecutionLevel.autoDesc"),
       color: "#1890ff",
+    },
+    {
+      value: "MODEL",
+      label: t("agentConfig.toolExecutionLevel.model"),
+      icon: <Bot size={18} />,
+      description: t("agentConfig.toolExecutionLevel.modelDesc"),
+      color: "#722ed1",
     },
     {
       value: "OFF",

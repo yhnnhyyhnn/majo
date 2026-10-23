@@ -2479,6 +2479,8 @@
       "alertMessage": "Konfigurasi kebijakan persetujuan panggilan alat untuk mengontrol tingkat keamanan saat agen mengeksekusi alat",
       "strict": "Mode Ketat",
       "strictDesc": "Semua panggilan alat memerlukan persetujuan, tingkat keamanan tertinggi",
+      "model": "Model pengambil keputusan",
+      "modelDesc": "Model menilai otomatis panggilan alat (argumen sensitif langsung ditolak; gagal = tolak)",
       "smart": "Mode Cerdas",
       "smartDesc": "Alat berisiko rendah disetujui otomatis, alat risiko sedang ke atas memerlukan persetujuan",
       "auto": "Mode Otomatis",

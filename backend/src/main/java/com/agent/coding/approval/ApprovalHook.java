@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -46,11 +47,14 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
 
     private final ApprovalStore store;
     private final ChatRepository chatRepo;
+    private final DecisionModelGate decisionModelGate;
     private final ThreadLocal<RuntimeContext> ctxHolder = new ThreadLocal<>();
 
-    public ApprovalHook(ApprovalStore store, ChatRepository chatRepo) {
+    public ApprovalHook(ApprovalStore store, ChatRepository chatRepo,
+                        DecisionModelGate decisionModelGate) {
         this.store = store;
         this.chatRepo = chatRepo;
+        this.decisionModelGate = decisionModelGate;
     }
 
     @Override
@@ -75,7 +79,7 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
         if (!needsApproval(agentId, toolUse.getName())) {
             return Mono.just(event);
         }
-        doApproval(acting, toolUse.getName());
+        doApproval(acting, toolUse.getName(), true);
         return Mono.just(event);
     }
 
@@ -84,7 +88,8 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
      * agent's approval level. Used by the composite hook for MCP tools whose
      * access policy resolves to "ask" (ADR-0007). Blocks until approved,
      * denied or timed out; a non-approval rewrites the tool call into a
-     * finished rejection.
+     * finished rejection. The decision model never substitutes here — an
+     * explicit "ask" policy means a human.
      */
     public Mono<io.agentscope.core.hook.PreActingEvent> enforceApproval(
             io.agentscope.core.hook.PreActingEvent acting, String reason) {
@@ -92,14 +97,31 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
         if (toolUse == null) {
             return Mono.just(acting);
         }
-        doApproval(acting, toolUse.getName());
+        doApproval(acting, toolUse.getName(), false);
         return Mono.just(acting);
     }
 
     /** Register the approval request, block for the decision, reject on deny. */
-    private void doApproval(io.agentscope.core.hook.PreActingEvent acting, String toolName) {
+    private void doApproval(io.agentscope.core.hook.PreActingEvent acting, String toolName,
+                            boolean modelLevelEligible) {
         io.agentscope.core.message.ToolUseBlock toolUse = acting.getToolUse();
         String agentId = majoAgentIdOf(acting);
+
+        // MODEL level: the decision model judges instead of a human card
+        // (ADR-0021). Deterministic hard-deny first, LLM verdict second,
+        // fail-closed throughout — no pending card, no Inbox entry.
+        if (modelLevelEligible && "MODEL".equalsIgnoreCase(levelOf(agentId))) {
+            DecisionModelGate.Verdict verdict = decisionModelGate.judge(
+                    agentId, toolName, toolUseInput(toolUse));
+            if (verdict.approved()) {
+                log.info("[approval] decision model approved '{}' (agent={})", toolName, agentId);
+                return;
+            }
+            log.info("[approval] decision model denied '{}' (agent={}): {}",
+                    toolName, agentId, verdict.reason());
+            acting.setToolUse(rejected(toolUse, verdict.reason()));
+            return;
+        }
 
         String sessionId = runtimeSessionId();
         if (sessionId == null || sessionId.isBlank()) {
@@ -117,14 +139,29 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
             return;
         }
         log.info("[approval] denied {} for tool '{}'", req.requestId, toolName);
-        io.agentscope.core.message.ToolUseBlock rejected = io.agentscope.core.message.ToolUseBlock.builder()
+        acting.setToolUse(rejected(toolUse, "User denied this tool call."));
+    }
+
+    private static String levelOf(String agentId) {
+        String level = AgentStore.getApprovalLevel(agentId);
+        return level == null ? "AUTO" : level.trim();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> toolUseInput(io.agentscope.core.message.ToolUseBlock toolUse) {
+        return toolUse.getInput() instanceof Map<?, ?> m
+                ? (Map<String, Object>) m : Map.of();
+    }
+
+    private static io.agentscope.core.message.ToolUseBlock rejected(
+            io.agentscope.core.message.ToolUseBlock toolUse, String reason) {
+        return io.agentscope.core.message.ToolUseBlock.builder()
                 .id(toolUse.getId())
                 .name(toolUse.getName())
                 .input(toolUse.getInput())
-                .content("User denied this tool call.")
+                .content(reason)
                 .state(io.agentscope.core.message.ToolCallState.FINISHED)
                 .build();
-        acting.setToolUse(rejected);
     }
 
     @Override

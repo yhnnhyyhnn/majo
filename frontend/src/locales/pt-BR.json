@@ -2255,6 +2255,8 @@
       "alertMessage": "Configure tool call approval policy to control the security level when agents execute tools",
       "strict": "Strict Modo",
       "strictDesc": "All tool calls require approval, highest security level",
+      "model": "Modelo decisor",
+      "modelDesc": "Um modelo julga automaticamente chamadas de ferramentas (argumentos sensíveis são negados; falha = negar)",
       "smart": "Smart Modo",
       "smartDesc": "Low-risk tools auto-approved, medium+ risk tools require approval",
       "auto": "Automatico Modo",
