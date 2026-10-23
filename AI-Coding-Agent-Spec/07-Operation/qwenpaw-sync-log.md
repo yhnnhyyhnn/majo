@@ -5,6 +5,20 @@ majo master）。原则:只移植 majo 架构下可验证、有真实价值的�
 上游专属子系统(Hub/creator/pawapp/telemetry/数据应用)与绑定其
 vendor SDK 内部的修复一律跳过。
 
+## 2026-10-15 补充(#8200/#8204 web_search 双供应商落地)
+
+- **Firecrawl 搜索供应商 → 已实施**(原 web_search 为硬编码 Tavily+
+  单一环境变量):WEB_SEARCH_PROVIDER 显式指定,否则自动——有
+  TAVILY_API_KEY 用 Tavily(原契约不变),否则 Firecrawl;Firecrawl
+  按 v2/search 语义实现(sources:["web"]、key 可选、鉴权 401 一次
+  无 key 重试、data.web[] 结果映射 title/url/description),完全无
+  key 时仍可尝试无额度搜索并在 401 时给可读指引。URL 与环境变量均
+  可注入,6 用例以本地 HttpServer 覆盖选择矩阵/契约保持/401 重试/
+  无 key 路径。
+- 决策模型审批(#8283/#8205/#8360)→ 立为候选 ADR-0021:贴合 majo
+  审批架构(ApprovalHook 增 MODEL 级,经模型判定自动批准/拒绝),但
+  "LLM 自动批准"属安全语义变更,需先写 ADR 再实施。
+
 ## 2026-10-14 扫描(main @ 0db9a8e6,新增 54 提交,2.2.2→2.3.0b1)
 
 - **#7654 音频拒绝分类器扩充 → 已移植**:MediaPayloadRecovery 新增
