@@ -2,8 +2,6 @@ package com.agent.coding.security;
 
 import com.agent.coding.agent.AgentStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.hook.RuntimeContextAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * starts ({@link #resetTurn} from the PRE_CALL hook event).
  */
 @Component
-public class DoomLoopGuard implements RuntimeContextAware {
+public class DoomLoopGuard {
 
     private static final Logger log = LoggerFactory.getLogger(DoomLoopGuard.class);
 
@@ -52,16 +50,6 @@ public class DoomLoopGuard implements RuntimeContextAware {
     }
 
     private final ConcurrentHashMap<String, SessionState> sessions = new ConcurrentHashMap<>();
-    private final ThreadLocal<RuntimeContext> ctxHolder = new ThreadLocal<>();
-
-    @Override
-    public void setRuntimeContext(RuntimeContext ctx) {
-        if (ctx == null) {
-            ctxHolder.remove();
-        } else {
-            ctxHolder.set(ctx);
-        }
-    }
 
     /**
      * Null = allow; non-null = denial reason for the tool call. Resolves
@@ -167,12 +155,8 @@ public class DoomLoopGuard implements RuntimeContextAware {
         }
     }
 
-    /** Session id: injected runtime context first, then agent state. */
+    /** Session id of the event's agent (harness persists state per session). */
     private String sessionOf(io.agentscope.core.hook.HookEvent event) {
-        RuntimeContext ctx = ctxHolder.get();
-        if (ctx != null && ctx.getSessionId() != null && !ctx.getSessionId().isBlank()) {
-            return ctx.getSessionId();
-        }
         try {
             io.agentscope.core.agent.Agent agent = event.getAgent();
             if (agent != null && agent.getAgentState() != null) {

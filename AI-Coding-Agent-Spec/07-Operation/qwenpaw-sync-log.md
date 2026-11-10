@@ -5,6 +5,50 @@ majo master）。原则:只移植 majo 架构下可验证、有真实价值的�
 上游专属子系统(Hub/creator/pawapp/telemetry/数据应用)与绑定其
 vendor SDK 内部的修复一律跳过。
 
+## 2026-10-15 二批(main @ 14b02c59,新增 119 提交,2.3.0b1→b3)+ agentscope-java 升级
+
+- **agentscope SDK 2.0.3 → 2.1.0-SNAPSHOT(本地源码构建)**:上游源
+  仓库 HEAD(221 提交于 BETA1 之后,含流取消/turn gate 驱逐/持久会话
+  等修复)。构建经由:本地 `mvn install`(core/harness/openai 扩展,
+  跳过 spotless——Windows 检出 CRLF 与格式门冲突),majo 四处版本不
+  动 pom 属性改为 2.1.0-SNAPSHOT。**唯一破坏面:RuntimeContextAware
+  接口被移除**(hook 体系重构,RuntimeContext 改为方法参数流转)——
+  四个实现类(ToolGuardHook/ApprovalHook/DoomLoopGuard/
+  ModelRequestNormalizerHook)迁移为从事件的 agent state 派生会话
+  (AgentState.getSessionId 保留,harness 按会话持久化 state,id 一致);
+  MCP ask 等语义不变。全量 519 全绿。其余 API(GenerateOptions/
+  endpointPath/事件构造/Builder 链)编译级兼容,ADR-0016/0019 管道
+  无需改动。待 2.1.0 正式版发布后可换 tag 重对齐。
+- **#8341 钉钉长回复拆分 → 已移植(简化)**:DingTalkChannel 按 3000
+  字符/块在换行边界拆分(webhook 文本预算),超长单行硬拆,代码围栏
+  跨块闭合/重开保持可渲染;4 用例。上游的 GFM 表格原子性未搬(majo
+  钉钉走 text 消息,表格本就退化为纯文本)。
+- **#8550 模型配置写路径校验 → 已移植(等价)**:configureModel 的
+  max_tokens(<1)/max_input_length(<1)/thinking_budget(<0)越界值
+  保留存量而非落库——上游 pydantic validator 的 Java 等价。
+- #8395 请求体溢出恢复 → 已覆盖(机制不同):majo 的 OverflowRecovery
+  以 "request too large" 标记触发 compactContext(折叠旧媒体)重试,
+  与上游 body-size 省略媒体同效。
+- #8299 视频级剥离重试 → 跳过:上游按模细粒度(strip video only)+
+  能力缓存学习;majo 的 MediaPayloadRecovery 全媒体剥离已覆盖该场景,
+  细粒度改造收益低。
+- #8066 空媒体块剔除 → 跳过:majo 媒体均来自工具真实编码
+  (view_image/screenshot),无空 base64 产生路径;normalizer 防御
+  面已有 #7409 空文本块剔除。
+- #8034 请求级内联媒体预算 → 跳过(机制不同):majo 为响应式——
+  溢出触发折叠重试;上游为 formatter 层主动预算,留作后续增强。
+- #8358/#8436 thinking 声明式 wire → 跳过:effort+none 的声明式关断
+  在 majo 种子中无实际模型声明(anthropic/gemini 走兼容端点不发思维
+  参数,ADR-0019);出现声明时再启用。
+- #7835 memory-recall 泄漏 → 跳过(机制不同):majo 的 recall 注入
+  仅请求副本,渠道可见历史来自 agent 输出,无结构泄漏路径。
+- Matrix 集成/桌面 daemon/Code Mode(Python)/Piccolo 本地模型/
+  AnySearch/ReMe 0.4.2/OpenViking/插件化 channels(python 隔离子进程
+  体系)/hub gateway —— 上游专属子系统,跳过。
+- #8602 cmd.exe 引号(NoneSandbox)/#8587 Win 长路径 SQLite/#8522
+  nginx SSE/#8235 同名 CRLF(其 Python edit_file;majo Java 版待
+  实测后评估)→ 平台/栈专属或暂缓。
+
 ## 2026-10-15 补充(#8200/#8204 web_search 双供应商落地)
 
 - **Firecrawl 搜索供应商 → 已实施**(原 web_search 为硬编码 Tavily+

@@ -2,13 +2,14 @@ package com.agent.coding.agent;
 
 import com.agent.coding.repository.ProviderModelRepository;
 import com.agent.coding.service.ModelRoutingService;
-import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.agent.Agent;
 import io.agentscope.core.hook.PreReasoningEvent;
 import io.agentscope.core.message.Base64Source;
 import io.agentscope.core.message.ImageBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.state.AgentState;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,7 +28,8 @@ import static org.mockito.Mockito.when;
  * Session-scoped media strip in the request normalizer (#8010 port): a
  * session whose provider rejected a media payload has its outgoing requests
  * stripped even on multimodal-capable models, while an unarmed session on
- * the same agent keeps its media.
+ * the same agent keeps its media. Session id resolves from the event's
+ * agent state (agentscope 2.1.0 removed RuntimeContextAware).
  */
 class MediaStripNormalizerTest {
 
@@ -41,7 +43,17 @@ class MediaStripNormalizerTest {
     @AfterEach
     void cleanup() {
         MediaPayloadRecovery.resetArmed();
-        hook.setRuntimeContext(null);
+    }
+
+    private PreReasoningEvent eventForSession(String sessionId, List<Msg> messages) {
+        AgentState state = mock(AgentState.class);
+        when(state.getSessionId()).thenReturn(sessionId);
+        Agent agent = mock(Agent.class);
+        when(agent.getAgentState()).thenReturn(state);
+        PreReasoningEvent pre = mock(PreReasoningEvent.class);
+        when(pre.getAgent()).thenReturn(agent);
+        when(pre.getInputMessages()).thenReturn(messages);
+        return pre;
     }
 
     @Test
@@ -49,11 +61,9 @@ class MediaStripNormalizerTest {
         // resolveEffectiveModel → null: capability unknown → fail open
         // (multimodal), so only the armed strip can remove the image.
         when(routing.resolveEffectiveModel(any())).thenReturn(null);
-        hook.setRuntimeContext(RuntimeContext.builder().sessionId("s-1").build());
         MediaPayloadRecovery.armStrip("s-1");
 
-        PreReasoningEvent pre = mock(PreReasoningEvent.class);
-        when(pre.getInputMessages()).thenReturn(new ArrayList<>(List.of(
+        PreReasoningEvent pre = eventForSession("s-1", new ArrayList<>(List.of(
                 userMsgWithImage(),
                 Msg.builder().name("user").role(MsgRole.USER)
                         .content(TextBlock.builder().text("describe it").build()).build())));
@@ -71,10 +81,9 @@ class MediaStripNormalizerTest {
     @Test
     void unarmedSessionKeepsRequestMedia() {
         when(routing.resolveEffectiveModel(any())).thenReturn(null);
-        hook.setRuntimeContext(RuntimeContext.builder().sessionId("s-2").build());
 
-        PreReasoningEvent pre = mock(PreReasoningEvent.class);
-        when(pre.getInputMessages()).thenReturn(new ArrayList<>(List.of(userMsgWithImage())));
+        PreReasoningEvent pre = eventForSession("s-2",
+                new ArrayList<>(List.of(userMsgWithImage())));
 
         hook.onEvent(pre);
 

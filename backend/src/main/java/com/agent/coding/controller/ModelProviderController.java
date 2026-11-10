@@ -405,15 +405,18 @@ public class ModelProviderController {
             return ResponseEntity.status(404).body(Map.of("detail", "Model '" + model_id + "' not found in provider '" + provider_id + "'"));
         }
         var m = opt.get();
-        if (body.containsKey("max_tokens")) m.setMaxTokens(((Number) body.get("max_tokens")).intValue());
+        if (body.containsKey("max_tokens")) m.setMaxTokens(posInt(body.get("max_tokens"), m.getMaxTokens()));
         if (body.containsKey("max_input_length")) {
-            m.setMaxInputLength(((Number) body.get("max_input_length")).intValue());
-            m.setMaxInputLengthConfigured(true);
+            Integer v = posInt(body.get("max_input_length"), null);
+            if (v != null) {
+                m.setMaxInputLength(v);
+                m.setMaxInputLengthConfigured(true);
+            }
         }
         if (body.containsKey("generate_kwargs")) m.setGenerateKwargs(writeJson(body.get("generate_kwargs")));
         if (body.containsKey("relay_reasoning")) m.setRelayReasoning(Boolean.TRUE.equals(body.get("relay_reasoning")));
         if (body.containsKey("thinking_enabled")) m.setThinkingEnabled(body.get("thinking_enabled") == null ? null : Boolean.TRUE.equals(body.get("thinking_enabled")));
-        if (body.containsKey("thinking_budget")) m.setThinkingBudget(body.get("thinking_budget") == null ? null : ((Number) body.get("thinking_budget")).intValue());
+        if (body.containsKey("thinking_budget")) m.setThinkingBudget(nonNegInt(body.get("thinking_budget"), m.getThinkingBudget()));
         if (body.containsKey("reasoning_effort")) m.setReasoningEffort(body.get("reasoning_effort") == null ? null : String.valueOf(body.get("reasoning_effort")));
         if (body.containsKey("input_price")) m.setInputPrice(priceOf(body.get("input_price")));
         if (body.containsKey("output_price")) m.setOutputPrice(priceOf(body.get("output_price")));
@@ -439,6 +442,32 @@ public class ModelProviderController {
         try {
             double v = Double.parseDouble(String.valueOf(o).trim());
             return v >= 0 ? v : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Write-path bound for positive-int model fields (qwenpaw #8550
+     * semantics): out-of-range values keep the stored value instead of
+     * persisting a config that fails at request time.
+     */
+    private static Integer posInt(Object o, Integer fallback) {
+        Integer v = intOrNull(o);
+        return v != null && v >= 1 ? v : fallback;
+    }
+
+    /** Write-path bound for non-negative-int model fields (budgets). */
+    private static Integer nonNegInt(Object o, Integer fallback) {
+        Integer v = intOrNull(o);
+        return v != null && v >= 0 ? v : fallback;
+    }
+
+    private static Integer intOrNull(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number n) return n.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(o).trim());
         } catch (NumberFormatException e) {
             return null;
         }

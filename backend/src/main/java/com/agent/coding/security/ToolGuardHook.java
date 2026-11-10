@@ -4,12 +4,10 @@ import com.agent.coding.WorkspaceContext;
 import com.agent.coding.approval.ApprovalHook;
 import com.agent.coding.tool.MediaPromotionHook;
 import com.agent.coding.tool.ToolCallCoercion;
-import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.hook.HookEvent;
 import io.agentscope.core.hook.PostActingEvent;
 import io.agentscope.core.hook.PreActingEvent;
-import io.agentscope.core.hook.RuntimeContextAware;
 import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
 import org.slf4j.Logger;
@@ -25,18 +23,16 @@ import java.util.Map;
  * <ul>
  *   <li>PRE_ACTING → {@link ToolGuardService} + {@link FileGuardService} +
  *       {@link ApprovalHook} (security gate, then human approval);</li>
- *   <li>POST_ACTING → {@link MediaPromotionHook} (promote tool images into
+ *   <li>POST_ACTING → {@link MediaPromotionHook} (promote tool media into
  *       the multimodal context).</li>
  * </ul>
  *
- * <p>Implements {@link RuntimeContextAware} so the harness injects the
- * per-run runtime context, forwarded to {@link ApprovalHook} (agent-level
- * approval policy), {@link DoomLoopGuard} and {@link
- * com.agent.coding.agent.ModelRequestNormalizerHook} (session-scoped media
- * strip, #8010).
+ * <p>Per-run context: since agentscope 2.1.0 removed
+ * {@code RuntimeContextAware}, child hooks resolve the session from the
+ * event's agent state (the harness persists state per session id).
  */
 @Component
-public class ToolGuardHook implements Hook, RuntimeContextAware {
+public class ToolGuardHook implements Hook {
 
     private static final Logger log = LoggerFactory.getLogger(ToolGuardHook.class);
 
@@ -68,18 +64,6 @@ public class ToolGuardHook implements Hook, RuntimeContextAware {
         this.memoryWritePipeline = memoryWritePipeline;
         this.codingModePromptInjector = codingModePromptInjector;
         this.doomLoopGuard = doomLoopGuard;
-    }
-
-    @Override
-    public void setRuntimeContext(RuntimeContext ctx) {
-        if (ctx != null) {
-            log.info("[hook] runtime context injected: sessionId={}", ctx.getSessionId());
-        } else {
-            log.info("[hook] runtime context unbound");
-        }
-        approvalHook.setRuntimeContext(ctx);
-        doomLoopGuard.setRuntimeContext(ctx);
-        modelRequestNormalizerHook.setRuntimeContext(ctx);
     }
 
     @Override

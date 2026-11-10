@@ -2,8 +2,6 @@ package com.agent.coding.approval;
 
 import com.agent.coding.agent.AgentStore;
 import com.agent.coding.repository.ChatRepository;
-import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.hook.RuntimeContextAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -23,13 +21,12 @@ import java.util.Set;
  * ApprovalStore to the frontend pending_approvals list; the tool call blocks
  * until the user approves or denies via /api/approval/*. Timeouts deny.
  *
- * <p>Implements {@link RuntimeContextAware}: the harness injects the per-run
- * {@link RuntimeContext} (forwarded by the composite {@code ToolGuardHook}),
- * which carries the real majo session id used to resolve the majo agent id
- * (the harness agent itself exposes an internal UUID).
+ * <p>Session resolution: the event's agent state carries the session id the
+ * harness persists (agentscope 2.1.0 removed RuntimeContextAware; the majo
+ * session id matches that state id).
  */
 @Component
-public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContextAware {
+public class ApprovalHook implements io.agentscope.core.hook.Hook {
 
     private static final Logger log = LoggerFactory.getLogger(ApprovalHook.class);
     private static final long APPROVAL_TIMEOUT_MS = 5 * 60 * 1000L;
@@ -48,22 +45,12 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
     private final ApprovalStore store;
     private final ChatRepository chatRepo;
     private final DecisionModelGate decisionModelGate;
-    private final ThreadLocal<RuntimeContext> ctxHolder = new ThreadLocal<>();
 
     public ApprovalHook(ApprovalStore store, ChatRepository chatRepo,
                         DecisionModelGate decisionModelGate) {
         this.store = store;
         this.chatRepo = chatRepo;
         this.decisionModelGate = decisionModelGate;
-    }
-
-    @Override
-    public void setRuntimeContext(RuntimeContext ctx) {
-        if (ctx == null) {
-            ctxHolder.remove();
-        } else {
-            ctxHolder.set(ctx);
-        }
     }
 
     @Override
@@ -123,10 +110,9 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
             return;
         }
 
-        String sessionId = runtimeSessionId();
-        if (sessionId == null || sessionId.isBlank()) {
-            sessionId = sessionIdOf(acting);
-        }
+        // The harness persists agent state per session id, so the event's
+        // agent state carries the same id the run was started with.
+        String sessionId = sessionIdOf(acting);
         ApprovalStore.ApprovalRequest req = store.register(
                 sessionId, sessionId, agentId, toolName, toolName, "HIGH",
                 APPROVAL_TIMEOUT_MS / 1000);
@@ -185,12 +171,6 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook, RuntimeContex
             default:
                 return GUARDED_TOOLS.contains(toolName);
         }
-    }
-
-    /** Session id from the injected runtime context (matches persisted chats). */
-    private String runtimeSessionId() {
-        RuntimeContext ctx = ctxHolder.get();
-        return ctx == null ? null : ctx.getSessionId();
     }
 
     private static String sessionIdOf(io.agentscope.core.hook.HookEvent event) {

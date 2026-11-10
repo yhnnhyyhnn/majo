@@ -41,8 +41,7 @@ import java.util.Map;
  * recovery strip flag (#8010).
  */
 @Component
-public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook,
-        io.agentscope.core.hook.RuntimeContextAware {
+public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook {
 
     private static final Logger log = LoggerFactory.getLogger(ModelRequestNormalizerHook.class);
 
@@ -56,7 +55,6 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook,
     private final ModelRoutingService modelRoutingService;
     private final ProviderModelRepository providerModelRepo;
     private final com.agent.coding.memory.MemoryBackendRegistry memoryBackendRegistry;
-    private final ThreadLocal<io.agentscope.core.agent.RuntimeContext> ctxHolder = new ThreadLocal<>();
 
     public ModelRequestNormalizerHook(ModelRoutingService modelRoutingService,
                                       ProviderModelRepository providerModelRepo,
@@ -66,19 +64,20 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook,
         this.memoryBackendRegistry = memoryBackendRegistry;
     }
 
-    @Override
-    public void setRuntimeContext(io.agentscope.core.agent.RuntimeContext ctx) {
-        if (ctx == null) {
-            ctxHolder.remove();
-        } else {
-            ctxHolder.set(ctx);
+    /**
+     * Session id of the event's agent — the harness persists state per
+     * session id, so this matches the id the run was started with
+     * (agentscope 2.1.0 removed RuntimeContextAware).
+     */
+    private String currentSessionId(HookEvent event) {
+        try {
+            io.agentscope.core.agent.Agent agent = event.getAgent();
+            if (agent != null && agent.getAgentState() != null) {
+                return agent.getAgentState().getSessionId();
+            }
+        } catch (Exception ignored) {
         }
-    }
-
-    /** Session id of the current run, when the harness injected a context. */
-    private String currentSessionId() {
-        io.agentscope.core.agent.RuntimeContext ctx = ctxHolder.get();
-        return ctx == null ? null : ctx.getSessionId();
+        return null;
     }
 
     @Override
@@ -154,7 +153,7 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook,
             //    poisoned block stays in that session's history and would
             //    fail every replay, so its requests go out media-free.
             boolean stripForCapability = !multimodal;
-            String sessionId = currentSessionId();
+            String sessionId = currentSessionId(pre);
             boolean stripForRejection = MediaPayloadRecovery.isStripArmed(sessionId);
             if (stripForCapability || stripForRejection) {
                 if (stripForRejection && !stripForCapability) {

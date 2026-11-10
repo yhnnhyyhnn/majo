@@ -221,19 +221,84 @@ public class DingTalkChannel implements Channel {
 
     private void sendReply(String sessionWebhook, String text) {
         try {
-            String payload = MAPPER.writeValueAsString(Map.of(
-                    "msgtype", "text", "text", Map.of("content", text)));
-            HttpRequest req = HttpRequest.newBuilder(URI.create(sessionWebhook))
-                    .timeout(Duration.ofSeconds(20))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(payload))
-                    .build();
-            HttpResponse<String> resp = HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() >= 400) {
-                log.warn("[dingtalk] reply HTTP {}: {}", resp.statusCode(), resp.body());
+            // Long replies exceed the webhook's text budget: split at line
+            // boundaries (qwenpaw #8341 semantics), keeping code fences
+            // renderable across chunks.
+            for (String chunk : splitText(text)) {
+                String payload = MAPPER.writeValueAsString(Map.of(
+                        "msgtype", "text", "text", Map.of("content", chunk)));
+                HttpRequest req = HttpRequest.newBuilder(URI.create(sessionWebhook))
+                        .timeout(Duration.ofSeconds(20))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(payload))
+                        .build();
+                HttpResponse<String> resp = HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
+                if (resp.statusCode() >= 400) {
+                    log.warn("[dingtalk] reply HTTP {}: {}", resp.statusCode(), resp.body());
+                }
             }
         } catch (Exception e) {
             log.warn("[dingtalk] reply error: {}", e.getMessage());
         }
+    }
+
+    /** Hard cap per outbound message (chars; CJK triples the byte cost). */
+    static final int MAX_CHUNK_CHARS = 3000;
+
+    /**
+     * Split into chunks no longer than {@link #MAX_CHUNK_CHARS} characters,
+     * preferring newline boundaries; a single overlong line is hard-split.
+     * A chunk ending inside an open code fence gets a closing fence
+     * appended and the next chunk a matching fence prepended, so fenced
+     * blocks stay renderable across chunk boundaries.
+     */
+    static java.util.List<String> splitText(String text) {
+        if (text == null || text.isEmpty()) {
+            return java.util.List.of("");
+        }
+        if (text.length() <= MAX_CHUNK_CHARS) {
+            return java.util.List.of(text);
+        }
+        java.util.List<String> chunks = new java.util.ArrayList<>();
+        StringBuilder buf = new StringBuilder();
+        String openFence = null;
+        String[] lines = text.split("\n", -1);
+        for (int li = 0; li < lines.length; li++) {
+            String line = lines[li];
+            // The trailing empty element only mirrors the final newline the
+            // previous line already emitted — appending it would double it.
+            if (li == lines.length - 1 && line.isEmpty() && li > 0) {
+                break;
+            }
+            String stripped = line.strip();
+            if (stripped.startsWith("```") || stripped.startsWith("~~~")) {
+                openFence = openFence == null ? stripped : null;
+            }
+            while (buf.length() + line.length() + 1 > MAX_CHUNK_CHARS) {
+                if (buf.length() == 0) {
+                    // Single overlong line: hard-split it.
+                    int take = MAX_CHUNK_CHARS - (openFence != null ? openFence.length() + 1 : 0);
+                    chunks.add(buf.append(line, 0, Math.min(take, line.length()))
+                            + (openFence != null ? "\n" + openFence : ""));
+                    buf.setLength(0);
+                    line = line.substring(Math.min(take, line.length()));
+                    if (openFence != null) {
+                        buf.append(openFence).append('\n');
+                    }
+                    continue;
+                }
+                chunks.add(buf + (openFence != null ? "\n" + openFence : ""));
+                buf.setLength(0);
+                if (openFence != null) {
+                    buf.append(openFence).append('\n');
+                }
+            }
+            buf.append(line).append('\n');
+        }
+        if (buf.length() > 0) {
+            String tail = buf.toString();
+            chunks.add(openFence != null ? tail + openFence + "\n" : tail);
+        }
+        return chunks;
     }
 }

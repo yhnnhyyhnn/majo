@@ -16,7 +16,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <agentscope.version>2.0.3</agentscope.version>
+        <agentscope.version>2.1.0-SNAPSHOT</agentscope.version>
         <!-- Timestamp for the per-build test working dir; colons are
              illegal in Windows paths so keep the format file-name safe. -->
         <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
