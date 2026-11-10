@@ -3,9 +3,6 @@ package com.agent.coding.agent;
 import com.agent.coding.entity.ProviderModelEntity;
 import com.agent.coding.repository.ProviderModelRepository;
 import com.agent.coding.service.ModelRoutingService;
-import io.agentscope.core.hook.Hook;
-import io.agentscope.core.hook.HookEvent;
-import io.agentscope.core.hook.PreReasoningEvent;
 import io.agentscope.core.message.AudioBlock;
 import io.agentscope.core.message.Base64Source;
 import io.agentscope.core.message.ContentBlock;
@@ -19,29 +16,26 @@ import io.agentscope.core.message.VideoBlock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Strips media blocks (image / audio / video / PDF data) from the model
- * request when the active model does not support multimodal input. Ported
- * from QwenPaw's {@code message_request_normalizer}, including the
- * application/pdf handling (#7621): a text-only model receiving media
- * blocks fails the whole request on most providers.
+ * Normalizes the outgoing model request: bounds oversized tool results,
+ * strips tool-result PDFs (#7636) and empty assistant text blocks (#7409),
+ * strips media for text-only models or sessions whose provider rejected a
+ * media payload (#8010), folds under context pressure (#7521/#6456), and
+ * injects auto memory recall (ADR-0008) — request copies only, the stored
+ * history is untouched. Fails open on any internal error.
  *
- * <p>Runs on PRE_REASONING so only the outgoing request is affected — the
- * stored conversation history keeps its media blocks. When the model's
- * capability cannot be resolved the hook fails open (no stripping).
- *
- * <p>Implements {@link RuntimeContextAware} (forwarded by the composite
- * {@code ToolGuardHook}) to resolve the session for the media-payload
- * recovery strip flag (#8010).
+ * <p>Since agentscope 2.1.0 this runs as middleware
+ * ({@code SessionScopeMiddleware.onReasoning}) — the chain carries the
+ * per-run {@code RuntimeContext} (ADR-0022); the session id keys the
+ * media-strip flag.
  */
 @Component
-public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook {
+public class ModelRequestNormalizerHook {
 
     private static final Logger log = LoggerFactory.getLogger(ModelRequestNormalizerHook.class);
 
@@ -65,37 +59,19 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
     }
 
     /**
-     * Session id of the event's agent — the harness persists state per
-     * session id, so this matches the id the run was started with
-     * (agentscope 2.1.0 removed RuntimeContextAware).
+     * Normalize one model request; returns the (possibly rewritten) message
+     * list, or the same instance when nothing changed. Never throws.
      */
-    private String currentSessionId(HookEvent event) {
+    public List<Msg> normalize(String sessionId, String agentId, List<Msg> msgs) {
         try {
-            io.agentscope.core.agent.Agent agent = event.getAgent();
-            if (agent != null && agent.getAgentState() != null) {
-                return agent.getAgentState().getSessionId();
+            if (msgs == null || msgs.isEmpty()) {
+                return msgs;
             }
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    @Override
-    public <T extends HookEvent> Mono<T> onEvent(T event) {
-        if (!(event instanceof PreReasoningEvent pre)) {
-            return Mono.just(event);
-        }
-        try {
-            String agentId = agentIdOf(pre);
             boolean multimodal;
             try {
                 multimodal = supportsMultimodal(agentId);
             } catch (Exception e) {
                 multimodal = true; // capability unknown → fail open
-            }
-            List<Msg> msgs = pre.getInputMessages();
-            if (msgs == null || msgs.isEmpty()) {
-                return Mono.just(event);
             }
 
             // 1) Bound oversized tool results (always; request copies only).
@@ -113,9 +89,7 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
             //      unconditionally: OpenAI-compatible chat-completions
             //      servers (vLLM, DeepSeek, DashScope, ...) reject "file"
             //      parts even on multimodal models, so the formatter path
-            //      must never see them (QwenPaw #7636). User-supplied
-            //      document blocks keep the multimodal-conditional path
-            //      below; images/audio/video are preserved either way.
+            //      must never see them (QwenPaw #7636).
             List<Msg> docStripped = new ArrayList<>(rebuilt.size());
             for (Msg msg : rebuilt) {
                 Msg cleaned = stripToolResultDocuments(msg);
@@ -126,10 +100,7 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
             }
             rebuilt = docStripped;
 
-            // 1.6) Drop empty assistant text blocks (QwenPaw #7409): a
-            //      reasoning-only turn persists as {"type":"text","text":""}
-            //      and some providers (Volcengine Ark) reject its replay
-            //      with 400 — one empty turn would poison the session.
+            // 1.6) Drop empty assistant text blocks (QwenPaw #7409).
             List<Msg> emptyDropped = new ArrayList<>(rebuilt.size());
             boolean droppedEmpty = false;
             for (Msg msg : rebuilt) {
@@ -149,11 +120,8 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
             }
 
             // 2) Media stripping for text-only models, or for a session
-            //    whose provider rejected a media payload (#8010): the
-            //    poisoned block stays in that session's history and would
-            //    fail every replay, so its requests go out media-free.
+            //    whose provider rejected a media payload (#8010).
             boolean stripForCapability = !multimodal;
-            String sessionId = currentSessionId(pre);
             boolean stripForRejection = MediaPayloadRecovery.isStripArmed(sessionId);
             if (stripForCapability || stripForRejection) {
                 if (stripForRejection && !stripForCapability) {
@@ -171,9 +139,7 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
                 rebuilt = stripped;
             }
 
-            // 3) Context-pressure compaction: fold old thinking and images
-            //    when the request estimate exceeds the pressure threshold
-            //    (QwenPaw #7521 thinking fold + #6456 visual compact).
+            // 3) Context-pressure compaction (#7521/#6456).
             Integer window = resolveContextWindow(agentId);
             if (window != null && window > 0) {
                 long threshold = (long) (window * ContextCompactor.PRESSURE_RATIO);
@@ -190,23 +156,18 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
                 }
             }
 
-            if (changed) {
-                pre.setInputMessages(rebuilt);
-            }
-
-            // 4) Automatic memory recall (ADR-0008): when enabled, query the
-            //    configured memory backend with the latest user message and
-            //    inject hits as a request-only system reminder (history kept
-            //    clean; QwenPaw auto_memory_search semantics).
-            injectAutoMemoryRecall(pre, agentId, rebuilt);
+            // 4) Automatic memory recall (ADR-0008) — request-only system
+            //    reminder appended after normalization.
+            return injectAutoMemoryRecall(agentId, changed ? rebuilt : msgs);
         } catch (Exception e) {
             // Fail open — a broken compaction must never break a call.
             log.debug("[normalizer] request normalization skipped: {}", e.getMessage());
+            return msgs;
         }
-        return Mono.just(event);
     }
 
-    private void injectAutoMemoryRecall(PreReasoningEvent pre, String agentId, List<Msg> msgs) {
+    /** Append the recall reminder as a request-only system message. */
+    private List<Msg> injectAutoMemoryRecall(String agentId, List<Msg> msgs) {
         try {
             String latestUser = null;
             for (int i = msgs.size() - 1; i >= 0; i--) {
@@ -217,19 +178,19 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
             }
             if (latestUser == null || latestUser.isBlank()
                     || latestUser.startsWith("<memory_recall>")) {
-                return;
+                return msgs;
             }
             var backend = memoryBackendRegistry.resolve(agentId);
             if (backend == null) {
-                return;
+                return msgs;
             }
             int maxResults = autoSearchMaxResults(agentId);
             if (maxResults <= 0) {
-                return;
+                return msgs;
             }
             var hits = backend.search(latestUser, maxResults);
             if (hits.isEmpty()) {
-                return;
+                return msgs;
             }
             StringBuilder sb = new StringBuilder("<memory_recall>\n");
             for (var hit : hits) {
@@ -244,17 +205,18 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
             sb.append("</memory_recall>\n");
             sb.append("The above long-term memory entries may be relevant to the user's request. ")
               .append("Use memory_search or read_file for details; do not mention this note.");
-            List<Msg> withRecall = new ArrayList<>(pre.getInputMessages().size() + 1);
-            withRecall.addAll(pre.getInputMessages());
+            List<Msg> withRecall = new ArrayList<>(msgs.size() + 1);
+            withRecall.addAll(msgs);
             withRecall.add(Msg.builder()
                     .name("system")
                     .role(io.agentscope.core.message.MsgRole.SYSTEM)
                     .content(TextBlock.builder().text(sb.toString()).build())
                     .build());
-            pre.setInputMessages(withRecall);
             log.debug("[normalizer] injected {} memory recall hit(s)", hits.size());
+            return withRecall;
         } catch (Exception e) {
             log.debug("[normalizer] auto memory recall skipped: {}", e.getMessage());
+            return msgs;
         }
     }
 
@@ -279,10 +241,6 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
         return 0;
     }
 
-    @Override
-    public int priority() {
-        return 5;
-    }
 
     // ── Stripping (request copies only; history untouched) ───────────
 
@@ -511,15 +469,5 @@ public class ModelRequestNormalizerHook implements io.agentscope.core.hook.Hook 
         String lower = modelId == null ? "" : modelId.toLowerCase();
         return lower.contains("vision") || lower.contains("vl") || lower.contains("omni")
                 || lower.contains("gpt-4o") || lower.contains("gemini");
-    }
-
-    private static String agentIdOf(PreReasoningEvent event) {
-        try {
-            if (event.getAgent() != null && event.getAgent().getName() != null) {
-                return event.getAgent().getName();
-            }
-        } catch (Exception ignored) {
-        }
-        return "default";
     }
 }

@@ -49,7 +49,28 @@ vendor SDK 内部的修复一律跳过。
   nginx SSE/#8235 同名 CRLF(其 Python edit_file;majo Java 版待
   实测后评估)→ 平台/栈专属或暂缓。
 
-## 2026-10-15 补充(#8200/#8204 web_search 双供应商落地)
+## 2026-10-15 三批(agentscope 2.1.0 交叉测试修复)
+
+- **交叉测试(SdkCrossIntegrationTest)→ 已补齐并抓到两个真问题**:
+  真实 HarnessAgent + 脚本化 SSE 模型,两轮对话全链路(工具调用→
+  STRICT 人审卡→批准→工具执行→结果回流→终答)。
+  ① 初始断言 `AgentState.getSessionId()=="s-cross"` 失败——实测
+  2.1.0 真实运行时该值恒为内部名("majo"),证实会话派生迁移(ADR-
+  0022)方向正确且必要;断言改为审批卡 session==运行会话。
+  ② middleware 存在时工具结果未回流二轮——二分定位:normalizer 为
+  Mockito mock 时 normalize() 返回 null 被原样传给
+  `new ReasoningInput(null,...)`,wire 组装回退丢掉对话轮次。
+  SessionScopeMiddleware 加 null 防御(返回 null 即透传原列表)。
+  最终交叉测试全绿:hook 派发事件面/审批卡会话键==运行会话/工具
+  结果回流/事件流出全部成立。
+- **2.1.0 结构信号如实记录**:`io.agentscope.core.hook.*` 全量标记
+  deprecated for removal(由 Middleware 取代)——本轮保留事件 hook
+  (LegacyHookDispatcher 兼容层仍派发),下次 SDK 大版本升级时
+  MemoryWritePipeline/MediaPromotion 等需再迁。另外 harness 2.1.0
+  原生 read_file 的 offset 为 0-indexed、path/offset/limit 全必填,
+  脚本化工具调用需带全参数。
+
+
 
 - **Firecrawl 搜索供应商 → 已实施**(原 web_search 为硬编码 Tavily+
   单一环境变量):WEB_SEARCH_PROVIDER 显式指定,否则自动——有

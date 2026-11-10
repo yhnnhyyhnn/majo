@@ -1,15 +1,11 @@
 package com.agent.coding.approval;
 
 import com.agent.coding.agent.AgentStore;
-import com.agent.coding.repository.ChatRepository;
-import io.agentscope.core.agent.Agent;
-import io.agentscope.core.hook.PreActingEvent;
 import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,19 +18,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.when;
 
 /**
- * MODEL approval level (ADR-0021): under the level-based path the decision
- * model's verdict approves (event untouched) or denies (tool call rewritten
- * with the reason); human paths still block on a card, and the MCP "ask"
- * policy path (enforceApproval) always stays human even under MODEL.
+ * MODEL approval level (ADR-0021), driven through the middleware-facing
+ * gateAndAwait (ADR-0022): MODEL consults the decision model — approve
+ * returns the original block, deny returns a FINISHED rejection with the
+ * reason; other levels register a human card keyed by the session id, and
+ * humanCardFlow (the MCP "ask" path) always stays human.
  */
 class ApprovalHookModelLevelTest {
 
     private static final String AGENT = "default";
+    private static final String SESSION = "s-approval";
 
     private ApprovalStore store;
     private DecisionModelGate gate;
@@ -45,7 +41,7 @@ class ApprovalHookModelLevelTest {
     void setModelLevel() {
         store = new ApprovalStore();
         gate = mock(DecisionModelGate.class);
-        hook = new ApprovalHook(store, mock(ChatRepository.class), gate);
+        hook = new ApprovalHook(store, gate);
         originalLevel = AgentStore.getApprovalLevel(AGENT);
         AgentStore.updateAgent(AGENT, Map.of("approval_level", "MODEL"));
     }
@@ -53,15 +49,6 @@ class ApprovalHookModelLevelTest {
     @AfterEach
     void restoreLevel() {
         AgentStore.updateAgent(AGENT, Map.of("approval_level", originalLevel));
-    }
-
-    private PreActingEvent event(ToolUseBlock toolUse) {
-        Agent agent = mock(Agent.class);
-        when(agent.getName()).thenReturn(AGENT);
-        PreActingEvent event = mock(PreActingEvent.class);
-        when(event.getToolUse()).thenReturn(toolUse);
-        when(event.getAgent()).thenReturn(agent);
-        return event;
     }
 
     private static ToolUseBlock toolUse() {
@@ -73,72 +60,62 @@ class ApprovalHookModelLevelTest {
     }
 
     @Test
-    void modelApproveLeavesEventUntouched() {
+    void modelApproveReturnsOriginalBlock() {
         when(gate.judge(anyString(), anyString(), any()))
                 .thenReturn(new DecisionModelGate.Verdict(true, "决策模型批准"));
         ToolUseBlock original = toolUse();
-        PreActingEvent acting = event(original);
 
-        hook.onEvent(acting).block();
+        ToolUseBlock out = hook.gateAndAwait(SESSION, AGENT, original);
 
-        assertSame(original, acting.getToolUse(), "approval must not rewrite the call");
+        assertSame(original, out, "approval must not rewrite the call");
         assertTrue(store.listPending().isEmpty(), "no human card under MODEL");
     }
 
     @Test
-    void modelDenyRewritesToolCallWithReason() {
+    void modelDenyReturnsFinishedRejectionWithReason() {
         when(gate.judge(anyString(), anyString(), any()))
                 .thenReturn(new DecisionModelGate.Verdict(false, "决策模型拒绝该工具调用"));
         ToolUseBlock original = toolUse();
-        PreActingEvent acting = event(original);
 
-        hook.onEvent(acting).block();
+        ToolUseBlock out = hook.gateAndAwait(SESSION, AGENT, original);
 
-        ArgumentCaptor<ToolUseBlock> captor = ArgumentCaptor.forClass(ToolUseBlock.class);
-        verify(acting, atLeastOnce()).setToolUse(captor.capture());
-        ToolUseBlock rewritten = captor.getValue();
-        assertNotSame(original, rewritten);
-        assertEquals(ToolCallState.FINISHED, rewritten.getState());
-        assertTrue(String.valueOf(rewritten.getContent()).contains("决策模型拒绝"));
+        assertNotSame(original, out);
+        assertEquals(ToolCallState.FINISHED, out.getState());
+        assertTrue(String.valueOf(out.getContent()).contains("决策模型拒绝"));
         assertTrue(store.listPending().isEmpty());
     }
 
     @Test
-    void enforceApprovalStaysHumanEvenUnderModelLevel() throws Exception {
-        when(gate.judge(anyString(), anyString(), any())).thenThrow(
-                new AssertionError("decision model must not be consulted on the ask path"));
-        PreActingEvent acting = event(toolUse());
+    void autoLevelRegistersHumanCardKeyedBySession() throws Exception {
+        AgentStore.updateAgent(AGENT, Map.of("approval_level", "AUTO"));
+        ToolUseBlock original = toolUse();
 
-        CompletableFuture<Void> run = CompletableFuture.runAsync(
-                () -> hook.enforceApproval(acting, "mcp ask").block());
+        CompletableFuture<ToolUseBlock> run = CompletableFuture.supplyAsync(
+                () -> hook.gateAndAwait(SESSION, AGENT, original));
         awaitPendingCard();
-        store.resolve(store.listPending().get(0).requestId, "denied", "test cleanup");
-        run.get(10, TimeUnit.SECONDS);
+        ApprovalStore.ApprovalRequest card = store.listPending().get(0);
+        assertEquals(SESSION, card.sessionId, "card must be keyed by the runtime session");
+        store.resolve(card.requestId, "denied", "test cleanup");
 
-        ArgumentCaptor<ToolUseBlock> captor = ArgumentCaptor.forClass(ToolUseBlock.class);
-        verify(acting, atLeastOnce()).setToolUse(captor.capture());
-        assertEquals("User denied this tool call.",
-                String.valueOf(captor.getValue().getContent()));
+        ToolUseBlock out = run.get(10, TimeUnit.SECONDS);
+        assertEquals("User denied this tool call.", String.valueOf(out.getContent()));
     }
 
     @Test
-    void nonModelLevelKeepsHumanPath() throws Exception {
-        AgentStore.updateAgent(AGENT, Map.of("approval_level", "AUTO"));
-        PreActingEvent acting = event(toolUse());
+    void humanCardFlowAlwaysStaysHumanEvenUnderModelLevel() throws Exception {
+        when(gate.judge(anyString(), anyString(), any())).thenThrow(
+                new AssertionError("decision model must not be consulted on the ask path"));
+        ToolUseBlock original = toolUse();
 
-        CompletableFuture<Void> run = CompletableFuture.runAsync(
-                () -> hook.onEvent(acting).block());
+        CompletableFuture<String> run = CompletableFuture.supplyAsync(
+                () -> hook.humanCardFlow(SESSION, AGENT, original));
         awaitPendingCard();
         store.resolve(store.listPending().get(0).requestId, "denied", "test cleanup");
-        run.get(10, TimeUnit.SECONDS);
 
-        ArgumentCaptor<ToolUseBlock> captor = ArgumentCaptor.forClass(ToolUseBlock.class);
-        verify(acting, atLeastOnce()).setToolUse(captor.capture());
-        assertEquals("User denied this tool call.",
-                String.valueOf(captor.getValue().getContent()));
+        assertEquals("User denied this tool call.", run.get(10, TimeUnit.SECONDS));
     }
 
-    /** Wait until the human card surfaces (the hook thread is blocking on it). */
+    /** Wait until the human card surfaces (the caller thread blocks on it). */
     private void awaitPendingCard() throws Exception {
         for (int i = 0; i < 100 && store.listPending().isEmpty(); i++) {
             Thread.sleep(50);

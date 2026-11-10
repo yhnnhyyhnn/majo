@@ -88,8 +88,14 @@ public class HarnessAgentFactory {
 
     /**
      * Prewired builder: display name + agentId, contract-protected system
-     * prompt, model, toolkit and workspace. Chain hooks on the returned
+     * prompt, model, toolkit, workspace. Chain hooks on the returned
      * builder, then {@code build()}.
+     *
+     * <p>The 2.1.0 harness ships its own native toolsets and runtime
+     * subsystems (filesystem/shell/web tools, memory tools + hooks, skills,
+     * compaction, tool-result eviction) that collide with or duplicate
+     * majo's equivalents — the disable chain keeps the effective agent
+     * surface identical to the 2.0.x behavior majo is built around.
      */
     public HarnessAgent.Builder builder(String agentId, String sysPrompt,
                                         Path workspace, OpenAIChatModel model) {
@@ -99,6 +105,15 @@ public class HarnessAgentFactory {
                 .sysPrompt(ProtectedPrompt.withContract(sysPrompt))
                 .model(model)
                 .toolkit(toolkit)
-                .workspace(workspace);
+                .workspace(workspace)
+                .disableFilesystemTools()
+                .disableShellTool()
+                .disableWebTools()
+                .disableMemoryTools()
+                .disableDynamicSkills()
+                .disableDefaultWorkspaceSkills()
+                .disableCompaction()
+                .disableToolResultEviction()
+                .disableSubagents();
     }
 }

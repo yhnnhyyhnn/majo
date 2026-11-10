@@ -1,32 +1,27 @@
 package com.agent.coding.approval;
 
 import com.agent.coding.agent.AgentStore;
-import com.agent.coding.repository.ChatRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
-import java.nio.file.Path;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
- * Tool-execution approval hook, wired into HarnessAgent builds.
+ * Tool-execution approval flow. Since agentscope 2.1.0 this is invoked by
+ * {@code SessionScopeMiddleware.onActing} with the authoritative session id
+ * (ADR-0022) — no longer an event hook.
  *
- * <p>Listens to PRE_ACTING events and, based on the agent's
- * approval_level (STRICT / SMART / AUTO / OFF, default AUTO), decides
- * whether a tool call needs human approval. Pending requests surface through
- * ApprovalStore to the frontend pending_approvals list; the tool call blocks
- * until the user approves or denies via /api/approval/*. Timeouts deny.
- *
- * <p>Session resolution: the event's agent state carries the session id the
- * harness persists (agentscope 2.1.0 removed RuntimeContextAware; the majo
- * session id matches that state id).
+ * <p>Based on the agent's approval_level (STRICT / SMART / MODEL / AUTO /
+ * OFF, default AUTO), decides whether a tool call needs approval: MODEL
+ * consults the decision model (ADR-0021), the other levels register a human
+ * card through ApprovalStore (surfaced via pending_approvals); the caller
+ * blocks until the user approves or denies via /api/approval/*. Timeouts
+ * deny.
  */
 @Component
-public class ApprovalHook implements io.agentscope.core.hook.Hook {
+public class ApprovalHook {
 
     private static final Logger log = LoggerFactory.getLogger(ApprovalHook.class);
     private static final long APPROVAL_TIMEOUT_MS = 5 * 60 * 1000L;
@@ -43,89 +38,68 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook {
             "desktop_screenshot", "execute_command", "bash");
 
     private final ApprovalStore store;
-    private final ChatRepository chatRepo;
     private final DecisionModelGate decisionModelGate;
 
-    public ApprovalHook(ApprovalStore store, ChatRepository chatRepo,
-                        DecisionModelGate decisionModelGate) {
+    public ApprovalHook(ApprovalStore store, DecisionModelGate decisionModelGate) {
         this.store = store;
-        this.chatRepo = chatRepo;
         this.decisionModelGate = decisionModelGate;
     }
 
-    @Override
-    public <T extends io.agentscope.core.hook.HookEvent> Mono<T> onEvent(T event) {
-        if (!(event instanceof io.agentscope.core.hook.PreActingEvent acting)) {
-            return Mono.just(event);
-        }
-        io.agentscope.core.message.ToolUseBlock toolUse = acting.getToolUse();
-        if (toolUse == null) {
-            return Mono.just(event);
-        }
-        String agentId = majoAgentIdOf(event);
-        if (!needsApproval(agentId, toolUse.getName())) {
-            return Mono.just(event);
-        }
-        doApproval(acting, toolUse.getName(), true);
-        return Mono.just(event);
-    }
-
     /**
-     * Force the human-approval flow for a tool call, regardless of the
-     * agent's approval level. Used by the composite hook for MCP tools whose
-     * access policy resolves to "ask" (ADR-0007). Blocks until approved,
-     * denied or timed out; a non-approval rewrites the tool call into a
-     * finished rejection. The decision model never substitutes here — an
-     * explicit "ask" policy means a human.
+     * Level-based gate: returns the block to execute — the original when
+     * approved, or a FINISHED rejection when denied. No-op for tools the
+     * level exempts.
      */
-    public Mono<io.agentscope.core.hook.PreActingEvent> enforceApproval(
-            io.agentscope.core.hook.PreActingEvent acting, String reason) {
-        io.agentscope.core.message.ToolUseBlock toolUse = acting.getToolUse();
-        if (toolUse == null) {
-            return Mono.just(acting);
+    public io.agentscope.core.message.ToolUseBlock gateAndAwait(String sessionId, String agentId,
+                                                                io.agentscope.core.message.ToolUseBlock toolUse) {
+        if (toolUse == null || !needsApproval(agentId, toolUse.getName())) {
+            return toolUse;
         }
-        doApproval(acting, toolUse.getName(), false);
-        return Mono.just(acting);
-    }
-
-    /** Register the approval request, block for the decision, reject on deny. */
-    private void doApproval(io.agentscope.core.hook.PreActingEvent acting, String toolName,
-                            boolean modelLevelEligible) {
-        io.agentscope.core.message.ToolUseBlock toolUse = acting.getToolUse();
-        String agentId = majoAgentIdOf(acting);
-
         // MODEL level: the decision model judges instead of a human card
-        // (ADR-0021). Deterministic hard-deny first, LLM verdict second,
-        // fail-closed throughout — no pending card, no Inbox entry.
-        if (modelLevelEligible && "MODEL".equalsIgnoreCase(levelOf(agentId))) {
+        // (ADR-0021). Fail-closed throughout — no pending card, no Inbox.
+        if ("MODEL".equalsIgnoreCase(levelOf(agentId))) {
             DecisionModelGate.Verdict verdict = decisionModelGate.judge(
-                    agentId, toolName, toolUseInput(toolUse));
+                    agentId, toolUse.getName(), toolUseInput(toolUse));
             if (verdict.approved()) {
-                log.info("[approval] decision model approved '{}' (agent={})", toolName, agentId);
-                return;
+                log.info("[approval] decision model approved '{}' (agent={})", toolUse.getName(), agentId);
+                return toolUse;
             }
             log.info("[approval] decision model denied '{}' (agent={}): {}",
-                    toolName, agentId, verdict.reason());
-            acting.setToolUse(rejected(toolUse, verdict.reason()));
-            return;
+                    toolUse.getName(), agentId, verdict.reason());
+            return rejected(toolUse, verdict.reason());
         }
 
-        // The harness persists agent state per session id, so the event's
-        // agent state carries the same id the run was started with.
-        String sessionId = sessionIdOf(acting);
+        // Human card: register, block until decided (timeout denies).
         ApprovalStore.ApprovalRequest req = store.register(
-                sessionId, sessionId, agentId, toolName, toolName, "HIGH",
+                sessionId, sessionId, agentId, toolUse.getName(), toolUse.getName(), "HIGH",
                 APPROVAL_TIMEOUT_MS / 1000);
         log.info("[approval] waiting for {} on tool '{}' (agent={})",
-                req.requestId, toolName, agentId);
+                req.requestId, toolUse.getName(), agentId);
 
         String decision = req.await(APPROVAL_TIMEOUT_MS);
         if ("approved".equals(decision)) {
-            log.info("[approval] approved {} for tool '{}'", req.requestId, toolName);
-            return;
+            log.info("[approval] approved {} for tool '{}'", req.requestId, toolUse.getName());
+            return toolUse;
         }
-        log.info("[approval] denied {} for tool '{}'", req.requestId, toolName);
-        acting.setToolUse(rejected(toolUse, "User denied this tool call."));
+        log.info("[approval] denied {} for tool '{}'", req.requestId, toolUse.getName());
+        return rejected(toolUse, "User denied this tool call.");
+    }
+
+    /**
+     * Human-only flow for MCP tools whose access policy resolves to "ask"
+     * (ADR-0007): returns "approved" when approved, otherwise the rejection
+     * text. The decision model never substitutes here — an explicit "ask"
+     * policy means a human.
+     */
+    public String humanCardFlow(String sessionId, String agentId,
+                                io.agentscope.core.message.ToolUseBlock toolUse) {
+        ApprovalStore.ApprovalRequest req = store.register(
+                sessionId, sessionId, agentId, toolUse.getName(), toolUse.getName(), "HIGH",
+                APPROVAL_TIMEOUT_MS / 1000);
+        log.info("[approval] waiting for {} on tool '{}' (agent={}) [mcp ask]",
+                req.requestId, toolUse.getName(), agentId);
+        String decision = req.await(APPROVAL_TIMEOUT_MS);
+        return "approved".equals(decision) ? "approved" : "User denied this tool call.";
     }
 
     private static String levelOf(String agentId) {
@@ -150,11 +124,6 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook {
                 .build();
     }
 
-    @Override
-    public int priority() {
-        return 10;
-    }
-
     private boolean needsApproval(String agentId, String toolName) {
         String level = AgentStore.getApprovalLevel(agentId);
         if (level == null) {
@@ -171,50 +140,5 @@ public class ApprovalHook implements io.agentscope.core.hook.Hook {
             default:
                 return GUARDED_TOOLS.contains(toolName);
         }
-    }
-
-    private static String sessionIdOf(io.agentscope.core.hook.HookEvent event) {
-        try {
-            io.agentscope.core.agent.Agent agent = event.getAgent();
-            if (agent != null && agent.getAgentState() != null) {
-                String sid = agent.getAgentState().getSessionId();
-                if (sid != null && !sid.isBlank()) {
-                    return sid;
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return "session-" + System.nanoTime();
-    }
-
-    private static String agentIdOf(io.agentscope.core.hook.HookEvent event) {
-        try {
-            io.agentscope.core.agent.Agent agent = event.getAgent();
-            if (agent != null && agent.getAgentId() != null && !agent.getAgentId().isBlank()) {
-                return agent.getAgentId();
-            }
-        } catch (Exception ignored) {
-        }
-        return "default";
-    }
-
-    /**
-     * Resolve the majo agent id for this event. The harness agent name is
-     * set to the majo agent id at build time (the internal agentId is an
-     * unrelated UUID), so resolve via the name.
-     */
-    private String majoAgentIdOf(io.agentscope.core.hook.HookEvent event) {
-        try {
-            io.agentscope.core.agent.Agent agent = event.getAgent();
-            if (agent != null) {
-                String name = agent.getName();
-                if (name != null && !name.isBlank()
-                        && com.agent.coding.agent.AgentStore.hasAgent(name)) {
-                    return name;
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return agentIdOf(event);
     }
 }
